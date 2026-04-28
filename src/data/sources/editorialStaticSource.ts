@@ -3,6 +3,47 @@ import type { EditorialArticle } from "@/domain/editorial/types";
 
 const editorialArticles: EditorialArticle[] = [
   {
+    id: "art-011",
+    slug: "mejores-sombrillas-resistentes-amazon-2026",
+    path: "/blog/mejores-sombrillas-resistentes-amazon-2026",
+    title: "Las 6 mejores sombrillas resistentes de Amazon para no pasar calor en la terraza",
+    excerpt:
+      "Comparativa editorial de 6 sombrillas resistentes con protección UPF 50+, precio visto desde €29,99 y recomendacion final por tipo de uso.",
+    coverImage: "https://m.media-amazon.com/images/I/51SmikZCEcL._AC_SX425_.jpg",
+    coverImageAlt: "SONGMICS Patio Umbrella UPF 50+ para terraza",
+    coverTone: "fresh",
+    categorySlug: "jardin",
+    categoryName: "Jardin",
+    intent: "comparativa",
+    tags: ["sombrilla resistente", "protección solar", "UPF 50+", "terraza", "jardin", "guia de compra"],
+    readMinutes: 13,
+    averageBudget: 104,
+    relatedCategorySlugs: ["jardin", "muebles", "hogar"],
+    relatedProductSlugs: [],
+    publishedAt: "2026-04-21T14:00:00.000Z",
+    updatedAt: "2026-04-21T14:00:00.000Z",
+    views: 0,
+    isFeatured: true,
+    status: "published",
+    sections: [
+      {
+        heading: "Como se ha construido este top 6",
+        body:
+          "La comparativa cruza precio visible, protección UPF verificada, tamaño de cobertura, peso y utilidad real por perfil de terraza para reducir riesgo antes de pagar.",
+      },
+      {
+        heading: "Que mirar antes de comprar una sombrilla resistente",
+        body:
+          "Prioriza certificación UPF 50+, material de la tela (mínimo 180 g/m²), tamaño de cobertura real y facilidad de ajuste. En sombrillas, esos cuatro puntos marcan la diferencia entre protección real y falsa sensación de seguridad.",
+      },
+      {
+        heading: "Resumen editorial",
+        body:
+          "Para iniciarte sin gasto: SONGMICS de 190×120 cm a €29,99. Para terraza completa: Acomoda Textil 200×300 cm a €49,99. Para confort total con inclinación: SONGMICS 300 cm o Brumisol premium con manivela.",
+      },
+    ],
+  },
+  {
     id: "art-010",
     slug: "mejores-microondas-sin-plato-giratorio-2026",
     path: "/blog/mejores-microondas-sin-plato-giratorio-2026",

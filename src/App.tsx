@@ -49,6 +49,7 @@ const BestSuperautomaticCoffeeMachines2026Page = lazy(() => import("./pages/blog
 const BestThermomixAlternatives2026Page = lazy(() => import("./pages/blog/BestThermomixAlternatives2026Page.tsx"));
 const BestLowConsumptionFridgeFreezers2026Page = lazy(() => import("./pages/blog/BestLowConsumptionFridgeFreezers2026Page.tsx"));
 const BestNoTurntableMicrowaves2026Page = lazy(() => import("./pages/blog/BestNoTurntableMicrowaves2026Page.tsx"));
+const BestResistantUmbrellasPage = lazy(() => import("./pages/blog/BestResistantUmbrellasPage.tsx"));
 const EditorialArticlePage = lazy(() => import("./pages/blog/EditorialArticlePage.tsx"));
 
 const queryClient = new QueryClient();
@@ -117,6 +118,10 @@ function AppRuntime() {
               <Route
                 path="/blog/mejores-microondas-sin-plato-giratorio-2026"
                 element={<BestNoTurntableMicrowaves2026Page />}
+              />
+              <Route
+                path="/blog/mejores-sombrillas-resistentes-amazon-2026"
+                element={<BestResistantUmbrellasPage />}
               />
               <Route path="/blog/:slug" element={<EditorialArticlePage />} />
 
