@@ -3,6 +3,47 @@ import type { EditorialArticle } from "@/domain/editorial/types";
 
 const editorialArticles: EditorialArticle[] = [
   {
+    id: "art-012",
+    slug: "mejores-piscinas-desmontables-baratas-amazon-2026",
+    path: "/blog/mejores-piscinas-desmontables-baratas-amazon-2026",
+    title: "Las mejores piscinas desmontables baratas en Amazon para sobrevivir al calor este verano 2026",
+    excerpt:
+      "Comparativa editorial de 5 piscinas desmontables baratas en Amazon con precios vistos, estructura y recomendación final por tipo de patio.",
+    coverImage: "https://m.media-amazon.com/images/I/61Yj7vQtbAL._AC_SX569_.jpg",
+    coverImageAlt: "Piscina desmontable Intex Small Frame 300 x 200 x 75 cm",
+    coverTone: "fresh",
+    categorySlug: "jardin",
+    categoryName: "Jardin",
+    intent: "comparativa",
+    tags: ["piscinas desmontables", "piscinas baratas", "verano", "amazon", "jardin", "guia de compra"],
+    readMinutes: 12,
+    averageBudget: 87,
+    relatedCategorySlugs: ["jardin", "hogar", "muebles"],
+    relatedProductSlugs: [],
+    publishedAt: "2026-04-28T12:00:00.000Z",
+    updatedAt: "2026-04-28T12:00:00.000Z",
+    views: 0,
+    isFeatured: true,
+    status: "published",
+    sections: [
+      {
+        heading: "Como se ha construido este top 5",
+        body:
+          "La selección prioriza estructuras desmontables conocidas, facilidad de montaje y utilidad real para patios pequeños o uso familiar sin gastar de más.",
+      },
+      {
+        heading: "Qué mirar antes de comprar una piscina desmontable barata",
+        body:
+          "Espacio disponible, tipo de estructura (autoportante vs metal/prism) y tiempo de montaje son los tres filtros más útiles antes de decidir.",
+      },
+      {
+        heading: "Resumen editorial",
+        body:
+          "Para empezar con poco presupuesto: formatos Small Frame y autoportantes. Para mayor estabilidad: Metal Frame. Para más espacio familiar: Prism Frame 305x76.",
+      },
+    ],
+  },
+  {
     id: "art-011",
     slug: "mejores-sombrillas-resistentes-amazon-2026",
     path: "/blog/mejores-sombrillas-resistentes-amazon-2026",

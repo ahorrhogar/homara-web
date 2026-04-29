@@ -50,6 +50,7 @@ const BestThermomixAlternatives2026Page = lazy(() => import("./pages/blog/BestTh
 const BestLowConsumptionFridgeFreezers2026Page = lazy(() => import("./pages/blog/BestLowConsumptionFridgeFreezers2026Page.tsx"));
 const BestNoTurntableMicrowaves2026Page = lazy(() => import("./pages/blog/BestNoTurntableMicrowaves2026Page.tsx"));
 const BestResistantUmbrellasPage = lazy(() => import("./pages/blog/BestResistantUmbrellasPage.tsx"));
+const BestCheapAboveGroundPools2026Page = lazy(() => import("./pages/blog/BestCheapAboveGroundPools2026Page.tsx"));
 const EditorialArticlePage = lazy(() => import("./pages/blog/EditorialArticlePage.tsx"));
 
 const queryClient = new QueryClient();
@@ -122,6 +123,10 @@ function AppRuntime() {
               <Route
                 path="/blog/mejores-sombrillas-resistentes-amazon-2026"
                 element={<BestResistantUmbrellasPage />}
+              />
+              <Route
+                path="/blog/mejores-piscinas-desmontables-baratas-amazon-2026"
+                element={<BestCheapAboveGroundPools2026Page />}
               />
               <Route path="/blog/:slug" element={<EditorialArticlePage />} />
 
