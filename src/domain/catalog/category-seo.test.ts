@@ -1,4 +1,3 @@
-import { describe, expect, it } from "vitest";
 import type { Category, Product, Subcategory } from "@/domain/catalog/types";
 import { buildCategorySeoDocument } from "@/domain/catalog/category-seo";
 

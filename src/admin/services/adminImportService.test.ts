@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+/** @jest-environment node */
 import { parseCsvPreview } from "@/admin/services/adminImportService";
 
 describe("adminImportService parseCsvPreview", () => {
