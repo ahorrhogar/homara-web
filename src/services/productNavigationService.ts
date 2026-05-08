@@ -4,7 +4,9 @@ import { analyticsService } from "@/services/analyticsService";
 import { canUseAnalytics } from "@/services/cookieConsentService";
 import { offerService } from "@/services/offerService";
 
-const useRedirectApi = (import.meta.env.VITE_USE_REDIRECT_API || "false") === "true";
+// Per the Next.js migration, every offer link flows through /api/redirect.
+// The legacy VITE_USE_REDIRECT_API toggle is removed.
+const useRedirectApi = true;
 
 export interface ProductNavigationTarget {
   href: string;
