@@ -1,7 +1,7 @@
 import { getOfferRedirectPayload, trackClick } from "@/data/sources/supabaseCatalogSource";
 import { isAffiliateUrlAllowed } from "@/infrastructure/security/affiliateUrl";
 import { logger } from "@/infrastructure/logging/logger";
-import { getServerSupabaseClient } from "@/server/nextjs/lib/supabaseServerClient";
+import { createAnonymousServerSupabaseClient } from "@/integrations/supabase/server";
 
 const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
@@ -10,12 +10,7 @@ function getClientIp(request: Request): string | undefined {
   const realIp = request.headers.get("x-real-ip") || "";
   const candidate = forwardedFor || realIp;
   const ip = candidate.split(",")[0]?.trim();
-
-  if (!ip) {
-    return undefined;
-  }
-
-  return ip;
+  return ip || undefined;
 }
 
 export async function GET(request: Request): Promise<Response> {
@@ -28,7 +23,7 @@ export async function GET(request: Request): Promise<Response> {
   }
 
   try {
-    const supabase = getServerSupabaseClient();
+    const supabase = await createAnonymousServerSupabaseClient();
     const offer = await getOfferRedirectPayload(offerId, supabase);
 
     if (!offer) {
@@ -63,10 +58,7 @@ export async function GET(request: Request): Promise<Response> {
       level: "error",
       message: "Redirect endpoint failed",
       timestamp: new Date().toISOString(),
-      context: {
-        offerId,
-        error,
-      },
+      context: { offerId, error },
     });
 
     return Response.json({ error: "Internal redirect error" }, { status: 500 });

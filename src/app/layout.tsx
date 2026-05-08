@@ -1,7 +1,12 @@
 import type { Metadata, Viewport } from "next";
+import { Suspense } from "react";
 import { Inter, Plus_Jakarta_Sans } from "next/font/google";
 import { Providers } from "@/app/providers";
 import { AnalyticsScripts } from "@/components/analytics/AnalyticsScripts";
+import Header from "@/components/layout/Header";
+import Footer from "@/components/layout/Footer";
+import CookieBanner from "@/components/layout/CookieBanner";
+import { getCategories } from "@/data/catalog/categories";
 import "@/app/globals.css";
 
 const inter = Inter({
@@ -67,15 +72,38 @@ export const metadata: Metadata = {
   },
 };
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default async function RootLayout({ children }: { children: React.ReactNode }) {
+  // Fetched once per request via tagged unstable_cache. Header + Footer share the same data.
+  const categories = await safeGetCategories();
+
   return (
     <html lang="es" className={`${inter.variable} ${jakarta.variable}`}>
       <body>
         <Providers>
-          {children}
+          <div className="min-h-screen flex flex-col">
+            <Suspense fallback={<HeaderFallback />}>
+              <Header categories={categories} />
+            </Suspense>
+            <div className="flex-1">{children}</div>
+            <Footer categories={categories} />
+          </div>
+          <CookieBanner />
           <AnalyticsScripts />
         </Providers>
       </body>
     </html>
   );
+}
+
+async function safeGetCategories() {
+  try {
+    return await getCategories();
+  } catch {
+    // If Supabase env is missing locally we still want the layout to render.
+    return [];
+  }
+}
+
+function HeaderFallback() {
+  return <div className="sticky top-0 z-50 h-[120px] bg-card border-b border-border" aria-hidden />;
 }
