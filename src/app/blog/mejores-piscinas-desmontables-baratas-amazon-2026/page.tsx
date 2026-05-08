@@ -1,10 +1,20 @@
-import { useEffect } from "react";
-import { Link } from "react-router-dom";
+import type { Metadata } from "next";
+import Link from "next/link";
 import { ArrowRight, BadgeEuro, ExternalLink, Sparkles, Star, Zap } from "lucide-react";
-import Header from "@/components/layout/Header";
-import Footer from "@/components/layout/Footer";
 import Breadcrumb from "@/components/layout/Breadcrumb";
-import { applyProductImageFallback, PRODUCT_IMAGE_FALLBACK } from "@/lib/productImage";
+import { JsonLd } from "@/components/seo/JsonLd";
+
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://homara.es";
+const PATH = "/blog/mejores-piscinas-desmontables-baratas-amazon-2026";
+const TITLE = "Las mejores piscinas desmontables baratas en Amazon (2026)";
+const DESCRIPTION = "Selección editorial de piscinas desmontables baratas y completas en Amazon 2026: capacidades, pros, contras y recomendación Homara.";
+
+export const metadata: Metadata = {
+  title: TITLE,
+  description: DESCRIPTION,
+  alternates: { canonical: PATH },
+  openGraph: { type: "article", title: TITLE, description: DESCRIPTION, url: SITE_URL + PATH },
+};
 
 type PoolProduct = {
   rank: number;
@@ -189,45 +199,12 @@ const faqs = [
   },
 ];
 
-const BestCheapAboveGroundPools2026Page = () => {
-  useEffect(() => {
-    const previousTitle = document.title;
-    const previousDescriptionTag = document.querySelector('meta[name="description"]');
-    const previousDescription = previousDescriptionTag?.getAttribute("content") || "";
-
-    document.title = "Las mejores piscinas desmontables baratas en Amazon 2026 | Homara";
-
-    let descriptionTag = previousDescriptionTag;
-    let createdTag = false;
-
-    if (!descriptionTag) {
-      descriptionTag = document.createElement("meta");
-      descriptionTag.setAttribute("name", "description");
-      document.head.appendChild(descriptionTag);
-      createdTag = true;
-    }
-
-    descriptionTag.setAttribute(
-      "content",
-      "Comparativa editorial de piscinas desmontables baratas en Amazon 2026: 5 modelos, puntos fuertes, pros y contras y recomendación final por tipo de patio.",
-    );
-
-    return () => {
-      document.title = previousTitle;
-      if (descriptionTag) {
-        if (createdTag) {
-          descriptionTag.remove();
-        } else {
-          descriptionTag.setAttribute("content", previousDescription);
-        }
-      }
-    };
-  }, []);
-
+export default function GuidePage() {
   return (
-    <div className="min-h-screen flex flex-col bg-background">
-      <Header />
-
+    <main className="container mx-auto px-4 pb-16">
+      <div className="py-2">
+        <Breadcrumb items={[{ label: "Guías", href: "/blog" }, { label: TITLE }]} />
+      </div>
       <main className="flex-1">
         <div className="container mx-auto px-4 py-2">
           <Breadcrumb
@@ -300,7 +277,6 @@ const BestCheapAboveGroundPools2026Page = () => {
                             alt={product.name}
                             loading="lazy"
                             className="h-full w-full object-contain p-1"
-                            onError={(event) => applyProductImageFallback(event.currentTarget)}
                           />
                         </div>
                       </td>
@@ -386,11 +362,10 @@ const BestCheapAboveGroundPools2026Page = () => {
                       className="group block overflow-hidden rounded-xl border border-border bg-background"
                     >
                       <img
-                        src={product.imageUrl || PRODUCT_IMAGE_FALLBACK}
+                        src={product.imageUrl || "/placeholder.svg"}
                         alt={product.name}
                         loading="lazy"
                         className="h-full w-full object-contain p-3 transition-transform duration-300 group-hover:scale-[1.03]"
-                        onError={(event) => applyProductImageFallback(event.currentTarget)}
                       />
                     </a>
 
@@ -467,7 +442,7 @@ const BestCheapAboveGroundPools2026Page = () => {
                           Ver oferta en Amazon <ExternalLink className="h-4 w-4" />
                         </a>
                         <Link
-                          to={`/buscar?q=${encodeURIComponent(`${product.brand} piscina desmontable`)}`}
+                          href={`/buscar?q=${encodeURIComponent(`${product.brand} piscina desmontable`)}`}
                           className="inline-flex items-center gap-2 rounded-xl border border-border px-4 py-2.5 text-sm font-semibold text-foreground hover:bg-secondary"
                         >
                           Comparar alternativas en Homara <ArrowRight className="h-4 w-4" />
@@ -538,13 +513,13 @@ const BestCheapAboveGroundPools2026Page = () => {
             <p className="mt-2 text-sm text-muted-foreground">Enlaces útiles para seguir comparando productos de verano en Homara.</p>
 
             <div className="mt-4 grid gap-3 md:grid-cols-2">
-              <Link to="/categoria/jardin-y-exterior" className="rounded-lg border border-border bg-background p-3 text-sm font-medium text-foreground hover:bg-secondary">Ver categoria Jardin y Exterior</Link>
-              <Link to="/categoria/jardin-y-exterior/mobiliario-de-exterior" className="rounded-lg border border-border bg-background p-3 text-sm font-medium text-foreground hover:bg-secondary">Ver mobiliario de exterior</Link>
-              <Link to="/categoria/jardin-y-exterior/mesas-de-exterior" className="rounded-lg border border-border bg-background p-3 text-sm font-medium text-foreground hover:bg-secondary">Ver mesas de exterior</Link>
-              <Link to="/buscar?q=piscina%20desmontable" className="rounded-lg border border-border bg-background p-3 text-sm font-medium text-foreground hover:bg-secondary">Buscar piscinas desmontables</Link>
-              <Link to="/buscar?q=intex" className="rounded-lg border border-border bg-background p-3 text-sm font-medium text-foreground hover:bg-secondary">Comparar modelos Intex</Link>
-              <Link to="/buscar?q=bestway" className="rounded-lg border border-border bg-background p-3 text-sm font-medium text-foreground hover:bg-secondary">Comparar modelos Bestway</Link>
-              <Link to="/asistente" className="rounded-lg border border-accent/40 bg-accent/10 p-3 text-sm font-semibold text-accent hover:bg-accent/20">Pedir recomendación al Asistente de Compras</Link>
+              <Link href="/categoria/jardin-y-exterior" className="rounded-lg border border-border bg-background p-3 text-sm font-medium text-foreground hover:bg-secondary">Ver categoria Jardin y Exterior</Link>
+              <Link href="/categoria/jardin-y-exterior/mobiliario-de-exterior" className="rounded-lg border border-border bg-background p-3 text-sm font-medium text-foreground hover:bg-secondary">Ver mobiliario de exterior</Link>
+              <Link href="/categoria/jardin-y-exterior/mesas-de-exterior" className="rounded-lg border border-border bg-background p-3 text-sm font-medium text-foreground hover:bg-secondary">Ver mesas de exterior</Link>
+              <Link href="/buscar?q=piscina%20desmontable" className="rounded-lg border border-border bg-background p-3 text-sm font-medium text-foreground hover:bg-secondary">Buscar piscinas desmontables</Link>
+              <Link href="/buscar?q=intex" className="rounded-lg border border-border bg-background p-3 text-sm font-medium text-foreground hover:bg-secondary">Comparar modelos Intex</Link>
+              <Link href="/buscar?q=bestway" className="rounded-lg border border-border bg-background p-3 text-sm font-medium text-foreground hover:bg-secondary">Comparar modelos Bestway</Link>
+              <Link href="/asistente" className="rounded-lg border border-accent/40 bg-accent/10 p-3 text-sm font-semibold text-accent hover:bg-accent/20">Pedir recomendación al Asistente de Compras</Link>
             </div>
 
             <div className="mt-6 rounded-lg border border-dashed border-border p-4 text-sm text-muted-foreground">
@@ -558,10 +533,6 @@ const BestCheapAboveGroundPools2026Page = () => {
           </section>
         </article>
       </main>
-
-      <Footer />
-    </div>
+    </main>
   );
-};
-
-export default BestCheapAboveGroundPools2026Page;
+}

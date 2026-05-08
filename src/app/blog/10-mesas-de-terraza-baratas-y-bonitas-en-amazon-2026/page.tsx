@@ -1,10 +1,20 @@
-import { useEffect } from "react";
-import { Link } from "react-router-dom";
+import type { Metadata } from "next";
+import Link from "next/link";
 import { ArrowRight, BadgeEuro, ChefHat, ExternalLink, Sparkles, Star, Zap } from "lucide-react";
-import Header from "@/components/layout/Header";
-import Footer from "@/components/layout/Footer";
 import Breadcrumb from "@/components/layout/Breadcrumb";
-import { applyProductImageFallback, PRODUCT_IMAGE_FALLBACK } from "@/lib/productImage";
+import { JsonLd } from "@/components/seo/JsonLd";
+
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://homara.es";
+const PATH = "/blog/10-mesas-de-terraza-baratas-y-bonitas-en-amazon-2026";
+const TITLE = "10 mesas de terraza baratas y bonitas en Amazon (2026)";
+const DESCRIPTION = "Selección editorial de 10 mesas de terraza baratas y bonitas en Amazon en 2026: comparativa, pros, contras y guía de compra Homara.";
+
+export const metadata: Metadata = {
+  title: TITLE,
+  description: DESCRIPTION,
+  alternates: { canonical: PATH },
+  openGraph: { type: "article", title: TITLE, description: DESCRIPTION, url: SITE_URL + PATH },
+};
 
 type TerraceTableProduct = {
   rank: number;
@@ -329,45 +339,12 @@ const faqs = [
   },
 ];
 
-const BestTerraceTablesCheapPretty2026Page = () => {
-  useEffect(() => {
-    const previousTitle = document.title;
-    const previousDescriptionTag = document.querySelector('meta[name="description"]');
-    const previousDescription = previousDescriptionTag?.getAttribute("content") || "";
-
-    document.title = "10 mesas de terraza baratas y bonitas en Amazon (2026) | Homara";
-
-    let descriptionTag = previousDescriptionTag;
-    let createdTag = false;
-
-    if (!descriptionTag) {
-      descriptionTag = document.createElement("meta");
-      descriptionTag.setAttribute("name", "description");
-      document.head.appendChild(descriptionTag);
-      createdTag = true;
-    }
-
-    descriptionTag.setAttribute(
-      "content",
-      "Comparativa real de 10 mesas de terraza baratas y bonitas con precio visto, estrellas y recomendaciones para balcon y jardin. Encuentra rapido la opcion que mejor encaja y revisa ofertas en Amazon.",
-    );
-
-    return () => {
-      document.title = previousTitle;
-      if (descriptionTag) {
-        if (createdTag) {
-          descriptionTag.remove();
-        } else {
-          descriptionTag.setAttribute("content", previousDescription);
-        }
-      }
-    };
-  }, []);
-
+export default function GuidePage() {
   return (
-    <div className="min-h-screen flex flex-col bg-background">
-      <Header />
-
+    <main className="container mx-auto px-4 pb-16">
+      <div className="py-2">
+        <Breadcrumb items={[{ label: "Guías", href: "/blog" }, { label: TITLE }]} />
+      </div>
       <main className="flex-1">
         <div className="container mx-auto px-4 py-2">
           <Breadcrumb
@@ -437,11 +414,10 @@ const BestTerraceTablesCheapPretty2026Page = () => {
                       <td className="px-4 py-3">
                         <div className="h-14 w-14 overflow-hidden rounded-lg border border-border bg-background">
                           <img
-                            src={product.imageUrl || PRODUCT_IMAGE_FALLBACK}
+                            src={product.imageUrl || "/placeholder.svg"}
                             alt={product.name}
                             loading="lazy"
                             className="h-full w-full object-contain p-1"
-                            onError={(event) => applyProductImageFallback(event.currentTarget)}
                           />
                         </div>
                       </td>
@@ -503,11 +479,10 @@ const BestTerraceTablesCheapPretty2026Page = () => {
                       className="group block overflow-hidden rounded-xl border border-border bg-background"
                     >
                       <img
-                        src={product.imageUrl || PRODUCT_IMAGE_FALLBACK}
+                        src={product.imageUrl || "/placeholder.svg"}
                         alt={product.name}
                         loading="lazy"
                         className="h-full w-full object-contain p-3 transition-transform duration-300 group-hover:scale-[1.03]"
-                        onError={(event) => applyProductImageFallback(event.currentTarget)}
                       />
                     </a>
 
@@ -580,7 +555,7 @@ const BestTerraceTablesCheapPretty2026Page = () => {
                           Ver oferta en Amazon <ExternalLink className="h-4 w-4" />
                         </a>
                         <Link
-                          to={`/buscar?q=${encodeURIComponent(`${product.brand} mesa terraza`)}`}
+                          href={`/buscar?q=${encodeURIComponent(`${product.brand} mesa terraza`)}`}
                           className="inline-flex items-center gap-2 rounded-xl border border-border px-4 py-2.5 text-sm font-semibold text-foreground hover:bg-secondary"
                         >
                           Comparar alternativas en Homara <ArrowRight className="h-4 w-4" />
@@ -651,20 +626,16 @@ const BestTerraceTablesCheapPretty2026Page = () => {
             <p className="mt-2 text-sm text-muted-foreground">Enlaces internos para continuar la decision segun presupuesto, estilo y uso real.</p>
 
             <div className="mt-4 grid gap-3 md:grid-cols-2">
-              <Link to="/buscar?q=mesa%20de%20terraza" className="rounded-lg border border-border bg-background p-3 text-sm font-medium text-foreground hover:bg-secondary">Buscar mesas de terraza</Link>
-              <Link to="/buscar?q=mesa%20de%20jardin" className="rounded-lg border border-border bg-background p-3 text-sm font-medium text-foreground hover:bg-secondary">Comparar mesas de jardin</Link>
-              <Link to="/buscar?q=mesa%20plegable%20exterior" className="rounded-lg border border-border bg-background p-3 text-sm font-medium text-foreground hover:bg-secondary">Ver mesas plegables de exterior</Link>
-              <Link to="/buscar?q=set%20mesa%20sillas%20terraza" className="rounded-lg border border-border bg-background p-3 text-sm font-medium text-foreground hover:bg-secondary">Ver sets mesa y sillas</Link>
-              <Link to="/guias" className="rounded-lg border border-border bg-background p-3 text-sm font-medium text-foreground hover:bg-secondary">Ver mas guias de compra</Link>
-              <Link to="/asistente" className="rounded-lg border border-accent/40 bg-accent/10 p-3 text-sm font-semibold text-accent hover:bg-accent/20">Pedir recomendacion al Asistente de Compras</Link>
+              <Link href="/buscar?q=mesa%20de%20terraza" className="rounded-lg border border-border bg-background p-3 text-sm font-medium text-foreground hover:bg-secondary">Buscar mesas de terraza</Link>
+              <Link href="/buscar?q=mesa%20de%20jardin" className="rounded-lg border border-border bg-background p-3 text-sm font-medium text-foreground hover:bg-secondary">Comparar mesas de jardin</Link>
+              <Link href="/buscar?q=mesa%20plegable%20exterior" className="rounded-lg border border-border bg-background p-3 text-sm font-medium text-foreground hover:bg-secondary">Ver mesas plegables de exterior</Link>
+              <Link href="/buscar?q=set%20mesa%20sillas%20terraza" className="rounded-lg border border-border bg-background p-3 text-sm font-medium text-foreground hover:bg-secondary">Ver sets mesa y sillas</Link>
+              <Link href="/blog" className="rounded-lg border border-border bg-background p-3 text-sm font-medium text-foreground hover:bg-secondary">Ver mas guias de compra</Link>
+              <Link href="/asistente" className="rounded-lg border border-accent/40 bg-accent/10 p-3 text-sm font-semibold text-accent hover:bg-accent/20">Pedir recomendacion al Asistente de Compras</Link>
             </div>
           </section>
         </article>
       </main>
-
-      <Footer />
-    </div>
+    </main>
   );
-};
-
-export default BestTerraceTablesCheapPretty2026Page;
+}

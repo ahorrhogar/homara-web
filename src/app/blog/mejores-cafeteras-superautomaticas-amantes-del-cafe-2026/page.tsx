@@ -1,10 +1,20 @@
-import { useEffect } from "react";
-import { Link } from "react-router-dom";
+import type { Metadata } from "next";
+import Link from "next/link";
 import { ArrowRight, BadgeEuro, Coffee, ExternalLink, Sparkles, Star, Zap } from "lucide-react";
-import Header from "@/components/layout/Header";
-import Footer from "@/components/layout/Footer";
 import Breadcrumb from "@/components/layout/Breadcrumb";
-import { applyProductImageFallback, PRODUCT_IMAGE_FALLBACK } from "@/lib/productImage";
+import { JsonLd } from "@/components/seo/JsonLd";
+
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://homara.es";
+const PATH = "/blog/mejores-cafeteras-superautomaticas-amantes-del-cafe-2026";
+const TITLE = "Las mejores cafeteras superautomáticas para amantes del café (2026)";
+const DESCRIPTION = "Comparativa editorial de las mejores cafeteras superautomáticas para amantes del café en 2026: modelos, pros, contras y recomendación Homara.";
+
+export const metadata: Metadata = {
+  title: TITLE,
+  description: DESCRIPTION,
+  alternates: { canonical: PATH },
+  openGraph: { type: "article", title: TITLE, description: DESCRIPTION, url: SITE_URL + PATH },
+};
 
 type CoffeeMachine = {
   rank: number;
@@ -189,45 +199,12 @@ const faqs = [
   },
 ];
 
-const BestSuperautomaticCoffeeMachines2026Page = () => {
-  useEffect(() => {
-    const previousTitle = document.title;
-    const previousDescriptionTag = document.querySelector('meta[name="description"]');
-    const previousDescription = previousDescriptionTag?.getAttribute("content") || "";
-
-    document.title = "Las 5 mejores cafeteras superautomaticas de 2026 para amantes del cafe | Homara";
-
-    let descriptionTag = previousDescriptionTag;
-    let createdTag = false;
-
-    if (!descriptionTag) {
-      descriptionTag = document.createElement("meta");
-      descriptionTag.setAttribute("name", "description");
-      document.head.appendChild(descriptionTag);
-      createdTag = true;
-    }
-
-    descriptionTag.setAttribute(
-      "content",
-      "Comparativa editorial premium de 5 cafeteras superautomaticas: precios vistos, claves, pros y contras, y recomendacion final para comprar con criterio.",
-    );
-
-    return () => {
-      document.title = previousTitle;
-      if (descriptionTag) {
-        if (createdTag) {
-          descriptionTag.remove();
-        } else {
-          descriptionTag.setAttribute("content", previousDescription);
-        }
-      }
-    };
-  }, []);
-
+export default function GuidePage() {
   return (
-    <div className="min-h-screen flex flex-col bg-background">
-      <Header />
-
+    <main className="container mx-auto px-4 pb-16">
+      <div className="py-2">
+        <Breadcrumb items={[{ label: "Guías", href: "/blog" }, { label: TITLE }]} />
+      </div>
       <main className="flex-1">
         <div className="container mx-auto px-4 py-2">
           <Breadcrumb
@@ -299,7 +276,6 @@ const BestSuperautomaticCoffeeMachines2026Page = () => {
                             alt={product.name}
                             loading="lazy"
                             className="h-full w-full object-contain p-1"
-                            onError={(event) => applyProductImageFallback(event.currentTarget)}
                           />
                         </div>
                       </td>
@@ -375,11 +351,10 @@ const BestSuperautomaticCoffeeMachines2026Page = () => {
                       className="group block overflow-hidden rounded-xl border border-border bg-background"
                     >
                       <img
-                        src={product.imageUrl || PRODUCT_IMAGE_FALLBACK}
+                        src={product.imageUrl || "/placeholder.svg"}
                         alt={product.name}
                         loading="lazy"
                         className="h-full w-full object-contain p-3 transition-transform duration-300 group-hover:scale-[1.03]"
-                        onError={(event) => applyProductImageFallback(event.currentTarget)}
                       />
                     </a>
 
@@ -465,7 +440,7 @@ const BestSuperautomaticCoffeeMachines2026Page = () => {
                           Ver oferta en Amazon <ExternalLink className="h-4 w-4" />
                         </a>
                         <Link
-                          to={`/buscar?q=${encodeURIComponent(`${product.brand} cafetera superautomatica`)}`}
+                          href={`/buscar?q=${encodeURIComponent(`${product.brand} cafetera superautomatica`)}`}
                           className="inline-flex items-center gap-2 rounded-xl border border-border px-4 py-2.5 text-sm font-semibold text-foreground hover:bg-secondary"
                         >
                           Comparar alternativas en Homara <ArrowRight className="h-4 w-4" />
@@ -531,12 +506,12 @@ const BestSuperautomaticCoffeeMachines2026Page = () => {
             <p className="mt-2 text-sm text-muted-foreground">Sigue comparando sin salir del ecosistema Homara.</p>
 
             <div className="mt-4 grid gap-3 md:grid-cols-2">
-              <Link to="/guias" className="rounded-lg border border-border bg-background p-3 text-sm font-medium text-foreground hover:bg-secondary">Ver todas las guias</Link>
-              <Link to="/categoria/cocina" className="rounded-lg border border-border bg-background p-3 text-sm font-medium text-foreground hover:bg-secondary">Ver categoria Cocina</Link>
-              <Link to="/categoria/electrodomesticos" className="rounded-lg border border-border bg-background p-3 text-sm font-medium text-foreground hover:bg-secondary">Ver categoria Electrodomesticos</Link>
-              <Link to="/buscar?q=cafetera%20superautomatica" className="rounded-lg border border-border bg-background p-3 text-sm font-medium text-foreground hover:bg-secondary">Buscar cafeteras superautomaticas</Link>
-              <Link to="/blog/mejores-freidoras-aire-amazon-2026-menos-100-euros" className="rounded-lg border border-border bg-background p-3 text-sm font-medium text-foreground hover:bg-secondary">Leer otra comparativa editorial</Link>
-              <Link to="/asistente" className="rounded-lg border border-accent/40 bg-accent/10 p-3 text-sm font-semibold text-accent hover:bg-accent/20">Pedir recomendacion al Asistente</Link>
+              <Link href="/blog" className="rounded-lg border border-border bg-background p-3 text-sm font-medium text-foreground hover:bg-secondary">Ver todas las guias</Link>
+              <Link href="/categoria/cocina" className="rounded-lg border border-border bg-background p-3 text-sm font-medium text-foreground hover:bg-secondary">Ver categoria Cocina</Link>
+              <Link href="/categoria/electrodomesticos" className="rounded-lg border border-border bg-background p-3 text-sm font-medium text-foreground hover:bg-secondary">Ver categoria Electrodomesticos</Link>
+              <Link href="/buscar?q=cafetera%20superautomatica" className="rounded-lg border border-border bg-background p-3 text-sm font-medium text-foreground hover:bg-secondary">Buscar cafeteras superautomaticas</Link>
+              <Link href="/blog/mejores-freidoras-aire-amazon-2026-menos-100-euros" className="rounded-lg border border-border bg-background p-3 text-sm font-medium text-foreground hover:bg-secondary">Leer otra comparativa editorial</Link>
+              <Link href="/asistente" className="rounded-lg border border-accent/40 bg-accent/10 p-3 text-sm font-semibold text-accent hover:bg-accent/20">Pedir recomendacion al Asistente</Link>
             </div>
           </section>
 
@@ -550,7 +525,7 @@ const BestSuperautomaticCoffeeMachines2026Page = () => {
 
             <div className="mt-5">
               <Link
-                to="/buscar?q=cafetera%20superautomatica"
+                href="/buscar?q=cafetera%20superautomatica"
                 className="inline-flex items-center gap-2 rounded-xl bg-accent px-4 py-2.5 text-sm font-semibold text-accent-foreground hover:opacity-90"
               >
                 Seguir comparando cafeteras en Homara <ArrowRight className="h-4 w-4" />
@@ -559,10 +534,6 @@ const BestSuperautomaticCoffeeMachines2026Page = () => {
           </section>
         </article>
       </main>
-
-      <Footer />
-    </div>
+    </main>
   );
-};
-
-export default BestSuperautomaticCoffeeMachines2026Page;
+}

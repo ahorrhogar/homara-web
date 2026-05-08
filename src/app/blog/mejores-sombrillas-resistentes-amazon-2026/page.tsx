@@ -1,10 +1,20 @@
-import { useEffect } from "react";
-import { Link } from "react-router-dom";
-import { ArrowRight, BadgeEuro, Cloud, ExternalLink, Sparkles, Star, Zap } from "lucide-react";
-import Header from "@/components/layout/Header";
-import Footer from "@/components/layout/Footer";
+import type { Metadata } from "next";
+import Link from "next/link";
+import { ArrowRight, BadgeEuro, Cloud, ExternalLink, Sparkles, Zap } from "lucide-react";
 import Breadcrumb from "@/components/layout/Breadcrumb";
-import { applyProductImageFallback, PRODUCT_IMAGE_FALLBACK } from "@/lib/productImage";
+import { JsonLd } from "@/components/seo/JsonLd";
+
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://homara.es";
+const PATH = "/blog/mejores-sombrillas-resistentes-amazon-2026";
+const TITLE = "Las mejores sombrillas resistentes en Amazon (2026)";
+const DESCRIPTION = "Selección editorial de las sombrillas resistentes al viento más vendidas en Amazon en 2026: análisis, pros, contras y recomendación Homara.";
+
+export const metadata: Metadata = {
+  title: TITLE,
+  description: DESCRIPTION,
+  alternates: { canonical: PATH },
+  openGraph: { type: "article", title: TITLE, description: DESCRIPTION, url: SITE_URL + PATH },
+};
 
 type UmbrellaProduct = {
   rank: number;
@@ -251,45 +261,12 @@ const faqs = [
   },
 ];
 
-const BestResistantUmbrellasPage = () => {
-  useEffect(() => {
-    const previousTitle = document.title;
-    const previousDescriptionTag = document.querySelector('meta[name="description"]');
-    const previousDescription = previousDescriptionTag?.getAttribute("content") || "";
-
-    document.title = "Las 6 mejores sombrillas resistentes 2026 | Amazon Homara";
-
-    let descriptionTag = previousDescriptionTag;
-    let createdTag = false;
-
-    if (!descriptionTag) {
-      descriptionTag = document.createElement("meta");
-      descriptionTag.setAttribute("name", "description");
-      document.head.appendChild(descriptionTag);
-      createdTag = true;
-    }
-
-    descriptionTag.setAttribute(
-      "content",
-      "Comparativa editorial de las 6 mejores sombrillas resistentes 2026: parasoles con UPF 50+, pros/contras, evaluación real y recomendación por uso."
-    );
-
-    return () => {
-      document.title = previousTitle;
-      if (descriptionTag) {
-        if (createdTag) {
-          descriptionTag.remove();
-        } else {
-          descriptionTag.setAttribute("content", previousDescription);
-        }
-      }
-    };
-  }, []);
-
+export default function GuidePage() {
   return (
-    <div className="min-h-screen flex flex-col bg-background">
-      <Header />
-
+    <main className="container mx-auto px-4 pb-16">
+      <div className="py-2">
+        <Breadcrumb items={[{ label: "Guías", href: "/blog" }, { label: TITLE }]} />
+      </div>
       <main className="flex-1">
         <div className="container mx-auto px-4 py-2">
           <Breadcrumb
@@ -361,7 +338,6 @@ const BestResistantUmbrellasPage = () => {
                             alt={product.name}
                             loading="lazy"
                             className="h-full w-full object-contain p-1"
-                            onError={(event) => applyProductImageFallback(event.currentTarget)}
                           />
                         </div>
                       </td>
@@ -424,11 +400,10 @@ const BestResistantUmbrellasPage = () => {
                       className="group block overflow-hidden rounded-xl border border-border bg-background"
                     >
                       <img
-                        src={product.imageUrl || PRODUCT_IMAGE_FALLBACK}
+                        src={product.imageUrl || "/placeholder.svg"}
                         alt={product.name}
                         loading="lazy"
                         className="h-full w-full object-contain p-3 transition-transform duration-300 group-hover:scale-[1.03]"
-                        onError={(event) => applyProductImageFallback(event.currentTarget)}
                       />
                     </a>
 
@@ -505,7 +480,7 @@ const BestResistantUmbrellasPage = () => {
                           Ver oferta en Amazon <ExternalLink className="h-4 w-4" />
                         </a>
                         <Link
-                          to={`/buscar?q=${encodeURIComponent(product.brand)}`}
+                          href={`/buscar?q=${encodeURIComponent(product.brand)}`}
                           className="inline-flex items-center gap-2 rounded-xl border border-border px-4 py-2.5 text-sm font-semibold text-foreground hover:bg-secondary"
                         >
                           Comparar alternativas <ArrowRight className="h-4 w-4" />
@@ -579,20 +554,16 @@ const BestResistantUmbrellasPage = () => {
             <p className="mt-2 text-sm text-muted-foreground">Enlaces internos útiles para continuar la decisión sin salir del ecosistema Homara.</p>
 
             <div className="mt-4 grid gap-3 md:grid-cols-2">
-              <Link to="/categoria/jardin-y-exterior" className="rounded-lg border border-border bg-background p-3 text-sm font-medium text-foreground hover:bg-secondary">Ver categoría Jardín y Exterior</Link>
-              <Link to="/categoria/jardin-y-exterior/mesas-de-exterior" className="rounded-lg border border-border bg-background p-3 text-sm font-medium text-foreground hover:bg-secondary">Ver mesas de terraza</Link>
-              <Link to="/buscar?q=sombrilla" className="rounded-lg border border-border bg-background p-3 text-sm font-medium text-foreground hover:bg-secondary">Buscar sombrillas en Homara</Link>
-              <Link to="/buscar?q=parasol%20terraza" className="rounded-lg border border-border bg-background p-3 text-sm font-medium text-foreground hover:bg-secondary">Comparar más parasoles</Link>
-              <Link to="/blog/10-mesas-de-terraza-baratas-y-bonitas-en-amazon-2026" className="rounded-lg border border-border bg-background p-3 text-sm font-medium text-foreground hover:bg-secondary">Mejores mesas de terraza 2026</Link>
-              <Link to="/asistente" className="rounded-lg border border-accent/40 bg-accent/10 p-3 text-sm font-semibold text-accent hover:bg-accent/20">Pedir recomendación al Asistente de Compras</Link>
+              <Link href="/categoria/jardin-y-exterior" className="rounded-lg border border-border bg-background p-3 text-sm font-medium text-foreground hover:bg-secondary">Ver categoría Jardín y Exterior</Link>
+              <Link href="/categoria/jardin-y-exterior/mesas-de-exterior" className="rounded-lg border border-border bg-background p-3 text-sm font-medium text-foreground hover:bg-secondary">Ver mesas de terraza</Link>
+              <Link href="/buscar?q=sombrilla" className="rounded-lg border border-border bg-background p-3 text-sm font-medium text-foreground hover:bg-secondary">Buscar sombrillas en Homara</Link>
+              <Link href="/buscar?q=parasol%20terraza" className="rounded-lg border border-border bg-background p-3 text-sm font-medium text-foreground hover:bg-secondary">Comparar más parasoles</Link>
+              <Link href="/blog/10-mesas-de-terraza-baratas-y-bonitas-en-amazon-2026" className="rounded-lg border border-border bg-background p-3 text-sm font-medium text-foreground hover:bg-secondary">Mejores mesas de terraza 2026</Link>
+              <Link href="/asistente" className="rounded-lg border border-accent/40 bg-accent/10 p-3 text-sm font-semibold text-accent hover:bg-accent/20">Pedir recomendación al Asistente de Compras</Link>
             </div>
           </section>
         </article>
       </main>
-
-      <Footer />
-    </div>
+    </main>
   );
-};
-
-export default BestResistantUmbrellasPage;
+}

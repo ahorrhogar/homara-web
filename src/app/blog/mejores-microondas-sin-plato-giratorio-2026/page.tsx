@@ -1,10 +1,20 @@
-import { useEffect } from "react";
-import { Link } from "react-router-dom";
+import type { Metadata } from "next";
+import Link from "next/link";
 import { ArrowRight, BadgeEuro, ChefHat, ExternalLink, Microwave, Scale, Sparkles, Star } from "lucide-react";
-import Header from "@/components/layout/Header";
-import Footer from "@/components/layout/Footer";
 import Breadcrumb from "@/components/layout/Breadcrumb";
-import { applyProductImageFallback, PRODUCT_IMAGE_FALLBACK } from "@/lib/productImage";
+import { JsonLd } from "@/components/seo/JsonLd";
+
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://homara.es";
+const PATH = "/blog/mejores-microondas-sin-plato-giratorio-2026";
+const TITLE = "Los mejores microondas sin plato giratorio (2026)";
+const DESCRIPTION = "Comparativa editorial de los mejores microondas sin plato giratorio en 2026: análisis, capacidad, pros, contras y recomendación Homara.";
+
+export const metadata: Metadata = {
+  title: TITLE,
+  description: DESCRIPTION,
+  alternates: { canonical: PATH },
+  openGraph: { type: "article", title: TITLE, description: DESCRIPTION, url: SITE_URL + PATH },
+};
 
 type MicrowaveProduct = {
   rank: number;
@@ -315,45 +325,12 @@ const faqs = [
   },
 ];
 
-const BestNoTurntableMicrowaves2026Page = () => {
-  useEffect(() => {
-    const previousTitle = document.title;
-    const previousDescriptionTag = document.querySelector('meta[name="description"]');
-    const previousDescription = previousDescriptionTag?.getAttribute("content") || "";
-
-    document.title = "Los 8 mejores microondas sin plato giratorio de 2026: comparativa real para comprar mejor | Homara";
-
-    let descriptionTag = previousDescriptionTag;
-    let createdTag = false;
-
-    if (!descriptionTag) {
-      descriptionTag = document.createElement("meta");
-      descriptionTag.setAttribute("name", "description");
-      document.head.appendChild(descriptionTag);
-      createdTag = true;
-    }
-
-    descriptionTag.setAttribute(
-      "content",
-      "Comparativa editorial de 8 microondas sin plato giratorio con precio visto, capacidad, potencia, pros, contras y recomendacion final por tipo de uso.",
-    );
-
-    return () => {
-      document.title = previousTitle;
-      if (descriptionTag) {
-        if (createdTag) {
-          descriptionTag.remove();
-        } else {
-          descriptionTag.setAttribute("content", previousDescription);
-        }
-      }
-    };
-  }, []);
-
+export default function GuidePage() {
   return (
-    <div className="min-h-screen flex flex-col bg-background">
-      <Header />
-
+    <main className="container mx-auto px-4 pb-16">
+      <div className="py-2">
+        <Breadcrumb items={[{ label: "Guías", href: "/blog" }, { label: TITLE }]} />
+      </div>
       <main className="flex-1">
         <div className="container mx-auto px-4 py-2">
           <Breadcrumb
@@ -428,7 +405,6 @@ const BestNoTurntableMicrowaves2026Page = () => {
                             alt={product.name}
                             loading="lazy"
                             className="h-full w-full object-contain p-1"
-                            onError={(event) => applyProductImageFallback(event.currentTarget)}
                           />
                         </div>
                       </td>
@@ -491,10 +467,6 @@ const BestNoTurntableMicrowaves2026Page = () => {
                       alt={product.name}
                       loading="lazy"
                       className="h-48 w-full object-contain"
-                      onError={(event) => {
-                        applyProductImageFallback(event.currentTarget);
-                        event.currentTarget.src = PRODUCT_IMAGE_FALLBACK;
-                      }}
                     />
                   </div>
 
@@ -611,7 +583,7 @@ const BestNoTurntableMicrowaves2026Page = () => {
             <h2 className="font-display text-2xl font-bold text-foreground md:text-3xl">Recomendaciones internas Homara</h2>
             <div className="mt-4 grid gap-3 md:grid-cols-2">
               <Link
-                to="/categoria/electrodomesticos"
+                href="/categoria/electrodomesticos"
                 className="group rounded-xl border border-border bg-background p-4 hover:border-accent/40"
               >
                 <p className="text-sm font-semibold text-foreground">Electrodomesticos</p>
@@ -622,7 +594,7 @@ const BestNoTurntableMicrowaves2026Page = () => {
               </Link>
 
               <Link
-                to="/categoria/cocina"
+                href="/categoria/cocina"
                 className="group rounded-xl border border-border bg-background p-4 hover:border-accent/40"
               >
                 <p className="text-sm font-semibold text-foreground">Cocina</p>
@@ -633,7 +605,7 @@ const BestNoTurntableMicrowaves2026Page = () => {
               </Link>
 
               <Link
-                to="/guias"
+                href="/blog"
                 className="group rounded-xl border border-border bg-background p-4 hover:border-accent/40"
               >
                 <p className="text-sm font-semibold text-foreground">Mas guias de compra</p>
@@ -644,7 +616,7 @@ const BestNoTurntableMicrowaves2026Page = () => {
               </Link>
 
               <Link
-                to="/asistente"
+                href="/asistente"
                 className="group rounded-xl border border-border bg-background p-4 hover:border-accent/40"
               >
                 <p className="text-sm font-semibold text-foreground">Asistente de compra Homara</p>
@@ -675,19 +647,19 @@ const BestNoTurntableMicrowaves2026Page = () => {
             </p>
             <div className="mt-4 flex flex-wrap gap-3">
               <Link
-                to="/guias"
+                href="/blog"
                 className="inline-flex items-center gap-2 rounded-lg border border-accent/50 bg-accent/10 px-4 py-2 text-sm font-semibold text-accent hover:bg-accent/20"
               >
                 Ver mas guias <ArrowRight className="h-4 w-4" />
               </Link>
               <Link
-                to="/buscar"
+                href="/buscar"
                 className="inline-flex items-center gap-2 rounded-lg border border-border bg-background px-4 py-2 text-sm font-semibold text-foreground hover:bg-secondary"
               >
                 Buscar productos <Scale className="h-4 w-4" />
               </Link>
               <Link
-                to="/categoria/electrodomesticos"
+                href="/categoria/electrodomesticos"
                 className="inline-flex items-center gap-2 rounded-lg border border-border bg-background px-4 py-2 text-sm font-semibold text-foreground hover:bg-secondary"
               >
                 Ver electrodomesticos <Microwave className="h-4 w-4" />
@@ -696,10 +668,6 @@ const BestNoTurntableMicrowaves2026Page = () => {
           </section>
         </article>
       </main>
-
-      <Footer />
-    </div>
+    </main>
   );
-};
-
-export default BestNoTurntableMicrowaves2026Page;
+}

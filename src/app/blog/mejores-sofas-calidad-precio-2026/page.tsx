@@ -1,10 +1,20 @@
-import { useEffect } from "react";
-import { Link } from "react-router-dom";
+import type { Metadata } from "next";
+import Link from "next/link";
 import { ArrowRight, BadgeEuro, ChefHat, ExternalLink, Sparkles, Star, Zap } from "lucide-react";
-import Header from "@/components/layout/Header";
-import Footer from "@/components/layout/Footer";
 import Breadcrumb from "@/components/layout/Breadcrumb";
-import { applyProductImageFallback, PRODUCT_IMAGE_FALLBACK } from "@/lib/productImage";
+import { JsonLd } from "@/components/seo/JsonLd";
+
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://homara.es";
+const PATH = "/blog/mejores-sofas-calidad-precio-2026";
+const TITLE = "Los 10 mejores sofás calidad precio de 2026";
+const DESCRIPTION = "Comparativa de los 10 mejores sofás calidad precio de 2026: modelos recomendados, pros y contras, tabla resumen y recomendación editorial de Homara.";
+
+export const metadata: Metadata = {
+  title: TITLE,
+  description: DESCRIPTION,
+  alternates: { canonical: PATH },
+  openGraph: { type: "article", title: TITLE, description: DESCRIPTION, url: SITE_URL + PATH },
+};
 
 type SofaProduct = {
   rank: number;
@@ -197,7 +207,7 @@ const sofaProducts: SofaProduct[] = [
     miniReview:
       "Una de las opciones mas practicas cuando quieres chaise y almacenaje sin ir a soluciones separadas.",
     affiliateUrl: "https://amzn.to/4myyuIG",
-    imageUrl: PRODUCT_IMAGE_FALLBACK,
+    imageUrl: "/placeholder.svg",
   },
   {
     rank: 7,
@@ -226,7 +236,7 @@ const sofaProducts: SofaProduct[] = [
     miniReview:
       "Alternativa razonable para quien busca un 3 plazas convencional sin extras que encarezcan.",
     affiliateUrl: "https://amzn.to/4dOBTB0",
-    imageUrl: PRODUCT_IMAGE_FALLBACK,
+    imageUrl: "/placeholder.svg",
   },
   {
     rank: 8,
@@ -255,7 +265,7 @@ const sofaProducts: SofaProduct[] = [
     miniReview:
       "Interesante si priorizas ancho util real y quieres evitar sensacion de sofa corto en salon familiar.",
     affiliateUrl: "https://amzn.to/4tdnkf2",
-    imageUrl: PRODUCT_IMAGE_FALLBACK,
+    imageUrl: "/placeholder.svg",
   },
   {
     rank: 9,
@@ -284,7 +294,7 @@ const sofaProducts: SofaProduct[] = [
     miniReview:
       "Un clasico funcional para quien necesita versatilidad sin complicarse con modulos.",
     affiliateUrl: "https://amzn.to/4vs7gaO",
-    imageUrl: PRODUCT_IMAGE_FALLBACK,
+    imageUrl: "/placeholder.svg",
   },
   {
     rank: 10,
@@ -313,7 +323,7 @@ const sofaProducts: SofaProduct[] = [
     miniReview:
       "Cierra el top por equilibrio entre presencia, comodidad y posibilidad de comprar en oferta.",
     affiliateUrl: "https://amzn.to/4cyATi0",
-    imageUrl: PRODUCT_IMAGE_FALLBACK,
+    imageUrl: "/placeholder.svg",
   },
 ];
 
@@ -336,45 +346,12 @@ const faqs = [
   },
 ];
 
-const BestSofasQualityPrice2026Page = () => {
-  useEffect(() => {
-    const previousTitle = document.title;
-    const previousDescriptionTag = document.querySelector('meta[name="description"]');
-    const previousDescription = previousDescriptionTag?.getAttribute("content") || "";
-
-    document.title = "Los 10 mejores sofas calidad precio de 2026 | Homara";
-
-    let descriptionTag = previousDescriptionTag;
-    let createdTag = false;
-
-    if (!descriptionTag) {
-      descriptionTag = document.createElement("meta");
-      descriptionTag.setAttribute("name", "description");
-      document.head.appendChild(descriptionTag);
-      createdTag = true;
-    }
-
-    descriptionTag.setAttribute(
-      "content",
-      "Comparativa de los 10 mejores sofas calidad precio de 2026: modelos recomendados, pros y contras, tabla resumen y recomendacion editorial de Homara.",
-    );
-
-    return () => {
-      document.title = previousTitle;
-      if (descriptionTag) {
-        if (createdTag) {
-          descriptionTag.remove();
-        } else {
-          descriptionTag.setAttribute("content", previousDescription);
-        }
-      }
-    };
-  }, []);
-
+export default function GuidePage() {
   return (
-    <div className="min-h-screen flex flex-col bg-background">
-      <Header />
-
+    <main className="container mx-auto px-4 pb-16">
+      <div className="py-2">
+        <Breadcrumb items={[{ label: "Guías", href: "/blog" }, { label: TITLE }]} />
+      </div>
       <main className="flex-1">
         <div className="container mx-auto px-4 py-2">
           <Breadcrumb
@@ -445,11 +422,10 @@ const BestSofasQualityPrice2026Page = () => {
                       <td className="px-4 py-3">
                         <div className="h-14 w-14 overflow-hidden rounded-lg border border-border bg-background">
                           <img
-                            src={product.imageUrl || PRODUCT_IMAGE_FALLBACK}
+                            src={product.imageUrl || "/placeholder.svg"}
                             alt={product.name}
                             loading="lazy"
                             className="h-full w-full object-contain p-1"
-                            onError={(event) => applyProductImageFallback(event.currentTarget)}
                           />
                         </div>
                       </td>
@@ -512,11 +488,10 @@ const BestSofasQualityPrice2026Page = () => {
                       className="group block overflow-hidden rounded-xl border border-border bg-background"
                     >
                       <img
-                        src={product.imageUrl || PRODUCT_IMAGE_FALLBACK}
+                        src={product.imageUrl || "/placeholder.svg"}
                         alt={product.name}
                         loading="lazy"
                         className="h-full w-full object-contain p-3 transition-transform duration-300 group-hover:scale-[1.03]"
-                        onError={(event) => applyProductImageFallback(event.currentTarget)}
                       />
                     </a>
 
@@ -593,7 +568,7 @@ const BestSofasQualityPrice2026Page = () => {
                           Ver oferta en Amazon <ExternalLink className="h-4 w-4" />
                         </a>
                         <Link
-                          to={`/buscar?q=${encodeURIComponent(`${product.brand} sofa`)}`}
+                          href={`/buscar?q=${encodeURIComponent(`${product.brand} sofa`)}`}
                           className="inline-flex items-center gap-2 rounded-xl border border-border px-4 py-2.5 text-sm font-semibold text-foreground hover:bg-secondary"
                         >
                           Comparar alternativas en Homara <ArrowRight className="h-4 w-4" />
@@ -664,12 +639,12 @@ const BestSofasQualityPrice2026Page = () => {
             <p className="mt-2 text-sm text-muted-foreground">Te dejamos enlaces internos utiles para continuar la decision sin salir del ecosistema Homara.</p>
 
             <div className="mt-4 grid gap-3 md:grid-cols-2">
-              <Link to="/buscar?q=sofa" className="rounded-lg border border-border bg-background p-3 text-sm font-medium text-foreground hover:bg-secondary">Buscar sofas en Homara</Link>
-              <Link to="/buscar?q=sofa%20chaise%20longue" className="rounded-lg border border-border bg-background p-3 text-sm font-medium text-foreground hover:bg-secondary">Ver sofas chaise longue</Link>
-              <Link to="/buscar?q=sofa%20cama" className="rounded-lg border border-border bg-background p-3 text-sm font-medium text-foreground hover:bg-secondary">Comparar sofas cama</Link>
-              <Link to="/buscar?q=sofa%203%20plazas" className="rounded-lg border border-border bg-background p-3 text-sm font-medium text-foreground hover:bg-secondary">Comparar sofas de 3 plazas</Link>
-              <Link to="/guias" className="rounded-lg border border-border bg-background p-3 text-sm font-medium text-foreground hover:bg-secondary">Ver mas guias de compra</Link>
-              <Link to="/asistente" className="rounded-lg border border-accent/40 bg-accent/10 p-3 text-sm font-semibold text-accent hover:bg-accent/20">Pedir recomendacion al Asistente de Compras</Link>
+              <Link href="/buscar?q=sofa" className="rounded-lg border border-border bg-background p-3 text-sm font-medium text-foreground hover:bg-secondary">Buscar sofas en Homara</Link>
+              <Link href="/buscar?q=sofa%20chaise%20longue" className="rounded-lg border border-border bg-background p-3 text-sm font-medium text-foreground hover:bg-secondary">Ver sofas chaise longue</Link>
+              <Link href="/buscar?q=sofa%20cama" className="rounded-lg border border-border bg-background p-3 text-sm font-medium text-foreground hover:bg-secondary">Comparar sofas cama</Link>
+              <Link href="/buscar?q=sofa%203%20plazas" className="rounded-lg border border-border bg-background p-3 text-sm font-medium text-foreground hover:bg-secondary">Comparar sofas de 3 plazas</Link>
+              <Link href="/blog" className="rounded-lg border border-border bg-background p-3 text-sm font-medium text-foreground hover:bg-secondary">Ver mas guias de compra</Link>
+              <Link href="/asistente" className="rounded-lg border border-accent/40 bg-accent/10 p-3 text-sm font-semibold text-accent hover:bg-accent/20">Pedir recomendacion al Asistente de Compras</Link>
             </div>
 
             <div className="mt-6 rounded-lg border border-dashed border-border p-4 text-sm text-muted-foreground">
@@ -683,10 +658,6 @@ const BestSofasQualityPrice2026Page = () => {
           </section>
         </article>
       </main>
-
-      <Footer />
-    </div>
+    </main>
   );
-};
-
-export default BestSofasQualityPrice2026Page;
+}
