@@ -15,6 +15,9 @@ node_modules
 out
 next-env.d.ts.bak
 
+# TypeScript incremental build cache
+*.tsbuildinfo
+
 # Build artifacts
 dist
 dist-ssr
