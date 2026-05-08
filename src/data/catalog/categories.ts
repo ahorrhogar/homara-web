@@ -4,10 +4,13 @@ import { unstable_cache } from "next/cache";
 import { createAnonymousServerSupabaseClient } from "@/integrations/supabase/server";
 import { getTrendingCategories as buildTrendingCategories } from "@/domain/catalog/category-logic";
 import type { Category, Subcategory, TrendingCategory } from "@/domain/catalog/types";
-import { getCatalogSnapshot } from "@/data/catalog/snapshot";
+import {
+  CATALOG_CACHE_TAG,
+  CATEGORIES_CACHE_TAG,
+  getCatalogSnapshot,
+} from "@/data/catalog/snapshot";
 
-export const CATALOG_CACHE_TAG = "catalog";
-export const CATEGORIES_CACHE_TAG = "categories";
+export { CATALOG_CACHE_TAG, CATEGORIES_CACHE_TAG };
 
 interface CategoryRow {
   id: string;

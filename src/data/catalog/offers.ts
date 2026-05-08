@@ -25,6 +25,4 @@ export async function getPriceAnalysis(productId: string): Promise<PriceAnalysis
   return buildPriceAnalysis(history);
 }
 
-// Re-exports — these are the affiliate redirect + click tracking primitives that
-// app/api/redirect/route.ts uses. Server actions invalidate via revalidateTag('offers').
-export { getOfferRedirectPayload, trackClick, trackSearchTerm } from "@/data/sources/supabaseCatalogSource";
+export { getOfferRedirectPayload, trackClick, trackSearchTerm } from "@/data/catalog/tracking";

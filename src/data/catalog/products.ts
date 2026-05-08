@@ -1,6 +1,7 @@
 import "server-only";
 
 import { getCatalogSnapshot } from "@/data/catalog/snapshot";
+import { getRankingSignals } from "@/data/catalog/ranking-signals";
 import { computeHomeCollections, type HomeCollections } from "@/domain/catalog/home-ranking";
 import { filterProducts, sortProducts } from "@/domain/catalog/product-logic";
 import type { Offer, Product, ProductFilters, ProductSortBy } from "@/domain/catalog/types";
@@ -63,7 +64,7 @@ export async function getRelatedProducts(
 /**
  * Returns the ranked home collections used by `app/page.tsx`. Reuses the pure
  * `computeHomeCollections` domain helper, fed with the cached snapshot's products,
- * offers, and ranking signals.
+ * offers, and the separately-cached ranking signals.
  */
 export async function getHomeCollections(limits?: {
   topProducts?: number;
@@ -73,7 +74,7 @@ export async function getHomeCollections(limits?: {
   favoriteProducts?: number;
   featuredProducts?: number;
 }): Promise<HomeCollections> {
-  const snapshot = await getCatalogSnapshot();
+  const [snapshot, signals] = await Promise.all([getCatalogSnapshot(), getRankingSignals()]);
 
   const offersByProductId = new Map<string, Offer[]>();
   for (const [productId, offers] of Object.entries(snapshot.offersByProductId)) {
@@ -84,7 +85,7 @@ export async function getHomeCollections(limits?: {
     {
       products: snapshot.products,
       offersByProductId,
-      signals: snapshot.rankingSignals,
+      signals,
     },
     {
       topProducts: limits?.topProducts ?? 6,
@@ -97,10 +98,6 @@ export async function getHomeCollections(limits?: {
   );
 }
 
-/**
- * Filtered + sorted product list for category and subcategory pages. Mirrors the
- * legacy productService.getFilteredProducts but reads from the tagged snapshot.
- */
 export async function getFilteredProducts(
   filters: ProductFilters,
   sortBy: ProductSortBy = "popular",
@@ -109,9 +106,4 @@ export async function getFilteredProducts(
   return sortProducts(filterProducts(products, filters), sortBy);
 }
 
-/**
- * Server-side product search. Reuses the legacy `searchProducts` helper which
- * handles tokenization, brand/category cross-matching, and Supabase fallback for
- * brand-name matches when the snapshot doesn't have a result.
- */
-export { searchProducts } from "@/data/sources/supabaseCatalogSource";
+export { searchProducts } from "@/data/catalog/search";

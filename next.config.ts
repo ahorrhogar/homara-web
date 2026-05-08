@@ -13,10 +13,6 @@ const supabaseHostname = (() => {
 const config: NextConfig = {
   reactStrictMode: true,
   poweredByHeader: false,
-  // TODO(migration): Remove once src/data/sources/* is replaced by src/data/catalog/*
-  // (see /Users/martiwarda/.claude/plans/notice-the-app-is-parsed-river.md step 7).
-  // The legacy data source has type drift the Vite build never enforced.
-  typescript: { ignoreBuildErrors: true },
   images: {
     remotePatterns: [
       ...(supabaseHostname

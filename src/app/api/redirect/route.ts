@@ -1,4 +1,4 @@
-import { getOfferRedirectPayload, trackClick } from "@/data/sources/supabaseCatalogSource";
+import { getOfferRedirectPayload, trackClick } from "@/data/catalog/tracking";
 import { isAffiliateUrlAllowed } from "@/infrastructure/security/affiliateUrl";
 import { logger } from "@/infrastructure/logging/logger";
 import { createAnonymousServerSupabaseClient } from "@/integrations/supabase/server";
