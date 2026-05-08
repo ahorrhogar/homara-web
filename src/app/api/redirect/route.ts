@@ -1,7 +1,6 @@
 import { getOfferRedirectPayload, trackClick } from "@/data/catalog/tracking";
 import { isAffiliateUrlAllowed } from "@/infrastructure/security/affiliateUrl";
 import { logger } from "@/infrastructure/logging/logger";
-import { createAnonymousServerSupabaseClient } from "@/integrations/supabase/server";
 
 const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
@@ -23,8 +22,7 @@ export async function GET(request: Request): Promise<Response> {
   }
 
   try {
-    const supabase = await createAnonymousServerSupabaseClient();
-    const offer = await getOfferRedirectPayload(offerId, supabase);
+    const offer = await getOfferRedirectPayload(offerId);
 
     if (!offer) {
       return Response.json({ error: "Offer not found" }, { status: 404 });
@@ -45,7 +43,7 @@ export async function GET(request: Request): Promise<Response> {
     }
 
     if (shouldTrack) {
-      await trackClick(offer.product_id, offer.merchant_id, supabase, {
+      await trackClick(offer.product_id, offer.merchant_id, {
         offerId: offer.id,
         ipAddress: getClientIp(request),
         userAgent: request.headers.get("user-agent") || undefined,

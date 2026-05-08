@@ -1,5 +1,6 @@
 import type { MetadataRoute } from "next";
-import { createAnonymousServerSupabaseClient } from "@/integrations/supabase/server";
+
+import { db } from "@/lib/db";
 
 export const revalidate = 3600;
 
@@ -34,22 +35,6 @@ const STATIC_ROUTES: Array<{
   { path: "/blog/mejores-piscinas-desmontables-baratas-amazon-2026", changeFrequency: "weekly", priority: 0.6 },
 ];
 
-interface CategoryRow {
-  slug: string;
-  parent_id: string | null;
-  parent: { slug: string } | null;
-  updated_at: string | null;
-  is_active: boolean;
-}
-
-interface ArticleRow {
-  slug: string | null;
-  path: string | null;
-  status: string | null;
-  published_at: string | null;
-  updated_at: string | null;
-}
-
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const generatedAt = new Date();
 
@@ -71,51 +56,48 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
 async function fetchDynamicEntries(): Promise<MetadataRoute.Sitemap> {
   try {
-    const supabase = await createAnonymousServerSupabaseClient();
-
-    const [categoriesResult, articlesResult] = await Promise.all([
-      supabase
-        .from("categories")
-        .select("slug,parent_id,updated_at,is_active,parent:categories!parent_id(slug)")
-        .eq("is_active", true),
-      supabase
-        .from("editorial_articles")
-        .select("slug,path,status,published_at,updated_at")
-        .eq("status", "published"),
+    const [categories, articles] = await Promise.all([
+      db.category.findMany({
+        select: {
+          slug: true,
+          parentId: true,
+          parent: { select: { slug: true } },
+        },
+      }),
+      db.editorialArticle.findMany({
+        where: { status: "published" },
+        select: { slug: true, path: true, publishedAt: true, updatedAt: true },
+      }),
     ]);
 
     const entries: MetadataRoute.Sitemap = [];
 
-    if (categoriesResult.data) {
-      for (const row of categoriesResult.data as unknown as CategoryRow[]) {
-        if (!row.slug) continue;
-        const parentSlug = Array.isArray(row.parent) ? row.parent[0]?.slug : row.parent?.slug;
-        const path = row.parent_id && parentSlug ? `/categoria/${parentSlug}/${row.slug}` : `/categoria/${row.slug}`;
-        entries.push({
-          url: `${SITE_URL}${path}`,
-          lastModified: row.updated_at ? new Date(row.updated_at) : undefined,
-          changeFrequency: row.parent_id ? "weekly" : "weekly",
-          priority: row.parent_id ? 0.7 : 0.8,
-        });
-      }
+    for (const row of categories) {
+      if (!row.slug) continue;
+      const parentSlug = row.parent?.slug;
+      const path =
+        row.parentId && parentSlug ? `/categoria/${parentSlug}/${row.slug}` : `/categoria/${row.slug}`;
+      entries.push({
+        url: `${SITE_URL}${path}`,
+        changeFrequency: "weekly",
+        priority: row.parentId ? 0.7 : 0.8,
+      });
     }
 
-    if (articlesResult.data) {
-      for (const row of articlesResult.data as ArticleRow[]) {
-        const articlePath = row.path || (row.slug ? `/blog/${row.slug}` : "");
-        if (!articlePath) continue;
-        entries.push({
-          url: `${SITE_URL}${articlePath}`,
-          lastModified: row.updated_at || row.published_at ? new Date(row.updated_at || row.published_at!) : undefined,
-          changeFrequency: "weekly",
-          priority: 0.6,
-        });
-      }
+    for (const row of articles) {
+      const articlePath = row.path || (row.slug ? `/blog/${row.slug}` : "");
+      if (!articlePath) continue;
+      const lastModified = row.updatedAt || row.publishedAt;
+      entries.push({
+        url: `${SITE_URL}${articlePath}`,
+        lastModified: lastModified || undefined,
+        changeFrequency: "weekly",
+        priority: 0.6,
+      });
     }
 
     return entries;
   } catch {
-    // Sitemap should never fail the deploy — fall back to static-only.
     return [];
   }
 }

@@ -1,11 +1,13 @@
 import "server-only";
 
-import type { SupabaseClient } from "@supabase/supabase-js";
+import { createHash } from "node:crypto";
 import { revalidateTag } from "next/cache";
-import { getAnonymousSupabaseClient } from "@/integrations/supabase/anonymous";
-import { logger } from "@/infrastructure/logging/logger";
+
 import { RANKING_SIGNALS_CACHE_TAG } from "@/data/catalog/snapshot";
 import type { OfferRedirectRow } from "@/data/catalog/_helpers";
+import { logger } from "@/infrastructure/logging/logger";
+import { db } from "@/lib/db";
+import { RATE_LIMITS } from "@/lib/redis";
 
 export interface TrackClickOptions {
   offerId?: string;
@@ -22,110 +24,140 @@ export interface TrackSearchTermOptions {
   userAgent?: string;
 }
 
-interface TrackClickRpcResponse {
-  accepted?: boolean;
-  reason?: string;
+const IP_HASH_SECRET = process.env.IP_HASH_SECRET || process.env.BETTER_AUTH_SECRET || "homara-ip";
+
+function hashIp(ip?: string | null): string | null {
+  if (!ip) return null;
+  return createHash("sha256").update(`${IP_HASH_SECRET}:${ip}`).digest("hex").slice(0, 32);
 }
 
-interface TrackSearchRpcResponse {
-  accepted?: boolean;
-  reason?: string;
+function rateLimitKey(scope: string, ip?: string | null, fallback?: string): string {
+  return `${scope}:${ip || fallback || "anon"}`;
 }
 
 export async function trackClick(
   productId: string,
   merchantId: string,
-  client?: SupabaseClient,
-  options?: TrackClickOptions,
+  options: TrackClickOptions = {},
 ): Promise<void> {
-  const supabase = client || getAnonymousSupabaseClient();
-  const { data, error } = await supabase.rpc("track_click_secure", {
-    p_product_id: productId,
-    p_merchant_id: merchantId,
-    p_offer_id: options?.offerId || null,
-    p_ip_override: options?.ipAddress || null,
-    p_user_agent_override: options?.userAgent || null,
-  });
+  if (!productId || !merchantId) return;
 
-  if (error) {
-    logger.log({
-      level: "warn",
-      message: "Click tracking RPC failed",
-      timestamp: new Date().toISOString(),
-      context: { productId, merchantId, offerId: options?.offerId || null, error },
-    });
-    return;
-  }
-
-  const payload = data && typeof data === "object" ? (data as TrackClickRpcResponse) : null;
-  if (!payload?.accepted) {
+  const ipHash = hashIp(options.ipAddress);
+  const limit = await RATE_LIMITS.click(rateLimitKey("click", options.ipAddress, productId));
+  if (!limit.success) {
     logger.log({
       level: "info",
-      message: "Click tracking blocked by anti-abuse controls",
+      message: "Click tracking rate-limited",
       timestamp: new Date().toISOString(),
-      context: {
-        productId,
-        merchantId,
-        offerId: options?.offerId || null,
-        reason: payload?.reason || "unknown",
-      },
+      context: { productId, merchantId, offerId: options.offerId ?? null },
     });
     return;
   }
 
-  // Click landed; ranking signals will be re-fetched on next read.
+  try {
+    await db.click.create({
+      data: {
+        productId,
+        merchantId,
+        offerId: options.offerId ?? null,
+        ipHash,
+        userAgent: options.userAgent ?? null,
+      },
+    });
+  } catch (error) {
+    logger.log({
+      level: "warn",
+      message: "Click write failed",
+      timestamp: new Date().toISOString(),
+      context: { productId, merchantId, offerId: options.offerId ?? null, error },
+    });
+    return;
+  }
+
   revalidateTag(RANKING_SIGNALS_CACHE_TAG);
+}
+
+const DIACRITICS = /[̀-ͯ]/g;
+
+function normalizeTerm(term: string): string {
+  return term.normalize("NFD").replace(DIACRITICS, "").toLowerCase().trim().replace(/\s+/g, " ");
 }
 
 export async function trackSearchTerm(
   term: string,
-  options?: TrackSearchTermOptions,
-  client?: SupabaseClient,
+  options: TrackSearchTermOptions = {},
 ): Promise<void> {
-  const normalizedTerm = String(term || "").trim();
-  if (normalizedTerm.length < 2) return;
+  const cleanTerm = String(term || "").trim();
+  if (cleanTerm.length < 2) return;
 
-  const supabase = client || getAnonymousSupabaseClient();
-  const { data, error } = await supabase.rpc("track_search_term_secure", {
-    p_term: normalizedTerm,
-    p_session_id: options?.sessionId || null,
-    p_result_count: Math.max(0, Math.floor(options?.resultCount || 0)),
-    p_top_product_id: options?.topProductId || null,
-    p_path: options?.path || null,
-    p_ip_override: options?.ipAddress || null,
-    p_user_agent_override: options?.userAgent || null,
-  });
+  const normalizedTerm = normalizeTerm(cleanTerm);
+  if (!normalizedTerm) return;
 
-  if (error) {
+  const limit = await RATE_LIMITS.searchTerm(
+    rateLimitKey("search", options.ipAddress, options.sessionId ?? "anon"),
+  );
+  if (!limit.success) return;
+
+  try {
+    await db.searchEvent.create({
+      data: {
+        sessionId: options.sessionId ?? "anon",
+        term: cleanTerm,
+        normalizedTerm,
+        resultCount: Math.max(0, Math.floor(options.resultCount ?? 0)),
+        topProductId: options.topProductId ?? null,
+        path: options.path ?? null,
+        ipHash: hashIp(options.ipAddress),
+        userAgent: options.userAgent ?? null,
+      },
+    });
+  } catch (error) {
     logger.log({
       level: "warn",
-      message: "Search tracking RPC failed",
+      message: "Search term write failed",
       timestamp: new Date().toISOString(),
       context: { term: normalizedTerm, error },
     });
     return;
   }
 
-  const payload = data && typeof data === "object" ? (data as TrackSearchRpcResponse) : null;
-  if (!payload?.accepted) return;
-
-  if (options?.topProductId) {
-    revalidateTag(RANKING_SIGNALS_CACHE_TAG);
-  }
+  if (options.topProductId) revalidateTag(RANKING_SIGNALS_CACHE_TAG);
 }
 
 export async function getOfferRedirectPayload(
   offerId: string,
-  client?: SupabaseClient,
 ): Promise<OfferRedirectRow | null> {
-  const supabase = client || getAnonymousSupabaseClient();
-  const { data, error } = await supabase
-    .from("offers")
-    .select("id,product_id,merchant_id,url,merchants(domain)")
-    .eq("id", offerId)
-    .maybeSingle();
+  if (!offerId) return null;
 
-  if (error) {
+  try {
+    const offer = await db.offer.findUnique({
+      where: { id: offerId },
+      select: {
+        id: true,
+        productId: true,
+        merchantId: true,
+        url: true,
+        merchant: { select: { name: true } },
+      },
+    });
+    if (!offer) return null;
+
+    const domain = (() => {
+      try {
+        return new URL(offer.url).hostname;
+      } catch {
+        return null;
+      }
+    })();
+
+    return {
+      id: offer.id,
+      product_id: offer.productId,
+      merchant_id: offer.merchantId,
+      url: offer.url,
+      merchant_domain: domain,
+    };
+  } catch (error) {
     logger.log({
       level: "warn",
       message: "Offer redirect lookup failed",
@@ -134,19 +166,4 @@ export async function getOfferRedirectPayload(
     });
     return null;
   }
-
-  if (!data) return null;
-
-  const merchantData =
-    data.merchants && typeof data.merchants === "object" && !Array.isArray(data.merchants)
-      ? (data.merchants as { domain?: unknown })
-      : null;
-
-  return {
-    id: String(data.id),
-    product_id: String(data.product_id),
-    merchant_id: String(data.merchant_id),
-    url: String(data.url || ""),
-    merchant_domain: merchantData?.domain ? String(merchantData.domain) : null,
-  };
 }

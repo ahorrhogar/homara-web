@@ -1,18 +1,29 @@
 "use server";
 
+import { headers } from "next/headers";
 import { redirect } from "next/navigation";
-import { createServerSupabaseClient } from "@/integrations/supabase/server";
+
 import { logger } from "@/infrastructure/logging/logger";
+import { auth } from "@/lib/auth";
+import { db } from "@/lib/db";
 
 type AuthAction = "auth.login" | "auth.logout" | "auth.login_failed";
 
-async function safeAudit(action: AuthAction, payload?: Record<string, unknown>): Promise<void> {
+const GENERIC_FAILURE = "Credenciales no válidas.";
+
+async function safeAudit(
+  action: AuthAction,
+  payload: Record<string, unknown> = {},
+  userId?: string,
+): Promise<void> {
   try {
-    const supabase = await createServerSupabaseClient();
-    await supabase.from("admin_actions").insert({
-      action,
-      entity_type: "auth",
-      payload: { source: "admin._actions.auth", ...(payload || {}) },
+    await db.adminAction.create({
+      data: {
+        action,
+        entityType: "auth",
+        userId: userId ?? null,
+        payload: { source: "admin._actions.auth", ...payload },
+      },
     });
   } catch {
     // Audit failures must never block sign-in/out flows.
@@ -26,7 +37,9 @@ export interface SignInResult {
 }
 
 export async function signInAdminAction(formData: FormData): Promise<SignInResult> {
-  const email = String(formData.get("email") || "").trim();
+  const email = String(formData.get("email") || "")
+    .trim()
+    .toLowerCase();
   const password = String(formData.get("password") || "");
   const redirectTo = String(formData.get("redirectTo") || "/admin");
 
@@ -34,33 +47,47 @@ export async function signInAdminAction(formData: FormData): Promise<SignInResul
     return { ok: false, message: "Introduce email y contraseña." };
   }
 
-  const supabase = await createServerSupabaseClient();
-  const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+  // Pre-flight role gate. Returning the same generic error for "no user",
+  // "non-admin", and "bad password" keeps account enumeration off the table.
+  const user = await db.user.findUnique({ where: { email }, select: { role: true } });
+  if (!user || user.role !== "admin") {
+    await safeAudit("auth.login_failed", { reason: user ? "non-admin" : "no-user", email });
+    return { ok: false, message: GENERIC_FAILURE };
+  }
 
-  if (error || !data.session) {
-    await safeAudit("auth.login_failed", { reason: error?.message });
+  try {
+    const result = await auth.api.signInEmail({
+      body: { email, password },
+      headers: await headers(),
+      asResponse: false,
+    });
+
+    if (!result?.user?.id) {
+      await safeAudit("auth.login_failed", { reason: "no-session", email });
+      return { ok: false, message: GENERIC_FAILURE };
+    }
+
+    await safeAudit("auth.login", { email }, result.user.id);
+    return { ok: true, redirectTo };
+  } catch (err) {
+    await safeAudit("auth.login_failed", {
+      reason: err instanceof Error ? err.message : "unknown",
+      email,
+    });
     logger.log({
       level: "warn",
       message: "Admin sign-in failed",
       timestamp: new Date().toISOString(),
-      context: { email, reason: error?.message },
+      context: { email },
     });
-    return { ok: false, message: "Credenciales no válidas." };
+    return { ok: false, message: GENERIC_FAILURE };
   }
-
-  const { data: isAdminData } = await supabase.rpc("is_admin", { user_id: data.user.id });
-  if (!isAdminData) {
-    await supabase.auth.signOut();
-    return { ok: false, message: "Esta cuenta no tiene permisos de administrador." };
-  }
-
-  await safeAudit("auth.login");
-  return { ok: true, redirectTo };
 }
 
 export async function signOutAdminAction(): Promise<void> {
-  const supabase = await createServerSupabaseClient();
-  await safeAudit("auth.logout");
-  await supabase.auth.signOut();
+  const reqHeaders = await headers();
+  const session = await auth.api.getSession({ headers: reqHeaders });
+  await safeAudit("auth.logout", {}, session?.user?.id);
+  await auth.api.signOut({ headers: reqHeaders });
   redirect("/admin/login");
 }
