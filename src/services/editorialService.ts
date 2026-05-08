@@ -1,6 +1,6 @@
-import { editorialStaticSource } from "@/data/sources/editorialStaticSource";
+import { editorialStaticSource } from "@/data/editorial/static-source";
 import { filterArticles, sortArticles } from "@/domain/editorial/article-logic";
-import { getSupabaseClient } from "@/integrations/supabase/client";
+import { getAnonymousSupabaseClient as getSupabaseClient } from "@/integrations/supabase/anonymous";
 import type {
   ArticleFilterOptions,
   ArticleFilters,

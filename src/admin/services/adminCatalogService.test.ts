@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+/** @jest-environment node */
 import { mapAdminErrorMessage } from "@/admin/services/adminCatalogService";
 
 describe("adminCatalogService mapAdminErrorMessage", () => {

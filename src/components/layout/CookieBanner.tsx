@@ -1,3 +1,5 @@
+"use client";
+
 import { useEffect, useState } from "react";
 import { ShieldCheck } from "lucide-react";
 import { useCookieConsent } from "@/hooks/useCookieConsent";

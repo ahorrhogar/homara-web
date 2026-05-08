@@ -1,14 +1,14 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+/** @jest-environment node */
 import { getSupabaseClient } from "@/integrations/supabase/client";
 import { listEditorialArticles, upsertEditorialArticle } from "@/admin/services/adminEditorialService";
 
-vi.mock("@/integrations/supabase/client", () => ({
-  getSupabaseClient: vi.fn(),
+jest.mock("@/integrations/supabase/client", () => ({
+  getSupabaseClient: jest.fn(),
 }));
 
 describe("adminEditorialService", () => {
   beforeEach(() => {
-    vi.clearAllMocks();
+    jest.clearAllMocks();
   });
 
   it("maps editorial rows in listEditorialArticles", async () => {
@@ -41,16 +41,16 @@ describe("adminEditorialService", () => {
       ],
       count: 1,
       error: null,
-      order: vi.fn().mockReturnThis(),
-      range: vi.fn().mockReturnThis(),
-      or: vi.fn().mockReturnThis(),
-      eq: vi.fn().mockReturnThis(),
+      order: jest.fn().mockReturnThis(),
+      range: jest.fn().mockReturnThis(),
+      or: jest.fn().mockReturnThis(),
+      eq: jest.fn().mockReturnThis(),
     };
 
-    const select = vi.fn().mockReturnValue(queryResult);
-    const from = vi.fn().mockReturnValue({ select });
+    const select = jest.fn().mockReturnValue(queryResult);
+    const from = jest.fn().mockReturnValue({ select });
 
-    vi.mocked(getSupabaseClient).mockReturnValue({ from } as never);
+    jest.mocked(getSupabaseClient).mockReturnValue({ from } as never);
 
     const result = await listEditorialArticles({ page: 1, pageSize: 20 });
 
@@ -60,7 +60,7 @@ describe("adminEditorialService", () => {
   });
 
   it("normalizes slug/path on upsertEditorialArticle", async () => {
-    const single = vi.fn().mockResolvedValue({
+    const single = jest.fn().mockResolvedValue({
       data: {
         id: "art-2",
         slug: "mi-articulo-de-prueba",
@@ -88,11 +88,11 @@ describe("adminEditorialService", () => {
       error: null,
     });
 
-    const select = vi.fn().mockReturnValue({ single });
-    const upsert = vi.fn().mockReturnValue({ select });
-    const insert = vi.fn().mockResolvedValue({ error: null });
+    const select = jest.fn().mockReturnValue({ single });
+    const upsert = jest.fn().mockReturnValue({ select });
+    const insert = jest.fn().mockResolvedValue({ error: null });
 
-    const from = vi.fn((table: string) => {
+    const from = jest.fn((table: string) => {
       if (table === "editorial_articles") {
         return { upsert };
       }
@@ -104,7 +104,7 @@ describe("adminEditorialService", () => {
       return {};
     });
 
-    vi.mocked(getSupabaseClient).mockReturnValue({ from } as never);
+    jest.mocked(getSupabaseClient).mockReturnValue({ from } as never);
 
     const result = await upsertEditorialArticle({
       title: "Mi articulo de prueba",

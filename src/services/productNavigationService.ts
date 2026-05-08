@@ -1,10 +1,5 @@
-import type { Offer, Product } from "@/domain/catalog/types";
-import { extractDomainFromAffiliateUrl, isAffiliateUrlAllowed } from "@/infrastructure/security/affiliateUrl";
+import type { Product } from "@/domain/catalog/types";
 import { analyticsService } from "@/services/analyticsService";
-import { canUseAnalytics } from "@/services/cookieConsentService";
-import { offerService } from "@/services/offerService";
-
-const useRedirectApi = (import.meta.env.VITE_USE_REDIRECT_API || "false") === "true";
 
 export interface ProductNavigationTarget {
   href: string;
@@ -17,36 +12,16 @@ function getInternalProductHref(product: Product): string {
   return `/producto/${product.slug}`;
 }
 
-function isDirectOfferUrlSafe(offer: Offer): boolean {
-  const merchantDomain = extractDomainFromAffiliateUrl(offer.merchant.url);
-  return isAffiliateUrlAllowed(offer.url, merchantDomain || undefined);
-}
-
+/**
+ * Builds the navigation target for a product card click. After the Next.js migration,
+ * cards always link to the internal product page (`/producto/<slug>`), where the
+ * comparator UI lives. The merchant redirect (`/api/redirect?offerId=…&track=1`) is
+ * triggered from "Ir a la tienda" buttons on the product page itself.
+ */
 export function getProductNavigationTarget(product: Product): ProductNavigationTarget {
-  const fallback: ProductNavigationTarget = {
+  return {
     href: getInternalProductHref(product),
     isDirectAffiliateOffer: false,
-  };
-
-  const offers = offerService.getOffersForProduct(product.id);
-  if (offers.length !== 1) {
-    return fallback;
-  }
-
-  const [offer] = offers;
-  if (!isDirectOfferUrlSafe(offer)) {
-    return fallback;
-  }
-
-  const href = useRedirectApi
-    ? `/api/redirect?offerId=${encodeURIComponent(offer.id)}&track=${canUseAnalytics() ? "1" : "0"}`
-    : offer.url;
-
-  return {
-    href,
-    isDirectAffiliateOffer: true,
-    offerId: offer.id,
-    merchantId: offer.merchantId,
   };
 }
 
@@ -67,8 +42,4 @@ export function trackDirectOfferNavigation(
       merchantId: target.merchantId,
     },
   });
-
-  if (!useRedirectApi) {
-    void offerService.trackClick(product.id, target.merchantId);
-  }
 }

@@ -1,5 +1,5 @@
 import { CalendarDays, ArrowUpRight, Clock3, Tag } from "lucide-react";
-import { Link } from "react-router-dom";
+import Link from 'next/link';
 import { Badge } from "@/components/ui/badge";
 import type { EditorialArticle } from "@/domain/editorial/types";
 import { cn } from "@/lib/utils";
@@ -89,7 +89,7 @@ const EditorialArticleCard = ({ article, compact = false }: EditorialArticleCard
 
         <div className="mt-5 flex flex-wrap items-center gap-2">
           <Link
-            to={article.path}
+            href={article.path}
             className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground transition-opacity hover:opacity-90"
           >
             Leer guia
@@ -97,7 +97,7 @@ const EditorialArticleCard = ({ article, compact = false }: EditorialArticleCard
           </Link>
 
           <Link
-            to={`/categoria/${article.categorySlug}`}
+            href={`/categoria/${article.categorySlug}`}
             className="inline-flex items-center rounded-lg border border-border px-3 py-2 text-xs font-semibold text-foreground hover:bg-secondary"
           >
             Ver productos de {article.categoryName}

@@ -1,6 +1,18 @@
 import { getSupabaseClient } from "@/integrations/supabase/client";
 import { sanitizeNumber, sanitizeText } from "@/infrastructure/security/sanitize";
-import { invalidateCatalogSnapshotCache, refreshCatalogSnapshotNow } from "@/data/sources/supabaseCatalogSource";
+import { invalidateCatalogCacheAction } from "@/admin/_actions/cache";
+
+// Browser-side cache invalidation hook. Admin mutations call this after a successful
+// write so the public-site `unstable_cache` tag pipeline picks up the change. The
+// legacy in-process snapshot cache is gone — see /api/admin/_actions/cache for the
+// server-side implementation.
+function invalidateCatalogSnapshotCache(): void {
+  void invalidateCatalogCacheAction();
+}
+
+async function refreshCatalogSnapshotNow(): Promise<void> {
+  await invalidateCatalogCacheAction();
+}
 import {
   extractDomainFromAffiliateUrl,
   isAffiliateUrlAllowed,
