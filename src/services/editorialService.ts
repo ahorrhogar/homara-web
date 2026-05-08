@@ -1,6 +1,6 @@
 import { editorialStaticSource } from "@/data/editorial/static-source";
 import { filterArticles, sortArticles } from "@/domain/editorial/article-logic";
-import { getAnonymousSupabaseClient as getSupabaseClient } from "@/integrations/supabase/anonymous";
+import { db } from "@/lib/db";
 import type {
   ArticleFilterOptions,
   ArticleFilters,
@@ -166,20 +166,36 @@ class StaticEditorialService implements EditorialService {
 
   private async getRemoteArticles(): Promise<EditorialArticle[] | null> {
     try {
-      const supabase = getSupabaseClient();
-      const { data, error } = await supabase
-        .from("editorial_articles")
-        .select(
-          "id,slug,path,title,excerpt,cover_image,cover_image_alt,cover_tone,category_slug,category_name,intent,tags,read_minutes,average_budget,related_category_slugs,related_product_slugs,published_at,updated_at,views_count,is_featured,status,sections",
-        )
-        .order("published_at", { ascending: false, nullsFirst: false })
-        .order("updated_at", { ascending: false });
+      const rows = await db.editorialArticle.findMany({
+        orderBy: [{ publishedAt: { sort: "desc", nulls: "last" } }, { updatedAt: "desc" }],
+      });
 
-      if (error) {
-        return null;
-      }
-
-      return (data || []).map((row) => this.mapRowToArticle(row as EditorialArticleRow));
+      return rows.map((row) =>
+        this.mapRowToArticle({
+          id: row.id,
+          slug: row.slug,
+          path: row.path,
+          title: row.title,
+          excerpt: row.excerpt,
+          cover_image: row.coverImage,
+          cover_image_alt: row.coverImageAlt,
+          cover_tone: row.coverTone as EditorialArticleRow["cover_tone"],
+          category_slug: row.categorySlug,
+          category_name: row.categoryName,
+          intent: row.intent as EditorialArticleRow["intent"],
+          tags: row.tags,
+          read_minutes: row.readMinutes,
+          average_budget: row.averageBudget ? Number(row.averageBudget) : null,
+          related_category_slugs: row.relatedCategorySlugs,
+          related_product_slugs: row.relatedProductSlugs,
+          published_at: row.publishedAt ? row.publishedAt.toISOString() : null,
+          updated_at: row.updatedAt.toISOString(),
+          views_count: row.viewsCount,
+          is_featured: row.isFeatured,
+          status: row.status as ArticleStatus,
+          sections: Array.isArray(row.sections) ? (row.sections as Array<{ heading?: string; body?: string }>) : null,
+        }),
+      );
     } catch {
       return null;
     }

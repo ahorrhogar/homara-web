@@ -1,8 +1,11 @@
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
 import Link from "next/link";
-import { createServerSupabaseClient } from "@/integrations/supabase/server";
+import { headers } from "next/headers";
+import { redirect } from "next/navigation";
+
 import { signOutAdminAction } from "@/admin/_actions/auth";
+import { auth } from "@/lib/auth";
 
 export const metadata: Metadata = {
   title: { default: "Admin · Homara", template: "%s · Admin · Homara" },
@@ -24,9 +27,10 @@ const NAV_ITEMS = [
 ] as const;
 
 export default async function AdminPanelLayout({ children }: { children: ReactNode }) {
-  const supabase = await createServerSupabaseClient();
-  const { data } = await supabase.auth.getUser();
-  const email = data?.user?.email || "";
+  const session = await auth.api.getSession({ headers: await headers() });
+  if (!session?.user) redirect("/admin/login");
+  if ((session.user as { role?: string }).role !== "admin") redirect("/admin/denegado");
+  const email = session.user.email ?? "";
 
   return (
     <div className="flex min-h-screen bg-background">

@@ -1,4 +1,3 @@
-import { getSupabaseClient } from "@/integrations/supabase/client";
 import { canUseAnalytics } from "@/services/cookieConsentService";
 import { getAnalyticsSessionId } from "@/services/analyticsSession";
 
@@ -14,19 +13,13 @@ class EditorialTrackingService {
   private lastTrackedAtBySlug = new Map<string, number>();
 
   shouldTrack(slug: string, now = Date.now()): boolean {
-    if (!canUseAnalytics()) {
-      return false;
-    }
+    if (!canUseAnalytics()) return false;
 
     const safeSlug = String(slug || "").trim().toLowerCase();
-    if (!safeSlug) {
-      return false;
-    }
+    if (!safeSlug) return false;
 
     const lastTrackedAt = this.lastTrackedAtBySlug.get(safeSlug) || 0;
-    if (now - lastTrackedAt < ARTICLE_VIEW_DEDUPE_WINDOW_MS) {
-      return false;
-    }
+    if (now - lastTrackedAt < ARTICLE_VIEW_DEDUPE_WINDOW_MS) return false;
 
     this.lastTrackedAtBySlug.set(safeSlug, now);
     return true;
@@ -34,17 +27,19 @@ class EditorialTrackingService {
 
   async trackArticleView(input: TrackArticleViewInput): Promise<void> {
     const safeSlug = String(input.slug || "").trim();
-    if (!this.shouldTrack(safeSlug)) {
-      return;
-    }
+    if (!this.shouldTrack(safeSlug)) return;
 
     try {
-      const supabase = getSupabaseClient();
-      await supabase.rpc("track_article_view_secure", {
-        p_article_slug: safeSlug,
-        p_session_id: getAnalyticsSessionId(),
-        p_path: input.path || (typeof window !== "undefined" ? window.location.pathname : null),
-        p_referrer: input.referrer || (typeof document !== "undefined" ? document.referrer : null),
+      await fetch("/api/track/article-view", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          slug: safeSlug,
+          sessionId: getAnalyticsSessionId(),
+          path: input.path || (typeof window !== "undefined" ? window.location.pathname : undefined),
+          referrer: input.referrer || (typeof document !== "undefined" ? document.referrer : undefined),
+        }),
+        keepalive: true,
       });
     } catch {
       // Tracking must never block editorial rendering.

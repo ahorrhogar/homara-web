@@ -1,55 +1,73 @@
-import { getSupabaseClient } from "@/integrations/supabase/client";
-import type { OfferSyncBatchResult, OfferSyncResult, OfferSyncService } from "@/domain/catalog/offer-sync";
+"use server";
+
+import { revalidateTag } from "next/cache";
+
+import { CATALOG_CACHE_TAG } from "@/data/catalog/snapshot";
+import type { OfferSyncBatchResult, OfferSyncResult } from "@/domain/catalog/offer-sync";
+import { requireAdmin } from "@/lib/admin-guard";
+import { db } from "@/lib/db";
 
 function safeReason(value: string | undefined, fallback: string): string {
   const text = String(value || "").trim();
   return text ? text.slice(0, 240) : fallback;
 }
 
-async function safeAdminAudit(action: string, entityId: string, payload: Record<string, unknown>): Promise<void> {
+async function safeAdminAudit(
+  action: string,
+  entityId: string,
+  payload: Record<string, unknown>,
+  userId?: string,
+): Promise<void> {
   try {
-    const supabase = getSupabaseClient();
-    await supabase.from("admin_actions").insert({
-      action,
-      entity_type: "offer",
-      entity_id: entityId,
-      payload: {
-        ...payload,
-        source: "offerSyncService",
+    await db.adminAction.create({
+      data: {
+        action,
+        entityType: "offer",
+        entityId,
+        userId: userId ?? null,
+        payload: { ...payload, source: "offerSyncService" },
       },
     });
   } catch {
-    // Audit errors must never block operational flows.
+    // Audit failures must never block operational flows.
   }
 }
 
 export async function mark_offer_stale(offerId: string, reason?: string): Promise<boolean> {
-  const supabase = getSupabaseClient();
-  const { data, error } = await supabase.rpc("mark_offer_stale", {
-    p_offer_id: offerId,
-    p_reason: safeReason(reason, "manual_mark_stale"),
+  const session = await requireAdmin();
+  const cleanReason = safeReason(reason, "manual_mark_stale");
+
+  const result = await db.offer.updateMany({
+    where: { id: offerId },
+    data: {
+      syncStatus: "stale",
+      freshnessScore: 0,
+      lastSyncError: cleanReason,
+      lastCheckedAt: new Date(),
+    },
   });
 
-  if (error) {
-    throw new Error(error.message || "No se pudo marcar la oferta como desactualizada");
-  }
-
-  await safeAdminAudit("offer.sync.mark_stale", offerId, { reason: safeReason(reason, "manual_mark_stale") });
-  return data === true;
+  await safeAdminAudit("offer.sync.mark_stale", offerId, { reason: cleanReason }, session.user.id);
+  if (result.count > 0) revalidateTag(CATALOG_CACHE_TAG, "default");
+  return result.count > 0;
 }
 
 export async function mark_offer_fresh(offerId: string): Promise<boolean> {
-  const supabase = getSupabaseClient();
-  const { data, error } = await supabase.rpc("mark_offer_fresh", {
-    p_offer_id: offerId,
+  const session = await requireAdmin();
+
+  const result = await db.offer.updateMany({
+    where: { id: offerId },
+    data: {
+      syncStatus: "ok",
+      freshnessScore: 100,
+      lastSyncError: null,
+      lastCheckedAt: new Date(),
+    },
   });
 
-  if (error) {
-    throw new Error(error.message || "No se pudo marcar la oferta como revisada");
-  }
-
-  await safeAdminAudit("offer.sync.mark_fresh", offerId, {});
-  return Boolean(data);
+  await safeAdminAudit("offer.sync.mark_fresh", offerId, {}, session.user.id);
+  if (result.count > 0) revalidateTag(CATALOG_CACHE_TAG, "default");
+  return result.count > 0;
 }
 
 export async function update_price_history_on_change(
@@ -57,36 +75,50 @@ export async function update_price_history_on_change(
   reason?: string,
   metadata?: Record<string, unknown>,
 ): Promise<boolean> {
-  const supabase = getSupabaseClient();
-  const { data, error } = await supabase.rpc("update_price_history_on_change", {
-    p_offer_id: offerId,
-    p_reason: safeReason(reason, "manual_review"),
-    p_metadata: metadata || {},
+  const session = await requireAdmin();
+  const cleanReason = safeReason(reason, "manual_review");
+
+  const offer = await db.offer.findUnique({
+    where: { id: offerId },
+    select: { id: true, productId: true, price: true },
+  });
+  if (!offer) return false;
+
+  await db.priceHistory.create({
+    data: {
+      productId: offer.productId,
+      price: offer.price,
+    },
   });
 
-  if (error) {
-    throw new Error(error.message || "No se pudo registrar historial de precio");
-  }
-
-  await safeAdminAudit("offer.sync.history_on_change", offerId, {
-    reason: safeReason(reason, "manual_review"),
-    metadata: metadata || {},
+  await db.offer.update({
+    where: { id: offerId },
+    data: { lastCheckedAt: new Date() },
   });
 
-  return Boolean(data);
+  await safeAdminAudit(
+    "offer.sync.history_on_change",
+    offerId,
+    { reason: cleanReason, metadata: metadata ?? {} },
+    session.user.id,
+  );
+
+  revalidateTag(CATALOG_CACHE_TAG, "default");
+  return true;
 }
 
 export async function sync_price_for_offer(offerId: string): Promise<OfferSyncResult> {
-  const supabase = getSupabaseClient();
-  const { data, error } = await supabase.rpc("sync_price_for_offer", {
-    p_offer_id: offerId,
-  });
+  const session = await requireAdmin();
 
-  if (error) {
-    throw new Error(error.message || "No se pudo encolar sincronizacion de oferta");
+  const offer = await db.offer.findUnique({ where: { id: offerId }, select: { id: true } });
+  const enqueued = Boolean(offer);
+
+  if (enqueued) {
+    await db.offer.update({
+      where: { id: offerId },
+      data: { nextCheckAt: new Date() },
+    });
   }
-
-  const enqueued = data === true;
 
   const result: OfferSyncResult = {
     offerId,
@@ -96,35 +128,31 @@ export async function sync_price_for_offer(offerId: string): Promise<OfferSyncRe
     reason: enqueued ? "sync_enqueued" : "offer_not_found",
   };
 
-  await safeAdminAudit("offer.sync.requested", offerId, {
-    enqueueResult: result.changed,
-  });
+  await safeAdminAudit(
+    "offer.sync.requested",
+    offerId,
+    { enqueueResult: result.changed },
+    session.user.id,
+  );
 
   return result;
 }
 
 export async function sync_offers_batch(limit = 50): Promise<OfferSyncBatchResult> {
-  const supabase = getSupabaseClient();
+  const session = await requireAdmin();
   const safeLimit = Math.max(1, Math.min(200, Math.floor(limit || 50)));
 
-  const { data, error } = await supabase.rpc("sync_offers_batch", {
-    p_limit: safeLimit,
+  const due = await db.offer.findMany({
+    where: {
+      isActive: true,
+      OR: [{ nextCheckAt: null }, { nextCheckAt: { lte: new Date() } }],
+    },
+    orderBy: [{ priorityScore: "desc" }, { nextCheckAt: "asc" }],
+    take: safeLimit,
+    select: { id: true },
   });
 
-  if (error) {
-    throw new Error(error.message || "No se pudo encolar lote de sincronizacion");
-  }
-
-  const syncedOfferIds = Array.isArray(data)
-    ? data
-        .map((row) => {
-          if (row && typeof row === "object" && "offer_id" in row) {
-            return String((row as { offer_id?: string }).offer_id || "");
-          }
-          return "";
-        })
-        .filter(Boolean)
-    : [];
+  const syncedOfferIds = due.map((row) => row.id);
 
   const result: OfferSyncBatchResult = {
     syncedOfferIds,
@@ -132,18 +160,12 @@ export async function sync_offers_batch(limit = 50): Promise<OfferSyncBatchResul
     failedOfferIds: [],
   };
 
-  await safeAdminAudit("offer.sync.batch_requested", "batch", {
-    requestedLimit: safeLimit,
-    enqueued: syncedOfferIds.length,
-  });
+  await safeAdminAudit(
+    "offer.sync.batch_requested",
+    "batch",
+    { requestedLimit: safeLimit, enqueued: syncedOfferIds.length },
+    session.user.id,
+  );
 
   return result;
 }
-
-export const offerSyncService: OfferSyncService = {
-  sync_price_for_offer,
-  sync_offers_batch,
-  mark_offer_stale,
-  mark_offer_fresh,
-  update_price_history_on_change,
-};

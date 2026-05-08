@@ -1,11 +1,10 @@
 import "server-only";
 
-import type { SupabaseClient } from "@supabase/supabase-js";
-import { getAnonymousSupabaseClient } from "@/integrations/supabase/anonymous";
-import { logger } from "@/infrastructure/logging/logger";
-import type { Product } from "@/domain/catalog/types";
 import { buildSearchTokens, normalizeSearchValue } from "@/data/catalog/_helpers";
 import { getCatalogSnapshot, type CatalogSnapshot } from "@/data/catalog/snapshot";
+import type { Product } from "@/domain/catalog/types";
+import { logger } from "@/infrastructure/logging/logger";
+import { db } from "@/lib/db";
 
 interface SnapshotCategoryLookup {
   categoryNameById: Map<string, string>;
@@ -30,7 +29,6 @@ function buildSnapshotCategoryLookup(snapshot: CatalogSnapshot): SnapshotCategor
       subcategoryNameById.set(subcategory.id, subcategory.name);
       subcategorySlugById.set(subcategory.id, subcategory.slug);
 
-      // Fallback when product.categoryId points to subcategory rows.
       if (!categoryNameById.has(subcategory.id)) {
         categoryNameById.set(subcategory.id, category.name);
       }
@@ -115,118 +113,29 @@ function searchProductsInSnapshot(snapshot: CatalogSnapshot, tokens: string[], l
     .map((entry) => entry.product);
 }
 
-function buildSearchOrFilter(tokens: string[]): string {
-  const expressions = tokens.flatMap((token) => [
-    `name.ilike.%${token}%`,
-    `description.ilike.%${token}%`,
-    `slug.ilike.%${token}%`,
-  ]);
-  return [...new Set(expressions)].join(",");
-}
-
-function buildNameSearchFilter(tokens: string[]): string {
-  const expressions = tokens.map((token) => `name.ilike.%${token}%`);
-  return [...new Set(expressions)].join(",");
-}
-
-async function searchProductIdsByBrandAndCategory(
-  tokens: string[],
-  supabase: SupabaseClient,
-  limit: number,
-): Promise<string[]> {
-  const nameSearchFilter = buildNameSearchFilter(tokens);
-  if (!nameSearchFilter) return [];
-
-  const [brandResult, categoryResult, merchantResult] = await Promise.all([
-    supabase.from("brands").select("id").or(nameSearchFilter).limit(25),
-    supabase.from("categories").select("id").or(nameSearchFilter).limit(50),
-    supabase.from("merchants").select("id").or(nameSearchFilter).limit(25),
+async function findRemoteCandidateIds(tokens: string[], limit: number): Promise<string[]> {
+  const orConditions = tokens.flatMap((token) => [
+    { name: { contains: token, mode: "insensitive" as const } },
+    { description: { contains: token, mode: "insensitive" as const } },
+    { brand: { name: { contains: token, mode: "insensitive" as const } } },
+    { category: { name: { contains: token, mode: "insensitive" as const } } },
+    {
+      offers: {
+        some: { merchant: { name: { contains: token, mode: "insensitive" as const } } },
+      },
+    },
   ]);
 
-  if (brandResult.error) throw brandResult.error;
-  if (categoryResult.error) throw categoryResult.error;
-  if (merchantResult.error) throw merchantResult.error;
+  const rows = await db.product.findMany({
+    where: { OR: orConditions, isActive: true },
+    select: { id: true },
+    take: limit,
+  });
 
-  const brandIds = (brandResult.data || [])
-    .map((row) => String((row as { id?: string }).id || ""))
-    .filter(Boolean);
-  const merchantIds = (merchantResult.data || [])
-    .map((row) => String((row as { id?: string }).id || ""))
-    .filter(Boolean);
-
-  const categoryIds = new Set(
-    (categoryResult.data || []).map((row) => String((row as { id?: string }).id || "")).filter(Boolean),
-  );
-
-  if (categoryIds.size > 0) {
-    const { data: childCategories, error: childCategoriesError } = await supabase
-      .from("categories")
-      .select("id")
-      .in("parent_id", Array.from(categoryIds));
-
-    if (childCategoriesError) throw childCategoriesError;
-
-    (childCategories || []).forEach((row) => {
-      const categoryId = String((row as { id?: string }).id || "");
-      if (categoryId) categoryIds.add(categoryId);
-    });
-  }
-
-  const matchedProductIds = new Set<string>();
-
-  if (brandIds.length > 0) {
-    const { data: productsByBrand, error: productsByBrandError } = await supabase
-      .from("products")
-      .select("id")
-      .in("brand_id", brandIds)
-      .limit(limit);
-
-    if (productsByBrandError) throw productsByBrandError;
-
-    (productsByBrand || []).forEach((row) => {
-      const productId = String((row as { id?: string }).id || "");
-      if (productId) matchedProductIds.add(productId);
-    });
-  }
-
-  if (categoryIds.size > 0) {
-    const { data: productsByCategory, error: productsByCategoryError } = await supabase
-      .from("products")
-      .select("id")
-      .in("category_id", Array.from(categoryIds))
-      .limit(limit);
-
-    if (productsByCategoryError) throw productsByCategoryError;
-
-    (productsByCategory || []).forEach((row) => {
-      const productId = String((row as { id?: string }).id || "");
-      if (productId) matchedProductIds.add(productId);
-    });
-  }
-
-  if (merchantIds.length > 0) {
-    const { data: offersByMerchant, error: offersByMerchantError } = await supabase
-      .from("offers")
-      .select("product_id")
-      .in("merchant_id", merchantIds)
-      .limit(limit * 3);
-
-    if (offersByMerchantError) throw offersByMerchantError;
-
-    (offersByMerchant || []).forEach((row) => {
-      const productId = String((row as { product_id?: string }).product_id || "");
-      if (productId) matchedProductIds.add(productId);
-    });
-  }
-
-  return Array.from(matchedProductIds);
+  return rows.map((row) => row.id);
 }
 
-export async function searchProducts(
-  query: string,
-  limit = 40,
-  client?: SupabaseClient,
-): Promise<Product[]> {
+export async function searchProducts(query: string, limit = 40): Promise<Product[]> {
   const cappedLimit = Math.max(1, Math.min(limit, 200));
   const tokens = buildSearchTokens(query);
   if (!tokens.length) return [];
@@ -234,54 +143,32 @@ export async function searchProducts(
   const snapshot = await getCatalogSnapshot();
   const localMatches = searchProductsInSnapshot(snapshot, tokens, cappedLimit);
 
-  const searchFilter = buildSearchOrFilter(tokens);
-  if (!searchFilter) return localMatches;
-
   try {
-    const supabase = client || getAnonymousSupabaseClient();
-    const { data, error } = await supabase
-      .from("products")
-      .select("id")
-      .or(searchFilter)
-      .limit(Math.max(cappedLimit * 2, 24));
-
-    if (error) throw error;
-
-    const remoteIds = (data || [])
-      .map((row) => String((row as { id?: string }).id || ""))
-      .filter(Boolean);
-
-    const relationMatchIds = await searchProductIdsByBrandAndCategory(
-      tokens,
-      supabase,
-      Math.max(cappedLimit * 2, 24),
-    );
-
-    const candidateIds = [...remoteIds, ...relationMatchIds];
-    if (!candidateIds.length) return localMatches;
+    const remoteIds = await findRemoteCandidateIds(tokens, Math.max(cappedLimit * 2, 24));
+    if (!remoteIds.length) return localMatches;
 
     const productsById = new Map(snapshot.products.map((product) => [product.id, product]));
     const merged: Product[] = [];
     const seen = new Set<string>();
 
-    candidateIds.forEach((productId) => {
-      const product = productsById.get(productId);
-      if (!product || seen.has(productId)) return;
-      seen.add(productId);
+    for (const id of remoteIds) {
+      const product = productsById.get(id);
+      if (!product || seen.has(id)) continue;
+      seen.add(id);
       merged.push(product);
-    });
+    }
 
-    localMatches.forEach((product) => {
-      if (seen.has(product.id)) return;
+    for (const product of localMatches) {
+      if (seen.has(product.id)) continue;
       seen.add(product.id);
       merged.push(product);
-    });
+    }
 
     return merged.slice(0, cappedLimit);
   } catch (error) {
     logger.log({
       level: "warn",
-      message: "Remote product search failed. Falling back to local snapshot search",
+      message: "Remote product search failed; falling back to local snapshot",
       timestamp: new Date().toISOString(),
       context: { query, error },
     });

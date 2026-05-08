@@ -1,23 +1,11 @@
 import type { NextConfig } from "next";
 
-const supabaseHostname = (() => {
-  const value = process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL;
-  if (!value) return undefined;
-  try {
-    return new URL(value).hostname;
-  } catch {
-    return undefined;
-  }
-})();
-
 const config: NextConfig = {
   reactStrictMode: true,
   poweredByHeader: false,
   images: {
     remotePatterns: [
-      ...(supabaseHostname
-        ? [{ protocol: "https" as const, hostname: supabaseHostname, pathname: "/**" }]
-        : []),
+      { protocol: "https", hostname: "*.public.blob.vercel-storage.com", pathname: "/**" },
       { protocol: "https", hostname: "m.media-amazon.com", pathname: "/**" },
       { protocol: "https", hostname: "images-na.ssl-images-amazon.com", pathname: "/**" },
       { protocol: "https", hostname: "images-eu.ssl-images-amazon.com", pathname: "/**" },

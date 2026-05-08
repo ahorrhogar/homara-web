@@ -1,5 +1,5 @@
 /** @jest-environment node */
-import { parseCsvPreview } from "@/admin/services/adminImportService";
+import { parseCsvPreview } from "@/admin/services/adminImportService-helpers";
 
 describe("adminImportService parseCsvPreview", () => {
   it("parses headers and rows", () => {
