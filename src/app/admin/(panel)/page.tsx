@@ -1,3 +1,5 @@
+"use client";
+
 import { useQuery } from "@tanstack/react-query";
 import { Activity, BarChart3, Boxes, MousePointerClick, Store } from "lucide-react";
 import { AdminPageHeader } from "@/admin/components/AdminPageHeader";

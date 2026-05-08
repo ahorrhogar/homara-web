@@ -8,7 +8,7 @@ const __dirname = dirname(__filename);
 const compat = new FlatCompat({ baseDirectory: __dirname });
 
 export default [
-  { ignores: [".next", "node_modules", "dist", "supabase/.temp", "supabase/migrations", "src/_pages_legacy", "src/_server_legacy"] },
+  { ignores: [".next", "node_modules", "dist", "supabase/.temp", "supabase/migrations"] },
   ...compat.extends("next/core-web-vitals", "next/typescript"),
   {
     rules: {

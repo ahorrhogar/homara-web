@@ -1,18 +1,17 @@
 import { getSupabaseClient } from "@/integrations/supabase/client";
 import { sanitizeNumber, sanitizeText } from "@/infrastructure/security/sanitize";
-import { revalidateTag } from "next/cache";
-import { CATALOG_CACHE_TAG, RANKING_SIGNALS_CACHE_TAG } from "@/data/catalog/snapshot";
+import { invalidateCatalogCacheAction } from "@/admin/_actions/cache";
 
-// Replaces the legacy in-process snapshot cache. Admin mutations call these to push
-// fresh data through the App Router's tag-based revalidation pipeline.
+// Browser-side cache invalidation hook. Admin mutations call this after a successful
+// write so the public-site `unstable_cache` tag pipeline picks up the change. The
+// legacy in-process snapshot cache is gone — see /api/admin/_actions/cache for the
+// server-side implementation.
 function invalidateCatalogSnapshotCache(): void {
-  revalidateTag(CATALOG_CACHE_TAG);
-  revalidateTag(RANKING_SIGNALS_CACHE_TAG);
+  void invalidateCatalogCacheAction();
 }
 
 async function refreshCatalogSnapshotNow(): Promise<void> {
-  revalidateTag(CATALOG_CACHE_TAG);
-  revalidateTag(RANKING_SIGNALS_CACHE_TAG);
+  await invalidateCatalogCacheAction();
 }
 import {
   extractDomainFromAffiliateUrl,
