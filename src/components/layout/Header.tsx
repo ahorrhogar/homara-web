@@ -1,26 +1,31 @@
-import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { Search, Menu, X, Heart, Sparkles, ChevronRight, ChevronLeft } from 'lucide-react';
-import { useState, useRef, useEffect, type FormEvent } from 'react';
-import { categoryService } from '@/services';
+"use client";
 
-const Header = () => {
-  const categories = categoryService.getAllCategories();
+import Link from "next/link";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { Search, Menu, X, Heart, Sparkles, ChevronRight, ChevronLeft } from "lucide-react";
+import { useState, useRef, useEffect, type FormEvent } from "react";
+import type { Category } from "@/domain/catalog/types";
+
+interface HeaderProps {
+  categories: Category[];
+}
+
+const Header = ({ categories }: HeaderProps) => {
   const [menuOpen, setMenuOpen] = useState(false);
   const [megaMenuOpen, setMegaMenuOpen] = useState(false);
   const [activeCategoryId, setActiveCategoryId] = useState<string | null>(null);
   const [mobileActiveCategoryId, setMobileActiveCategoryId] = useState<string | null>(null);
-  const [searchQuery, setSearchQuery] = useState('');
-  const location = useLocation();
-  const navigate = useNavigate();
+  const [searchQuery, setSearchQuery] = useState("");
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const router = useRouter();
   const megaRef = useRef<HTMLDivElement>(null);
 
-  // Close mega menu on route change
   useEffect(() => {
     setMegaMenuOpen(false);
     setMenuOpen(false);
-  }, [location.pathname]);
+  }, [pathname]);
 
-  // Close mega menu on outside click
   useEffect(() => {
     if (!megaMenuOpen) return;
     const handler = (e: MouseEvent) => {
@@ -28,29 +33,29 @@ const Header = () => {
         setMegaMenuOpen(false);
       }
     };
-    document.addEventListener('mousedown', handler);
-    return () => document.removeEventListener('mousedown', handler);
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
   }, [megaMenuOpen]);
 
   useEffect(() => {
-    if (location.pathname !== '/buscar') {
+    if (pathname !== "/buscar") {
       return;
     }
 
-    const nextQuery = (new URLSearchParams(location.search).get('q') || '').trim();
+    const nextQuery = (searchParams?.get("q") || "").trim();
     setSearchQuery((previous) => (previous === nextQuery ? previous : nextQuery));
-  }, [location.pathname, location.search]);
+  }, [pathname, searchParams]);
 
   const handleSearchSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
 
     const trimmedQuery = searchQuery.trim();
     if (!trimmedQuery) {
-      navigate('/buscar');
+      router.push("/buscar");
       return;
     }
 
-    navigate(`/buscar?q=${encodeURIComponent(trimmedQuery)}`);
+    router.push(`/buscar?q=${encodeURIComponent(trimmedQuery)}`);
   };
 
   const activeCategory = categories.find(c => c.id === activeCategoryId) || categories[0];
@@ -73,9 +78,9 @@ const Header = () => {
         <div className="container mx-auto flex items-center justify-between py-1.5 px-4 text-primary-foreground text-xs">
           <span>🇪🇸 Especialistas en hogar — Compara y ahorra en miles de productos</span>
           <div className="hidden md:flex items-center gap-4">
-            <Link to="/asistente" className="hover:underline flex items-center gap-1"><Sparkles className="w-3 h-3" /> Asistente de Compras</Link>
+            <Link href="/asistente" className="hover:underline flex items-center gap-1"><Sparkles className="w-3 h-3" /> Asistente de Compras</Link>
             <span>|</span>
-            <Link to="/guias" className="hover:underline">Guias de compra</Link>
+            <Link href="/guias" className="hover:underline">Guias de compra</Link>
             <span>|</span>
             <a href="#" className="hover:underline">Mis Favoritos</a>
             <span>|</span>
@@ -96,7 +101,7 @@ const Header = () => {
             {megaMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
           </button>
 
-          <Link to="/" className="flex-shrink-0">
+          <Link href="/" className="flex-shrink-0">
             <img
               src="/homara-logo.svg"
               alt="Homara"
@@ -126,7 +131,7 @@ const Header = () => {
           </div>
 
           <div className="flex items-center gap-2 ml-auto">
-            <Link to="/asistente" className="hidden lg:flex items-center gap-2 px-4 py-2 rounded-xl bg-accent text-accent-foreground font-medium text-sm hover:opacity-90 transition-opacity">
+            <Link href="/asistente" className="hidden lg:flex items-center gap-2 px-4 py-2 rounded-xl bg-accent text-accent-foreground font-medium text-sm hover:opacity-90 transition-opacity">
               <Sparkles className="w-4 h-4" />
               Asistente
             </Link>
@@ -137,7 +142,7 @@ const Header = () => {
         </div>
 
         <div className="flex items-center gap-2 md:hidden">
-          <Link to="/" className="flex-shrink-0">
+          <Link href="/" className="flex-shrink-0">
             <img
               src="/homara-logo.svg"
               alt="Homara"
@@ -181,9 +186,9 @@ const Header = () => {
             {categories.slice(0, 10).map(cat => (
               <Link
                 key={cat.id}
-                to={`/categoria/${cat.slug}`}
+                href={`/categoria/${cat.slug}`}
                 className={`px-3 py-2 text-[13px] font-medium rounded-lg whitespace-nowrap transition-colors ${
-                  location.pathname.includes(cat.slug)
+                  pathname?.includes(cat.slug)
                     ? 'text-accent bg-accent/10'
                     : 'text-foreground/70 hover:text-foreground hover:bg-secondary'
                 }`}
@@ -211,7 +216,7 @@ const Header = () => {
                       activeCategoryId === cat.id ? 'bg-accent/10 text-accent font-semibold' : 'text-foreground/80 hover:bg-secondary'
                     }`}
                   >
-                    <Link to={`/categoria/${cat.slug}`} className="flex-1" onClick={() => setMegaMenuOpen(false)}>
+                    <Link href={`/categoria/${cat.slug}`} className="flex-1" onClick={() => setMegaMenuOpen(false)}>
                       {cat.name}
                     </Link>
                     <ChevronRight className="w-3.5 h-3.5 text-muted-foreground" />
@@ -224,7 +229,7 @@ const Header = () => {
                 {activeCategory && (
                   <>
                     <Link
-                      to={`/categoria/${activeCategory.slug}`}
+                      href={`/categoria/${activeCategory.slug}`}
                       onClick={() => setMegaMenuOpen(false)}
                       className="font-display font-bold text-foreground text-base mb-4 block hover:text-accent transition-colors"
                     >
@@ -234,7 +239,7 @@ const Header = () => {
                       {(activeCategory.subcategories || []).map(sub => (
                         <Link
                           key={sub.id}
-                          to={`/categoria/${activeCategory.slug}`}
+                          href={`/categoria/${activeCategory.slug}`}
                           onClick={() => setMegaMenuOpen(false)}
                           className="text-sm text-foreground/70 hover:text-accent transition-colors py-1"
                         >
@@ -247,7 +252,7 @@ const Header = () => {
                     </div>
                     <div className="mt-6">
                       <Link
-                        to={`/categoria/${activeCategory.slug}`}
+                        href={`/categoria/${activeCategory.slug}`}
                         onClick={() => setMegaMenuOpen(false)}
                         className="text-sm font-semibold text-accent hover:underline"
                       >
@@ -286,7 +291,7 @@ const Header = () => {
                   </button>
 
                   <Link
-                    to={`/categoria/${mobileActiveCategory.slug}`}
+                    href={`/categoria/${mobileActiveCategory.slug}`}
                     onClick={() => setMegaMenuOpen(false)}
                     className="font-display font-bold text-foreground text-base mb-3 block hover:text-accent transition-colors"
                   >
@@ -297,7 +302,7 @@ const Header = () => {
                     {(mobileActiveCategory.subcategories || []).map((subcategory) => (
                       <Link
                         key={subcategory.id}
-                        to={`/categoria/${mobileActiveCategory.slug}/${subcategory.slug}`}
+                        href={`/categoria/${mobileActiveCategory.slug}/${subcategory.slug}`}
                         onClick={() => setMegaMenuOpen(false)}
                         className="w-full flex items-center justify-between px-2 py-2.5 rounded-lg text-sm text-foreground/80 hover:bg-secondary hover:text-accent transition-colors"
                       >
@@ -311,7 +316,7 @@ const Header = () => {
 
                   <div className="mt-4">
                     <Link
-                      to={`/categoria/${mobileActiveCategory.slug}`}
+                      href={`/categoria/${mobileActiveCategory.slug}`}
                       onClick={() => setMegaMenuOpen(false)}
                       className="text-sm font-semibold text-accent hover:underline"
                     >
@@ -331,12 +336,12 @@ const Header = () => {
           <div className="container mx-auto px-4 py-4">
             <div className="grid grid-cols-2 gap-2">
               {categories.map(cat => (
-                <Link key={cat.id} to={`/categoria/${cat.slug}`} onClick={() => setMenuOpen(false)} className="px-3 py-2.5 text-sm rounded-lg bg-secondary hover:bg-accent/10 hover:text-accent transition-colors">
+                <Link key={cat.id} href={`/categoria/${cat.slug}`} onClick={() => setMenuOpen(false)} className="px-3 py-2.5 text-sm rounded-lg bg-secondary hover:bg-accent/10 hover:text-accent transition-colors">
                   {cat.name}
                 </Link>
               ))}
             </div>
-            <Link to="/asistente" onClick={() => setMenuOpen(false)} className="mt-4 flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-accent text-accent-foreground font-medium text-sm">
+            <Link href="/asistente" onClick={() => setMenuOpen(false)} className="mt-4 flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-accent text-accent-foreground font-medium text-sm">
               <Sparkles className="w-4 h-4" /> Asistente de Compras
             </Link>
           </div>

@@ -1,4 +1,4 @@
-import { Link } from 'react-router-dom';
+import Link from 'next/link';
 import { Product } from '@/domain/catalog/types';
 import { computeDiscountPercent } from '@/domain/catalog/product-logic';
 import { Star, ArrowRight, Tag, TrendingDown, Sparkles } from 'lucide-react';
@@ -92,7 +92,7 @@ export const ProductGrid = ({ products, title, subtitle, showAll }: { products: 
           {subtitle && <p className="text-muted-foreground mt-1">{subtitle}</p>}
         </div>
         {showAll && (
-          <Link to={showAll} className="hidden md:flex items-center gap-1 text-sm font-medium text-accent hover:underline">
+          <Link href={showAll} className="hidden md:flex items-center gap-1 text-sm font-medium text-accent hover:underline">
             Ver todos <ArrowRight className="w-4 h-4" />
           </Link>
         )}

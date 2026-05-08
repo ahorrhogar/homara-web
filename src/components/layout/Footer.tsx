@@ -1,4 +1,4 @@
-import { Link } from 'react-router-dom';
+import Link from 'next/link';
 import { categoryService } from '@/services';
 import { useCookieConsent } from '@/hooks/useCookieConsent';
 
@@ -29,7 +29,7 @@ const Footer = () => {
           <h3 className="font-semibold text-sm mb-3 text-primary-foreground/90">Categorías</h3>
           <ul className="space-y-1.5">
             {categories.slice(0, 6).map(c => (
-              <li key={c.id}><Link to={`/categoria/${c.slug}`} className="text-sm text-primary-foreground/60 hover:text-accent transition-colors">{c.name}</Link></li>
+              <li key={c.id}><Link href={`/categoria/${c.slug}`} className="text-sm text-primary-foreground/60 hover:text-accent transition-colors">{c.name}</Link></li>
             ))}
           </ul>
         </div>
@@ -37,7 +37,7 @@ const Footer = () => {
           <h3 className="font-semibold text-sm mb-3 text-primary-foreground/90">Más categorías</h3>
           <ul className="space-y-1.5">
             {categories.slice(6).map(c => (
-              <li key={c.id}><Link to={`/categoria/${c.slug}`} className="text-sm text-primary-foreground/60 hover:text-accent transition-colors">{c.name}</Link></li>
+              <li key={c.id}><Link href={`/categoria/${c.slug}`} className="text-sm text-primary-foreground/60 hover:text-accent transition-colors">{c.name}</Link></li>
             ))}
           </ul>
         </div>
@@ -45,9 +45,9 @@ const Footer = () => {
         <div>
           <h3 className="font-semibold text-sm mb-3 text-primary-foreground/90">Información</h3>
           <ul className="space-y-1.5">
-            <li><Link to="/acerca-de" className="text-sm text-primary-foreground/60 hover:text-accent transition-colors">Acerca de Homara</Link></li>
+            <li><Link href="/acerca-de" className="text-sm text-primary-foreground/60 hover:text-accent transition-colors">Acerca de Homara</Link></li>
             <li><a href="#" className="text-sm text-primary-foreground/60 hover:text-accent transition-colors">Cómo funciona</a></li>
-            <li><Link to="/guias" className="text-sm text-primary-foreground/60 hover:text-accent transition-colors">Guías de compra</Link></li>
+            <li><Link href="/guias" className="text-sm text-primary-foreground/60 hover:text-accent transition-colors">Guías de compra</Link></li>
             <li><a href="#" className="text-sm text-primary-foreground/60 hover:text-accent transition-colors">Contacto</a></li>
             <li><a href="#" className="text-sm text-primary-foreground/60 hover:text-accent transition-colors">Prensa</a></li>
           </ul>
@@ -56,9 +56,9 @@ const Footer = () => {
         <div>
           <h3 className="font-semibold text-sm mb-3 text-primary-foreground/90">Legal</h3>
           <ul className="space-y-1.5">
-            <li><Link to="/politica-privacidad" className="text-sm text-primary-foreground/60 hover:text-accent transition-colors">Política de privacidad</Link></li>
-            <li><Link to="/aviso-legal" className="text-sm text-primary-foreground/60 hover:text-accent transition-colors">Aviso legal</Link></li>
-            <li><Link to="/politica-cookies" className="text-sm text-primary-foreground/60 hover:text-accent transition-colors">Política de cookies</Link></li>
+            <li><Link href="/politica-privacidad" className="text-sm text-primary-foreground/60 hover:text-accent transition-colors">Política de privacidad</Link></li>
+            <li><Link href="/aviso-legal" className="text-sm text-primary-foreground/60 hover:text-accent transition-colors">Aviso legal</Link></li>
+            <li><Link href="/politica-cookies" className="text-sm text-primary-foreground/60 hover:text-accent transition-colors">Política de cookies</Link></li>
             <li>
               <button
                 type="button"
@@ -68,7 +68,7 @@ const Footer = () => {
                 Configuración de cookies
               </button>
             </li>
-            <li><Link to="/condiciones-generales-de-uso" className="text-sm text-primary-foreground/60 hover:text-accent transition-colors">Condiciones de uso</Link></li>
+            <li><Link href="/condiciones-generales-de-uso" className="text-sm text-primary-foreground/60 hover:text-accent transition-colors">Condiciones de uso</Link></li>
           </ul>
         </div>
       </div>

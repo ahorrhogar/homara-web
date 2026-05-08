@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { Link } from "react-router-dom";
+import Link from 'next/link';
 import type { Product } from "@/domain/catalog/types";
 import {
   getProductNavigationTarget,
@@ -36,7 +36,7 @@ const ProductDestinationLink = ({
   }
 
   return (
-    <Link to={target.href} className={className}>
+    <Link href={target.href} className={className}>
       {children}
     </Link>
   );

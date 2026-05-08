@@ -1,4 +1,4 @@
-import { Link } from 'react-router-dom';
+import Link from 'next/link';
 import { ArrowRight, Sparkles, TrendingDown } from 'lucide-react';
 
 const HERO_MASCOT_IMAGE = '/homara-mascot.webp';
@@ -47,7 +47,7 @@ const Hero = () => (
               Empezar a comparar
               <ArrowRight className="w-4 h-4" />
             </a>
-            <Link to="/asistente" className="inline-flex items-center justify-center gap-2 px-5 py-3 md:px-6 md:py-3.5 rounded-xl bg-primary-foreground/10 text-primary-foreground font-semibold text-base hover:bg-primary-foreground/20 transition-all border border-primary-foreground/20">
+            <Link href="/asistente" className="inline-flex items-center justify-center gap-2 px-5 py-3 md:px-6 md:py-3.5 rounded-xl bg-primary-foreground/10 text-primary-foreground font-semibold text-base hover:bg-primary-foreground/20 transition-all border border-primary-foreground/20">
               <Sparkles className="w-4 h-4" />
               Asistente de Compras
             </Link>

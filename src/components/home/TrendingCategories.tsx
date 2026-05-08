@@ -1,4 +1,4 @@
-import { Link } from 'react-router-dom';
+import Link from 'next/link';
 import { useRef, useState, useEffect } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { categoryService } from '@/services';
@@ -72,7 +72,7 @@ const TrendingCategories = () => {
               return (
                 <Link
                   key={category.id}
-                  to={`/categoria/${category.slug}`}
+                  href={`/categoria/${category.slug}`}
                   className="flex-shrink-0 flex flex-col items-center group"
                   style={{ width: '120px' }}
                 >
@@ -102,7 +102,7 @@ const TrendingCategories = () => {
                   return (
                     <Link
                       key={sub.id}
-                      to={`/categoria/${cat.slug}/${sub.slug}`}
+                      href={`/categoria/${cat.slug}/${sub.slug}`}
                       className="flex-shrink-0 flex flex-col items-center group"
                       style={{ width: '120px' }}
                     >

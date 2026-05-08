@@ -551,7 +551,7 @@ async function searchProductIdsByBrandAndCategory(
   return Array.from(matchedProductIds);
 }
 
-function toNumber(value: number | string | null | undefined, fallback = 0): number {
+function toNumber(value: unknown, fallback = 0): number {
   if (typeof value === "number") {
     return Number.isFinite(value) ? value : fallback;
   }
