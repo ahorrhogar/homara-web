@@ -1,4 +1,4 @@
-import type { EditorialSource } from "@/data/sources/editorialSource.types";
+import type { EditorialSource } from "@/data/editorial/types";
 import type { EditorialArticle } from "@/domain/editorial/types";
 
 const editorialArticles: EditorialArticle[] = [

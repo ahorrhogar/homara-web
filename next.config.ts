@@ -13,10 +13,6 @@ const supabaseHostname = (() => {
 const config: NextConfig = {
   reactStrictMode: true,
   poweredByHeader: false,
-  // TODO(migration): Remove once Step 12 cleans up the legacy admin pages
-  // (src/app/admin/(panel)/* — ported in Step 8 with type drift the Vite build
-  // never enforced). The catalog data layer is fully strict.
-  typescript: { ignoreBuildErrors: true },
   images: {
     remotePatterns: [
       ...(supabaseHostname

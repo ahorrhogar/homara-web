@@ -196,7 +196,7 @@ export default function AdminOffersPage() {
   const [deleteTarget, setDeleteTarget] = useState<AdminOfferRecord | null>(null);
   const [bulkDeleteOpen, setBulkDeleteOpen] = useState(false);
   const [priceDialogOpen, setPriceDialogOpen] = useState(false);
-  const [priceDraft, setPriceDraft] = useState<{ offerId: string; price: number; oldPrice: number; stock: boolean } | null>(null);
+  const [priceDraft, setPriceDraft] = useState<{ offerId: string; price: string; oldPrice: string; stock: boolean } | null>(null);
   const [priceDraftInitial, setPriceDraftInitial] = useState<string | null>(null);
   const [historyOffer, setHistoryOffer] = useState<AdminOfferRecord | null>(null);
   const debouncedProductFilterSearch = useDebouncedValue(productFilterSearch, 300);

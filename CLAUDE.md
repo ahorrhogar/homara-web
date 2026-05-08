@@ -12,20 +12,11 @@ User-facing copy is **Spanish**, voice is editorial/expert/close-to-the-reader (
 
 ## Hard rules (from `homara-brain/05-Producto/Reglas-de-cambio.md` and `06-Monetizacion/Proteccion-de-enlaces.md`)
 
-1. **Never put raw affiliate links in content.** Every outbound click must go through the offer redirect path (logs click → applies current affiliate tag → redirects). See `src/app/api/redirect/route.ts` and `offerService.trackClick`.
+1. **Never put raw affiliate links in content.** Every outbound click must go through `/api/redirect?offerId=…&track=1`, which logs the click and 302s to the merchant URL. See `src/app/api/redirect/route.ts` and `trackClick` in `src/data/catalog/tracking.ts`.
 2. **Do not change existing affiliate URLs, merchant IDs, or product slugs** without a documented reason. Losing the URL = losing accumulated SEO authority and click history = losing revenue.
 3. **Do not break existing UI/UX** without explicit need. Stability + SEO + conversion outrank refactor aesthetics.
 4. **One intention = one URL.** No duplicate content, no parallel routes for the same query intent.
 5. Sensitive changes need a backup + rollback plan. Architectural shifts need a `Plantilla-Decision` note in the brain vault.
-
-## Migration status — Vite SPA → Next.js (in progress)
-
-This codebase is mid-migration from a Vite + React 18 SPA to **Next.js 15 (App Router) + React 19**. The plan and decisions are pinned at `/Users/martiwarda/.claude/plans/notice-the-app-is-parsed-river.md`. Roughly:
-
-- **Done**: Next.js scaffold + dependencies, theme + `next/font` wired into Tailwind, `@supabase/ssr` browser + server clients, middleware-based admin auth, root layout with Providers / Header / Footer / CookieBanner / AnalyticsScripts, simple legal/about pages (`/acerca-de`, `/cookies`, `/politica-privacidad`, `/aviso-legal`), `app/sitemap.ts`, `app/robots.ts`, `app/api/redirect/route.ts`, `next.config.ts` redirects for URL aliases, login server action.
-- **In progress**: full page port (home, category, product, search, blog hub + dynamic + 12 hardcoded blog guides, admin pages), data-layer rewrite from `src/data/sources/supabaseCatalogSource.ts` (legacy, ~1,600 lines) to `src/data/catalog/*` server-only modules with `unstable_cache` + tag-based revalidation.
-- **Quarantined**: `src/_pages_legacy/`, `src/_server_legacy/` (excluded from tsconfig + ESLint). These hold the original SPA pages so we can copy content over without losing it; delete once each route is ported.
-- **Temporary flags**: `next.config.ts` has `typescript.ignoreBuildErrors: true` because the legacy `src/data/sources/*` has type drift the Vite build never enforced. Remove the flag after step 7 (data-layer rewrite) lands.
 
 ## Commands
 
@@ -54,40 +45,38 @@ The legacy `VITE_*` variables and the `VITE_USE_REDIRECT_API` feature flag have 
 
 **Next.js 15 (App Router) + React 19 + TypeScript + Supabase**, deployed on Vercel. Path alias: `@/*` → `src/*` (preserved from the Vite era).
 
-### Layered data flow (target — being rolled out)
+### Layered data flow
 
 ```
-src/app/**/page.tsx (RSC)  →  src/data/catalog/* (server-only, tagged)  →  Supabase
-                              ↑
-src/services/* (legacy facade — being unwound) ----→ src/data/sources/supabaseCatalogSource.ts (legacy, scheduled for deletion)
+src/app/**/page.tsx (RSC)  →  src/data/catalog/* (server-only, unstable_cache + tags)  →  Supabase
+                              src/data/editorial/* (static editorial source)
 
-Mutations on /admin/*: src/app/admin/_actions/<entity>.ts (server actions) → src/data/catalog/* + revalidateTag('catalog' | 'articles' | …)
-Affiliate redirects: src/app/api/redirect/route.ts → src/data/sources/supabaseCatalogSource (until migrated to src/data/catalog/offers.ts)
+Mutations on /admin/(panel)/*: browser-side React Query → src/admin/services/* → Supabase (cookie-auth)
+                               then  src/admin/_actions/cache.ts (server action) → revalidateTag('catalog' | 'articles' | 'ranking-signals')
+Click tracking on /api/redirect: src/data/catalog/tracking.ts → Supabase RPC, then revalidateTag('ranking-signals')
 ```
 
-### Legacy data flow (still present in services/ — being unwound)
-
-```
-pages / components  →  services  →  data/sources (Supabase adapter)  →  Supabase
-                       ↑
-                    domain (pure logic, no I/O)
-```
-
-- **`src/domain/`** — pure business types and logic. No I/O, no React. Examples: `catalog/home-ranking.ts`, `catalog/offer-sync.ts`, `editorial/article-logic.ts`, `assistant/recommendation`. Has the only tests that don't need jsdom.
-- **`src/data/catalog/`** (new, target) — server-only data fetchers built on `unstable_cache` with tag-based revalidation (`CATALOG_CACHE_TAG`, `CATEGORIES_CACHE_TAG`). Each module starts with `import "server-only"` so a client component import fails the build. Currently houses `categories.ts`; `products.ts`, `offers.ts`, `articles.ts`, `ranking-signals.ts`, `search.ts` land as the data-layer rewrite progresses.
-- **`src/data/sources/supabaseCatalogSource.ts`** (legacy, ~1,600 lines) — original snapshot-cache adapter, scheduled for replacement by `src/data/catalog/*`. Don't add features here. The redirect route (`src/app/api/redirect/route.ts`) still imports `getOfferRedirectPayload` and `trackClick` from it; those move into `src/data/catalog/offers.ts` during step 7. `mockCatalogSource.ts` re-exports the Supabase source as a legacy alias.
-- **`src/services/`** — application services (`productService`, `categoryService`, `offerService`, `editorialService`, `analyticsService`, `editorialTrackingService`, `searchTrackingService`, `cookieConsentService`). Originally the only thing UI imported. Now: pages prefer `src/data/catalog/*` directly (server-side); services that wrap pure client behaviour (cookie consent, analytics tracking) keep their existing shape. Re-exported from `src/services/index.ts`.
-- **`src/infrastructure/`** — cross-cutting: `analytics/`, `logging/`, `rate-limit/`, `security/` (sanitize, safe-redirect).
-- **`src/integrations/supabase/`** — `client.ts` exports `getSupabaseClient()` (browser, via `@supabase/ssr` `createBrowserClient`); `server.ts` exports `createServerSupabaseClient()` (cookie-aware, for RSC + server actions + middleware) and `createAnonymousServerSupabaseClient()` (no cookies, used by `app/sitemap.ts` and `app/api/redirect/route.ts`).
-- **`src/admin/`** — admin panel. Auth is now enforced **server-side** by `src/middleware.ts` (refreshes the Supabase session, calls the `is_admin` RPC, redirects to `/admin/login` or `/admin/denegado` before any RSC renders). The login form is a client component posting to a server action at `src/admin/_actions/auth.ts`. Admin pages live under `src/app/admin/`; mutations happen via server actions in `src/app/admin/_actions/<entity>.ts` that call `revalidateTag()` after writes.
-- **`src/app/api/redirect/route.ts`** — affiliate redirect endpoint. Validates the `offerId` UUID, runs `isAffiliateUrlAllowed`, optionally records a click, and 302s to the merchant URL.
+- **`src/domain/`** — pure business types and logic. No I/O, no React. Examples: `catalog/home-ranking.ts`, `catalog/offer-sync.ts`, `editorial/article-logic.ts`, `assistant/recommendation`. Tests run under the Node Jest environment.
+- **`src/data/catalog/`** — server-only data layer built on `unstable_cache` + tag-based revalidation. `import "server-only"` at the top of each module so a client import fails the build:
+  - `_helpers.ts` — pure transforms (slugify, parseSpecs, buildProducts, buildCategories, buildMerchants, buildOffersByProductId, buildPriceHistoryMap) + row types + meta constants
+  - `snapshot.ts` — `getCatalogSnapshot()` (180s, tag `catalog`); owns the cache-tag constants (`CATALOG_CACHE_TAG`, `CATEGORIES_CACHE_TAG`, `PRODUCTS_CACHE_TAG`, `OFFERS_CACHE_TAG`, `ARTICLES_CACHE_TAG`, `RANKING_SIGNALS_CACHE_TAG`)
+  - `ranking-signals.ts` — `getRankingSignals()` (120s, tag `ranking-signals`); catches all errors and returns empty signals
+  - `tracking.ts` — `trackClick`, `trackSearchTerm`, `getOfferRedirectPayload`; calls `revalidateTag('ranking-signals')` after writes
+  - `search.ts` — `searchProducts(query, limit)` with snapshot-local scoring + remote brand/category/merchant cross-matching
+  - `categories.ts`, `products.ts`, `offers.ts`, `articles.ts` — facades that read from snapshot/ranking-signals and re-export
+- **`src/data/editorial/`** — static editorial source for the article catalog (`static-source.ts`, `types.ts`).
+- **`src/services/`** — application services that survive the migration: `analyticsService`, `analyticsSession`, `cookieConsentService`, `editorialService`, `editorialTrackingService`, `productNavigationService`. The legacy `productService` / `categoryService` / `offerService` / `searchTrackingService` were deleted in Step 7 — App Router code reads from `src/data/catalog/*` directly.
+- **`src/infrastructure/`** — cross-cutting: `analytics/`, `logging/`, `rate-limit/`, `security/` (sanitize, safe-redirect, affiliateUrl).
+- **`src/integrations/supabase/`** — `client.ts` exports `getSupabaseClient()` (browser, via `@supabase/ssr` `createBrowserClient`); `server.ts` exports `createServerSupabaseClient()` (cookie-aware, for RSC + server actions + middleware) and `createAnonymousServerSupabaseClient()` (cookieless, for sitemap + redirect); `anonymous.ts` exports `getAnonymousSupabaseClient()` (sync, works in any context — used by `unstable_cache` callbacks).
+- **`src/admin/`** — admin panel. Auth is enforced **server-side** by `src/middleware.ts` (refreshes the Supabase session, calls the `is_admin` RPC, redirects to `/admin/login` or `/admin/denegado` before any RSC renders). The login form is a client component posting to a server action at `src/admin/_actions/auth.ts`. The browser-side admin services in `src/admin/services/*` invoke `src/admin/_actions/cache.ts` after mutations to push `revalidateTag()` through the public-site cache pipeline.
+- **`src/app/api/redirect/route.ts`** — affiliate redirect endpoint. Validates the `offerId` UUID, runs `isAffiliateUrlAllowed`, optionally records a click via `trackClick` from `@/data/catalog/tracking`, and 302s to the merchant URL.
 - **`src/app/sitemap.ts`** — generates `/sitemap.xml` from a static route list plus a Supabase fetch of active categories and published `editorial_articles`. Cached for 1 hour.
 - **`src/app/robots.ts`** — generates `/robots.txt`. Disallows `/api/` and `/admin/`.
 
 ### Routing (Next.js App Router, `src/app/`)
 
 - Public: `/`, `/categoria/[slug]/[[…subSlug]]`, `/producto/[slug]`, `/buscar` (RSC reading `searchParams.q`, `metadata.robots: { index: false }`), `/blog` (article hub), `/blog/[slug]` (dynamic editorial fallback), `/asistente`, `/acerca-de`, `/cookies`, `/politica-privacidad`, `/aviso-legal`. The 12 hardcoded blog guides each live at `src/app/blog/<slug>/page.tsx` (URLs unchanged per HARD RULE #2); adding a new hand-built guide just means dropping a new `page.tsx` folder.
-- Admin: `/admin/login`, `/admin/denegado`, and the whole `/admin/*` subtree behind `src/middleware.ts`.
+- Admin: `/admin/login` and `/admin/denegado` are bare pages. The authenticated panel lives under the `src/app/admin/(panel)/` route group: `/admin` (Dashboard), `/admin/products`, `/admin/offers`, `/admin/categories`, `/admin/brands`, `/admin/merchants`, `/admin/articles`, `/admin/imports`, `/admin/analytics`, `/admin/audit`, `/admin/settings`. The shared sidebar + sign-out form is in `src/app/admin/(panel)/layout.tsx`. Each panel page is a `"use client"` component using React Query + the existing browser-side admin services.
 - URL aliases (HARD RULE #4: one intention = one URL): `next.config.ts` 301s `/guias` → `/blog`, `/politica-cookies` → `/cookies`, `/condiciones-generales-de-uso` → `/aviso-legal`. Don't add pages at the source paths.
 - 404: `src/app/not-found.tsx`. The legacy SPA rewrite (`vercel.json /(.*) → /index.html`) is gone — Next handles it natively.
 
@@ -98,12 +87,12 @@ pages / components  →  services  →  data/sources (Supabase adapter)  →  Su
 - **next/font** owns webfonts. Don't reintroduce `<link rel="stylesheet" href="https://fonts.googleapis.com/...">` or `@import url(...)` — those are slower and break CSP.
 - **TanStack Query** for client async state. The `QueryClientProvider` is in `src/app/providers.tsx` (a client island wrapped by `src/app/layout.tsx`). Use it for admin polling / optimistic mutations; on public pages, prefer RSC fetches via `src/data/catalog/*` so initial HTML ships with content.
 - **Server vs client**: data fetching defaults to RSC (server component + `unstable_cache` + tag). Drop `"use client"` in only when interactivity demands it (state, effects, browser APIs, event handlers). `src/data/catalog/*` modules `import "server-only"` so a client import fails fast.
-- **Cookie consent gates analytics**: `useCookieConsent` controls whether `@vercel/analytics` and `@vercel/speed-insights` mount (see `src/components/analytics/AnalyticsScripts.tsx`); `offerService.trackClick` and tracking services call `canUseAnalytics()` before persisting. Don't fire tracking outside that gate.
+- **Cookie consent gates analytics**: `useCookieConsent` controls whether `@vercel/analytics` and `@vercel/speed-insights` mount (see `src/components/analytics/AnalyticsScripts.tsx`); the click-tracking RPC in `src/data/catalog/tracking.ts` only fires when `?track=1` is present on the redirect URL, which the client only sets when `canUseAnalytics()` returns true. Don't fire tracking outside that gate.
 - **Affiliate URLs**: every product card's "Ir a la tienda" button must point to `/api/redirect?offerId=<uuid>&track=1`. The legacy `VITE_USE_REDIRECT_API` toggle is gone — there's no opt-out.
 
 ### TypeScript posture
 
-`tsconfig.json` runs with `strict: false`, `strictNullChecks: false`, `noImplicitAny: false`, `noUnusedLocals: false` for now (legacy permissiveness). New files in `src/app/` and `src/data/catalog/` should be written as if `strict: true` were on — the global flip is scheduled for step 12 of the migration once legacy data sources are deleted. ESLint disables `@typescript-eslint/no-unused-vars` and `@next/next/no-img-element` (the latter only until step 6 finishes the `next/image` swap).
+`tsconfig.json` runs with `strict: false`, `strictNullChecks: false`, `noImplicitAny: false`, `noUnusedLocals: false`. The catalog data layer (`src/data/catalog/*`) and App Router pages were written defensively to be strict-clean, but the legacy admin code (`src/admin/services/*`, `src/app/admin/(panel)/*`) carries ~195 errors under full `strict: true`, mostly `'data' is possibly null` from Supabase query patterns. Flipping to strict is a follow-up cleanup, not migration scope. New files should be written as if `strict: true` were on. ESLint disables `@typescript-eslint/no-unused-vars`, `@typescript-eslint/no-explicit-any`, `react/no-unescaped-entities`, and `@next/next/no-img-element` (the last for the 3 remaining `<img>` tags in two hardcoded blog guides).
 
 ### SEO + structured data expectations
 
