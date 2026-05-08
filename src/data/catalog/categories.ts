@@ -2,7 +2,9 @@ import "server-only";
 
 import { unstable_cache } from "next/cache";
 import { createAnonymousServerSupabaseClient } from "@/integrations/supabase/server";
-import type { Category, Subcategory } from "@/domain/catalog/types";
+import { getTrendingCategories as buildTrendingCategories } from "@/domain/catalog/category-logic";
+import type { Category, Subcategory, TrendingCategory } from "@/domain/catalog/types";
+import { getCatalogSnapshot } from "@/data/catalog/snapshot";
 
 export const CATALOG_CACHE_TAG = "catalog";
 export const CATEGORIES_CACHE_TAG = "categories";
@@ -83,4 +85,13 @@ export async function getCategoryBySlug(slug: string): Promise<Category | undefi
 export function findSubcategoryBySlug(category: Category, subSlug?: string): Subcategory | undefined {
   if (!subSlug) return undefined;
   return category.subcategories.find((subcategory) => subcategory.slug === subSlug);
+}
+
+/**
+ * Trending categories computed from the cached snapshot. Reuses the pure
+ * `getTrendingCategories` helper from the domain layer.
+ */
+export async function getTrendingCategories(): Promise<TrendingCategory[]> {
+  const snapshot = await getCatalogSnapshot();
+  return buildTrendingCategories(snapshot.categories, snapshot.products);
 }

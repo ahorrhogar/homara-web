@@ -51,3 +51,8 @@ export async function createAnonymousServerSupabaseClient(): Promise<SupabaseCli
     },
   });
 }
+
+// getAnonymousSupabaseClient lives in ./anonymous.ts so it works in any context
+// (server-only marker on this module would block client imports of the catalog snapshot
+// during the migration window).
+export { getAnonymousSupabaseClient } from "./anonymous";

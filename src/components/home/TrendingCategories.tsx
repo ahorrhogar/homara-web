@@ -1,12 +1,17 @@
-import Link from 'next/link';
-import { useRef, useState, useEffect } from 'react';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
-import { categoryService } from '@/services';
-import { applyProductImageFallback, PRODUCT_IMAGE_FALLBACK } from '@/lib/productImage';
+"use client";
 
-const TrendingCategories = () => {
-  const categories = categoryService.getAllCategories();
-  const trending = categoryService.getTrendingCategories();
+import Link from "next/link";
+import { useEffect, useRef, useState } from "react";
+import { ChevronLeft, ChevronRight } from "lucide-react";
+import type { Category, TrendingCategory } from "@/domain/catalog/types";
+import { applyProductImageFallback, PRODUCT_IMAGE_FALLBACK } from "@/lib/productImage";
+
+interface TrendingCategoriesProps {
+  categories: Category[];
+  trending: TrendingCategory[];
+}
+
+const TrendingCategories = ({ categories, trending }: TrendingCategoriesProps) => {
   const scrollRef = useRef<HTMLDivElement>(null);
   const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(false);
@@ -21,13 +26,13 @@ const TrendingCategories = () => {
   useEffect(() => {
     checkScroll();
     const onResize = () => checkScroll();
-    window.addEventListener('resize', onResize);
-    return () => window.removeEventListener('resize', onResize);
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
   }, [trending.length, categories.length]);
 
-  const scroll = (dir: 'left' | 'right') => {
+  const scroll = (dir: "left" | "right") => {
     if (!scrollRef.current) return;
-    scrollRef.current.scrollBy({ left: dir === 'left' ? -240 : 240, behavior: 'smooth' });
+    scrollRef.current.scrollBy({ left: dir === "left" ? -240 : 240, behavior: "smooth" });
   };
 
   return (
@@ -40,7 +45,7 @@ const TrendingCategories = () => {
           {canScrollLeft ? (
             <button
               type="button"
-              onClick={() => scroll('left')}
+              onClick={() => scroll("left")}
               className="absolute left-1 top-[42px] z-10 h-12 w-12 -translate-y-1/2 rounded-r-md bg-muted/90 text-foreground shadow-md transition-colors hover:bg-muted"
               aria-label="Deslizar a la izquierda"
             >
@@ -51,7 +56,7 @@ const TrendingCategories = () => {
           {canScrollRight ? (
             <button
               type="button"
-              onClick={() => scroll('right')}
+              onClick={() => scroll("right")}
               className="absolute right-1 top-[42px] z-10 h-12 w-12 -translate-y-1/2 rounded-l-md bg-muted/90 text-foreground shadow-md transition-colors hover:bg-muted"
               aria-label="Deslizar a la derecha"
             >
@@ -65,16 +70,14 @@ const TrendingCategories = () => {
             className="flex gap-6 overflow-x-auto scrollbar-hide pb-2 -mx-1 px-1"
           >
             {trending.map(({ category }) => {
-              const categoryPreviewImage =
-                category.image ||
-                PRODUCT_IMAGE_FALLBACK;
+              const categoryPreviewImage = category.image || PRODUCT_IMAGE_FALLBACK;
 
               return (
                 <Link
                   key={category.id}
                   href={`/categoria/${category.slug}`}
                   className="flex-shrink-0 flex flex-col items-center group"
-                  style={{ width: '120px' }}
+                  style={{ width: "120px" }}
                 >
                   <div className="w-[100px] h-[100px] rounded-full bg-secondary/80 overflow-hidden mb-2.5 group-hover:ring-2 group-hover:ring-accent/50 transition-all duration-300">
                     <img
@@ -91,20 +94,17 @@ const TrendingCategories = () => {
                 </Link>
               );
             })}
-            {/* Also show popular subcategories */}
-            {categories.flatMap(cat =>
+            {categories.flatMap((cat) =>
               (cat.subcategories || [])
-                .filter(sub => sub.productCount > 0)
-                .map(sub => {
-                  const subPreviewImage =
-                    sub.image ||
-                    PRODUCT_IMAGE_FALLBACK;
+                .filter((sub) => sub.productCount > 0)
+                .map((sub) => {
+                  const subPreviewImage = sub.image || PRODUCT_IMAGE_FALLBACK;
                   return (
                     <Link
                       key={sub.id}
                       href={`/categoria/${cat.slug}/${sub.slug}`}
                       className="flex-shrink-0 flex flex-col items-center group"
-                      style={{ width: '120px' }}
+                      style={{ width: "120px" }}
                     >
                       <div className="w-[100px] h-[100px] rounded-full bg-secondary/80 overflow-hidden mb-2.5 group-hover:ring-2 group-hover:ring-accent/50 transition-all duration-300">
                         <img
@@ -120,7 +120,7 @@ const TrendingCategories = () => {
                       </span>
                     </Link>
                   );
-                })
+                }),
             )}
           </div>
         </div>

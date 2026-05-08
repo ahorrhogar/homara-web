@@ -1,3 +1,5 @@
+"use client";
+
 import Link from 'next/link';
 import { Product } from '@/domain/catalog/types';
 import { computeDiscountPercent } from '@/domain/catalog/product-logic';

@@ -10,7 +10,11 @@ import type {
   Subcategory,
 } from "@/domain/catalog/types";
 import { logger } from "@/infrastructure/logging/logger";
-import { getSupabaseClient, type SupabaseClientLike } from "@/integrations/supabase/client";
+import type { SupabaseClient } from "@supabase/supabase-js";
+import { getAnonymousSupabaseClient } from "@/integrations/supabase/anonymous";
+
+type SupabaseClientLike = SupabaseClient;
+const getSupabaseClient = getAnonymousSupabaseClient;
 import type { CatalogRankingSignals, ExtendedCatalogDataSource } from "@/data/sources/catalogSource.types";
 import { PRODUCT_IMAGE_FALLBACK } from "@/lib/productImage";
 
