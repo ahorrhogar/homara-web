@@ -108,3 +108,10 @@ export async function getFilteredProducts(
   const { products } = await getCatalogSnapshot();
   return sortProducts(filterProducts(products, filters), sortBy);
 }
+
+/**
+ * Server-side product search. Reuses the legacy `searchProducts` helper which
+ * handles tokenization, brand/category cross-matching, and Supabase fallback for
+ * brand-name matches when the snapshot doesn't have a result.
+ */
+export { searchProducts } from "@/data/sources/supabaseCatalogSource";
