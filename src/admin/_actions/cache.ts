@@ -13,10 +13,10 @@ import {
  * successful insert/update/delete.
  */
 export async function invalidateCatalogCacheAction(): Promise<void> {
-  revalidateTag(CATALOG_CACHE_TAG);
-  revalidateTag(RANKING_SIGNALS_CACHE_TAG);
+  revalidateTag(CATALOG_CACHE_TAG, "default");
+  revalidateTag(RANKING_SIGNALS_CACHE_TAG, "default");
 }
 
 export async function invalidateArticlesCacheAction(): Promise<void> {
-  revalidateTag(ARTICLES_CACHE_TAG);
+  revalidateTag(ARTICLES_CACHE_TAG, "default");
 }

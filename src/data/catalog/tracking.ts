@@ -74,7 +74,7 @@ export async function trackClick(
     return;
   }
 
-  revalidateTag(RANKING_SIGNALS_CACHE_TAG);
+  revalidateTag(RANKING_SIGNALS_CACHE_TAG, "default");
 }
 
 const DIACRITICS = /[̀-ͯ]/g;
@@ -121,7 +121,7 @@ export async function trackSearchTerm(
     return;
   }
 
-  if (options.topProductId) revalidateTag(RANKING_SIGNALS_CACHE_TAG);
+  if (options.topProductId) revalidateTag(RANKING_SIGNALS_CACHE_TAG, "default");
 }
 
 export async function getOfferRedirectPayload(

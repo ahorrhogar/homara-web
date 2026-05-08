@@ -1,5 +1,5 @@
 /** @jest-environment node */
-import { mapAdminErrorMessage } from "@/admin/services/adminCatalogService";
+import { mapAdminErrorMessage } from "@/admin/services/admin-helpers";
 
 describe("adminCatalogService mapAdminErrorMessage", () => {
   it("maps duplicate product errors", () => {

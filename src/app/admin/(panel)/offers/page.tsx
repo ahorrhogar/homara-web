@@ -533,9 +533,8 @@ export default function AdminOffersPage() {
 
     await quickPriceMutation.mutateAsync({
       offerId: priceDraft.offerId,
-      price: parsedPrice,
-      oldPrice: parsedOldPrice,
-      stock: priceDraft.stock,
+      newPrice: parsedPrice,
+      oldPrice: parsedOldPrice ?? undefined,
     });
   };
 

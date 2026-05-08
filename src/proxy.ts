@@ -7,8 +7,8 @@ const PUBLIC_ADMIN_PATHS = new Set([ADMIN_LOGIN_PATH, ADMIN_DENIED_PATH]);
 
 // Edge-runtime gate. We only confirm the presence of a Better Auth session
 // cookie here — full session + role validation happens in the (panel) layout
-// (Node runtime) where Prisma can run. This keeps middleware cheap.
-export function middleware(request: NextRequest) {
+// (Node runtime) where Prisma can run. This keeps proxy work cheap.
+export function proxy(request: NextRequest) {
   const pathname = request.nextUrl.pathname;
   const isProtected =
     pathname.startsWith("/admin") && !PUBLIC_ADMIN_PATHS.has(pathname);
