@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { useCookieConsent } from "@/hooks/useCookieConsent";
 import type { Category } from "@/domain/catalog/types";
@@ -17,12 +18,12 @@ const Footer = ({ categories }: FooterProps) => {
         <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-8">
           <div className="col-span-2 md:col-span-1 lg:col-span-1">
             <h2 className="mb-3">
-              <img
+              <Image
                 src="/homara-logo-orange.svg"
                 alt="Homara"
+                width={120}
+                height={40}
                 className="h-10 w-auto max-w-full"
-                loading="lazy"
-                decoding="async"
               />
             </h2>
             <p className="text-sm text-primary-foreground/70 leading-relaxed">

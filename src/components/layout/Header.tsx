@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { Search, Menu, X, Heart, Sparkles, ChevronRight, ChevronLeft } from "lucide-react";
@@ -102,12 +103,13 @@ const Header = ({ categories }: HeaderProps) => {
           </button>
 
           <Link href="/" className="flex-shrink-0">
-            <img
+            <Image
               src="/homara-logo.svg"
               alt="Homara"
+              width={132}
+              height={44}
+              priority
               className="h-11 w-auto"
-              loading="eager"
-              decoding="async"
             />
           </Link>
 
@@ -143,12 +145,13 @@ const Header = ({ categories }: HeaderProps) => {
 
         <div className="flex items-center gap-2 md:hidden">
           <Link href="/" className="flex-shrink-0">
-            <img
+            <Image
               src="/homara-logo.svg"
               alt="Homara"
+              width={108}
+              height={36}
+              priority
               className="h-9 w-auto"
-              loading="eager"
-              decoding="async"
             />
           </Link>
 

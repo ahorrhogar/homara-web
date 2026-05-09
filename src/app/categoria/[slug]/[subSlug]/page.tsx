@@ -27,13 +27,25 @@ export async function generateMetadata({
     return { title: "Categoría no encontrada", robots: { index: false } };
   }
 
+  const description = `Compara ${subcategory.name.toLowerCase()} dentro de ${category.name}: precios reales, datos editoriales y enlaces a tiendas con stock.`;
+  const heroImage = subcategory.image || category.image || undefined;
+
   return {
-    title: `${subcategory.name} en ${category.name} — Compara precios`,
-    description: `Encuentra las mejores ofertas en ${subcategory.name.toLowerCase()} dentro de ${category.name}.`,
+    title: `${subcategory.name} — ${category.name}`,
+    description,
     alternates: { canonical: `/categoria/${category.slug}/${subcategory.slug}` },
     openGraph: {
       title: `${subcategory.name} — ${category.name}`,
+      description,
       url: `${SITE_URL}/categoria/${category.slug}/${subcategory.slug}`,
+      type: "website",
+      images: heroImage ? [{ url: heroImage }] : undefined,
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: `${subcategory.name} — ${category.name}`,
+      description,
+      images: heroImage ? [heroImage] : undefined,
     },
   };
 }

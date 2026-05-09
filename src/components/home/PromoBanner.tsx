@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ArrowRight } from "lucide-react";
@@ -47,11 +48,12 @@ const PromoBanner = ({
         onClick={handleClick}
         className={`group block relative rounded-2xl overflow-hidden h-[200px] md:h-[240px] ${className}`}
       >
-        <img
+        <Image
           src={image}
           alt={title}
-          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
-          loading="lazy"
+          fill
+          sizes="(min-width: 768px) 50vw, 100vw"
+          className="object-cover group-hover:scale-105 transition-transform duration-700"
         />
         <div className="absolute inset-0 bg-gradient-to-r from-black/70 via-black/40 to-transparent" />
         <div className="absolute inset-0 flex flex-col justify-end p-6 md:p-8">
@@ -74,12 +76,13 @@ const PromoBanner = ({
       className={`group block rounded-2xl overflow-hidden border border-border bg-card hover:shadow-card-hover transition-all duration-300 ${className}`}
     >
       <div className={`flex flex-col ${isRight ? "md:flex-row-reverse" : "md:flex-row"} h-full`}>
-        <div className="md:w-1/2 h-[160px] md:h-[220px] overflow-hidden">
-          <img
+        <div className="md:w-1/2 h-[160px] md:h-[220px] relative overflow-hidden">
+          <Image
             src={image}
             alt={title}
-            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
-            loading="lazy"
+            fill
+            sizes="(min-width: 768px) 50vw, 100vw"
+            className="object-cover group-hover:scale-105 transition-transform duration-700"
           />
         </div>
         <div className="md:w-1/2 flex flex-col justify-center p-5 md:p-7">

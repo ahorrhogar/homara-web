@@ -12,14 +12,20 @@ import {
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://homara.es";
 
 export const metadata: Metadata = {
-  title: "Guías de compra para hogar",
+  title: "Blog: guías de compra y comparativas",
   description:
-    "Comparativas, guías de compra y selecciones editoriales para tu hogar. Encuentra el producto adecuado al mejor precio.",
+    "Comparativas, rankings y guías de compra editoriales para hogar y jardín. Datos concretos, pros y contras y precios reales.",
   alternates: { canonical: "/blog" },
   openGraph: {
-    title: "Guías de compra para hogar | Homara",
-    description: "Comparativas, guías de compra y selecciones editoriales para tu hogar.",
+    type: "website",
+    title: "Blog Homara — Guías y comparativas",
+    description: "Comparativas y guías de compra editoriales para hogar y jardín.",
     url: `${SITE_URL}/blog`,
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Blog Homara — Guías y comparativas",
+    description: "Comparativas y guías de compra editoriales.",
   },
 };
 

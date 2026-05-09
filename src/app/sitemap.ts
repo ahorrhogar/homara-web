@@ -14,25 +14,28 @@ const STATIC_ROUTES: Array<{
   { path: "/", changeFrequency: "daily", priority: 1.0 },
   { path: "/blog", changeFrequency: "daily", priority: 0.9 },
   { path: "/asistente", changeFrequency: "weekly", priority: 0.8 },
-  { path: "/buscar", changeFrequency: "weekly", priority: 0.6 },
-  { path: "/acerca-de", changeFrequency: "monthly", priority: 0.7 },
-  { path: "/cookies", changeFrequency: "monthly", priority: 0.4 },
-  { path: "/politica-privacidad", changeFrequency: "monthly", priority: 0.4 },
-  { path: "/aviso-legal", changeFrequency: "monthly", priority: 0.4 },
-  // Hardcoded blog guides — kept here so they're always indexed even before the dynamic
-  // article fallback ports them. Slug list mirrors src/_pages_legacy/blog/* (HARD RULE #2).
-  { path: "/blog/mejores-freidoras-aire-amazon-2026-menos-100-euros", changeFrequency: "weekly", priority: 0.6 },
-  { path: "/blog/mejores-sofas-calidad-precio-2026", changeFrequency: "weekly", priority: 0.6 },
-  { path: "/blog/mejores-ventiladores-de-pie-para-este-verano-2026", changeFrequency: "weekly", priority: 0.6 },
-  { path: "/blog/los-7-mejores-ventiladores-amazon-calor-verano-2026", changeFrequency: "weekly", priority: 0.6 },
-  { path: "/blog/10-mesas-de-terraza-baratas-y-bonitas-en-amazon-2026", changeFrequency: "weekly", priority: 0.6 },
-  { path: "/blog/review-cosori-5-7l-freidora-aire-calidad-precio-menos-100-euros", changeFrequency: "weekly", priority: 0.6 },
-  { path: "/blog/mejores-cafeteras-superautomaticas-amantes-del-cafe-2026", changeFrequency: "weekly", priority: 0.6 },
-  { path: "/blog/mejores-robots-de-cocina-baratos-alternativas-thermomix-2026", changeFrequency: "weekly", priority: 0.6 },
-  { path: "/blog/mejores-frigorificos-combi-bajo-consumo-2026", changeFrequency: "weekly", priority: 0.6 },
-  { path: "/blog/mejores-microondas-sin-plato-giratorio-2026", changeFrequency: "weekly", priority: 0.6 },
-  { path: "/blog/mejores-sombrillas-resistentes-amazon-2026", changeFrequency: "weekly", priority: 0.6 },
-  { path: "/blog/mejores-piscinas-desmontables-baratas-amazon-2026", changeFrequency: "weekly", priority: 0.6 },
+  { path: "/acerca-de", changeFrequency: "monthly", priority: 0.6 },
+  { path: "/cookies", changeFrequency: "yearly", priority: 0.2 },
+  { path: "/politica-privacidad", changeFrequency: "yearly", priority: 0.2 },
+  { path: "/aviso-legal", changeFrequency: "yearly", priority: 0.2 },
+];
+
+// Last reviewed/refreshed dates for the hand-built blog guides.
+// Update the value when the guide is meaningfully refreshed; sitemap consumers
+// (Google, Bing, AI crawlers) treat this as a freshness signal.
+const HARDCODED_BLOG_GUIDES: Array<{ slug: string; lastModified: string }> = [
+  { slug: "mejores-freidoras-aire-amazon-2026-menos-100-euros", lastModified: "2026-04-12" },
+  { slug: "mejores-sofas-calidad-precio-2026", lastModified: "2026-03-18" },
+  { slug: "mejores-ventiladores-de-pie-para-este-verano-2026", lastModified: "2026-04-22" },
+  { slug: "los-7-mejores-ventiladores-amazon-calor-verano-2026", lastModified: "2026-04-22" },
+  { slug: "10-mesas-de-terraza-baratas-y-bonitas-en-amazon-2026", lastModified: "2026-04-08" },
+  { slug: "review-cosori-5-7l-freidora-aire-calidad-precio-menos-100-euros", lastModified: "2026-03-02" },
+  { slug: "mejores-cafeteras-superautomaticas-amantes-del-cafe-2026", lastModified: "2026-03-26" },
+  { slug: "mejores-robots-de-cocina-baratos-alternativas-thermomix-2026", lastModified: "2026-03-26" },
+  { slug: "mejores-frigorificos-combi-bajo-consumo-2026", lastModified: "2026-02-20" },
+  { slug: "mejores-microondas-sin-plato-giratorio-2026", lastModified: "2026-02-20" },
+  { slug: "mejores-sombrillas-resistentes-amazon-2026", lastModified: "2026-04-30" },
+  { slug: "mejores-piscinas-desmontables-baratas-amazon-2026", lastModified: "2026-04-30" },
 ];
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
@@ -45,9 +48,17 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     priority: route.priority,
   }));
 
+  const blogGuideEntries: MetadataRoute.Sitemap = HARDCODED_BLOG_GUIDES.map((guide) => ({
+    url: `${SITE_URL}/blog/${guide.slug}`,
+    lastModified: new Date(guide.lastModified),
+    changeFrequency: "monthly",
+    priority: 0.7,
+  }));
+
   const dynamicEntries = await fetchDynamicEntries();
   const deduped = new Map<string, MetadataRoute.Sitemap[number]>();
-  for (const entry of [...staticEntries, ...dynamicEntries]) {
+  // Order matters: dynamic editorial entries can override the hardcoded fallback.
+  for (const entry of [...staticEntries, ...blogGuideEntries, ...dynamicEntries]) {
     deduped.set(entry.url, entry);
   }
 

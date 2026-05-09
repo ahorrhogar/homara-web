@@ -1,17 +1,36 @@
 import type { Metadata } from "next";
 import Breadcrumb from "@/components/layout/Breadcrumb";
+import { JsonLd } from "@/components/seo/JsonLd";
 import { Shield, Users, Award, Search, BarChart3, Heart, Zap } from "lucide-react";
 
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://homara.es";
+
 export const metadata: Metadata = {
-  title: "Acerca de Homara",
+  title: "Acerca de Homara — Comparador editorial de hogar y jardín",
   description:
-    "Homara es un comparador de precios independiente especializado en hogar y jardín. Conoce cómo trabajamos, nuestros valores y nuestro modelo de negocio.",
+    "Homara es un comparador editorial independiente especializado en hogar y jardín. Cómo trabajamos, qué publicamos y por qué te recomendamos lo que te recomendamos.",
   alternates: { canonical: "/acerca-de" },
+  openGraph: {
+    type: "website",
+    title: "Acerca de Homara",
+    description: "Comparador editorial independiente especializado en hogar y jardín.",
+    url: `${SITE_URL}/acerca-de`,
+  },
+};
+
+const ABOUT_PAGE_SCHEMA = {
+  "@context": "https://schema.org",
+  "@type": "AboutPage",
+  url: `${SITE_URL}/acerca-de`,
+  name: "Acerca de Homara",
+  inLanguage: "es",
+  mainEntity: { "@id": `${SITE_URL}/#organization` },
 };
 
 export default function AboutPage() {
   return (
     <main className="container mx-auto px-4">
+      <JsonLd data={ABOUT_PAGE_SCHEMA} />
       <Breadcrumb items={[{ label: "Acerca de Homara" }]} />
 
       <div className="text-center max-w-3xl mx-auto mb-16">

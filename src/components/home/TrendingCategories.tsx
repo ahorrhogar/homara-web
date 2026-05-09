@@ -1,10 +1,11 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import type { Category, TrendingCategory } from "@/domain/catalog/types";
-import { applyProductImageFallback, PRODUCT_IMAGE_FALLBACK } from "@/lib/productImage";
+import { PRODUCT_IMAGE_FALLBACK } from "@/lib/productImage";
 
 interface TrendingCategoriesProps {
   categories: Category[];
@@ -79,13 +80,13 @@ const TrendingCategories = ({ categories, trending }: TrendingCategoriesProps) =
                   className="flex-shrink-0 flex flex-col items-center group"
                   style={{ width: "120px" }}
                 >
-                  <div className="w-[100px] h-[100px] rounded-full bg-secondary/80 overflow-hidden mb-2.5 group-hover:ring-2 group-hover:ring-accent/50 transition-all duration-300">
-                    <img
+                  <div className="relative w-[100px] h-[100px] rounded-full bg-secondary/80 overflow-hidden mb-2.5 group-hover:ring-2 group-hover:ring-accent/50 transition-all duration-300">
+                    <Image
                       src={categoryPreviewImage}
                       alt={category.name}
-                      className="w-full h-full object-cover"
-                      loading="lazy"
-                      onError={(event) => applyProductImageFallback(event.currentTarget)}
+                      fill
+                      sizes="100px"
+                      className="object-cover"
                     />
                   </div>
                   <span className="text-xs font-medium text-foreground text-center leading-tight group-hover:text-accent transition-colors">
@@ -106,13 +107,13 @@ const TrendingCategories = ({ categories, trending }: TrendingCategoriesProps) =
                       className="flex-shrink-0 flex flex-col items-center group"
                       style={{ width: "120px" }}
                     >
-                      <div className="w-[100px] h-[100px] rounded-full bg-secondary/80 overflow-hidden mb-2.5 group-hover:ring-2 group-hover:ring-accent/50 transition-all duration-300">
-                        <img
+                      <div className="relative w-[100px] h-[100px] rounded-full bg-secondary/80 overflow-hidden mb-2.5 group-hover:ring-2 group-hover:ring-accent/50 transition-all duration-300">
+                        <Image
                           src={subPreviewImage}
                           alt={sub.name}
-                          className="w-full h-full object-cover"
-                          loading="lazy"
-                          onError={(event) => applyProductImageFallback(event.currentTarget)}
+                          fill
+                          sizes="100px"
+                          className="object-cover"
                         />
                       </div>
                       <span className="text-xs font-medium text-foreground text-center leading-tight group-hover:text-accent transition-colors">

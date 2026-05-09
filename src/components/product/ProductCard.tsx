@@ -1,11 +1,12 @@
 "use client";
 
-import Link from 'next/link';
-import { Product } from '@/domain/catalog/types';
-import { computeDiscountPercent } from '@/domain/catalog/product-logic';
-import { Star, ArrowRight, Tag, TrendingDown, Sparkles } from 'lucide-react';
-import ProductDestinationLink from '@/components/product/ProductDestinationLink';
-import { applyProductImageFallback, PRODUCT_IMAGE_FALLBACK } from '@/lib/productImage';
+import Image from "next/image";
+import Link from "next/link";
+import { Product } from "@/domain/catalog/types";
+import { computeDiscountPercent } from "@/domain/catalog/product-logic";
+import { Star, ArrowRight, Tag, TrendingDown, Sparkles } from "lucide-react";
+import ProductDestinationLink from "@/components/product/ProductDestinationLink";
+import { PRODUCT_IMAGE_FALLBACK } from "@/lib/productImage";
 
 const ProductCard = ({ product }: { product: Product }) => {
   const realDiscount = computeDiscountPercent(product);
@@ -19,11 +20,12 @@ const ProductCard = ({ product }: { product: Product }) => {
     >
       {/* Image */}
       <div className="relative aspect-square bg-secondary/50 overflow-hidden">
-        <img
+        <Image
           src={primaryImage}
           alt={product.name}
-          className="w-full h-full object-contain p-2"
-          onError={(event) => applyProductImageFallback(event.currentTarget)}
+          fill
+          sizes="(min-width: 1024px) 25vw, (min-width: 768px) 33vw, 50vw"
+          className="object-contain p-2"
         />
 
         {/* Badges */}

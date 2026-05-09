@@ -1,9 +1,10 @@
 "use client";
 
+import Image from "next/image";
 import { useState } from "react";
 import { Sparkles, ArrowRight, Search, Star, Award, DollarSign } from "lucide-react";
 import ProductDestinationLink from "@/components/product/ProductDestinationLink";
-import { applyProductImageFallback, PRODUCT_IMAGE_FALLBACK } from "@/lib/productImage";
+import { PRODUCT_IMAGE_FALLBACK } from "@/lib/productImage";
 import { buildAssistantRecommendations } from "@/domain/assistant/recommendation";
 import type {
   AssistantPriority,
@@ -176,12 +177,13 @@ export function AssistantForm({ categories, styles, products }: AssistantFormPro
                       index === 0 ? "border-accent bg-accent/5" : "border-border bg-card hover:border-accent/30"
                     }`}
                   >
-                    <div className="flex-shrink-0 w-24 h-24 bg-secondary/50 rounded-xl overflow-hidden">
-                      <img
+                    <div className="relative flex-shrink-0 w-24 h-24 bg-secondary/50 rounded-xl overflow-hidden">
+                      <Image
                         src={previewImage}
                         alt={result.product.name}
-                        className="w-full h-full object-contain p-1"
-                        onError={(event) => applyProductImageFallback(event.currentTarget)}
+                        fill
+                        sizes="96px"
+                        className="object-contain p-1"
                       />
                     </div>
                     <div className="flex-1 min-w-0">
