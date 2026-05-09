@@ -13,16 +13,28 @@ const TITLE =
 const DESCRIPTION =
   "Review honesta de la COSORI 5,7 L por menos de 100 EUR: opinión real, ficha técnica, pros, contras, veredicto y enlace de compra.";
 
+const PUBLISHED_AT = "2026-03-02";
+const UPDATED_AT = "2026-03-02";
+const CATEGORY = "Cocina";
+const KEYWORDS = ["Cosori 5.7L", "Cosori review", "freidora aire Cosori", "freidora aire menos 100 euros"];
+
 export const metadata: Metadata = {
   title: TITLE,
   description: DESCRIPTION,
+  keywords: KEYWORDS,
   alternates: { canonical: REVIEW_PATH },
   openGraph: {
     type: "article",
     title: TITLE,
     description: DESCRIPTION,
     url: `${SITE_URL}${REVIEW_PATH}`,
+    publishedTime: PUBLISHED_AT,
+    modifiedTime: UPDATED_AT,
+    authors: ["Equipo editorial Homara"],
+    section: CATEGORY,
+    images: [{ url: "https://m.media-amazon.com/images/I/81HDt6NDs7L._AC_SX522_.jpg" }],
   },
+  twitter: { card: "summary_large_image", title: TITLE, description: DESCRIPTION },
 };
 
 const product = {
@@ -51,16 +63,57 @@ const faqs = [
 ];
 
 export default function CosoriReviewPage() {
+  const productSchema = {
+    "@context": "https://schema.org",
+    "@type": "Product",
+    "@id": `${SITE_URL}${REVIEW_PATH}#product`,
+    name: product.name,
+    image: [product.mainImage, ...product.extraImages],
+    description: DESCRIPTION,
+    brand: { "@type": "Brand", name: "Cosori" },
+    aggregateRating: {
+      "@type": "AggregateRating",
+      ratingValue: 4.7,
+      reviewCount: 103776,
+      bestRating: 5,
+      worstRating: 1,
+    },
+    review: {
+      "@type": "Review",
+      author: { "@type": "Organization", name: "Equipo editorial Homara", url: SITE_URL },
+      reviewRating: { "@type": "Rating", ratingValue: 4.7, bestRating: 5 },
+      datePublished: PUBLISHED_AT,
+      reviewBody: DESCRIPTION,
+    },
+  };
+
   const articleSchema = {
     "@context": "https://schema.org",
-    "@type": "Review",
-    itemReviewed: { "@type": "Product", name: product.name },
-    author: { "@type": "Organization", name: "Homara" },
-    reviewRating: { "@type": "Rating", ratingValue: 4.7, bestRating: 5 },
+    "@type": "ReviewArticle",
     headline: TITLE,
-    datePublished: "2026-04-19",
     description: DESCRIPTION,
+    inLanguage: "es",
+    articleSection: CATEGORY,
+    datePublished: PUBLISHED_AT,
+    dateModified: UPDATED_AT,
+    author: { "@type": "Organization", name: "Equipo editorial Homara", url: SITE_URL },
+    publisher: {
+      "@type": "Organization",
+      name: "Homara",
+      logo: { "@type": "ImageObject", url: `${SITE_URL}/homara-logo.svg` },
+    },
     mainEntityOfPage: `${SITE_URL}${REVIEW_PATH}`,
+    image: [product.mainImage],
+  };
+
+  const breadcrumbSchema = {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    itemListElement: [
+      { "@type": "ListItem", position: 1, name: "Inicio", item: SITE_URL },
+      { "@type": "ListItem", position: 2, name: "Blog", item: `${SITE_URL}/blog` },
+      { "@type": "ListItem", position: 3, name: TITLE, item: `${SITE_URL}${REVIEW_PATH}` },
+    ],
   };
 
   const faqSchema = {
@@ -75,12 +128,14 @@ export default function CosoriReviewPage() {
 
   return (
     <>
+      <JsonLd data={productSchema} />
       <JsonLd data={articleSchema} />
+      <JsonLd data={breadcrumbSchema} />
       <JsonLd data={faqSchema} />
 
       <main className="container mx-auto px-4 pb-16">
         <div className="py-2">
-          <Breadcrumb items={[{ label: "Guías", href: "/blog" }, { label: "Review COSORI 5,7 L" }]} />
+          <Breadcrumb items={[{ label: "Blog", href: "/blog" }, { label: "Review COSORI 5,7 L" }]} />
         </div>
 
         <article>

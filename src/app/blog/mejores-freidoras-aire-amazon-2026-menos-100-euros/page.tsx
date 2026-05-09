@@ -3,18 +3,34 @@ import Link from "next/link";
 import { ArrowRight, BadgeEuro, ChefHat, ExternalLink, Sparkles, Star, Zap } from "lucide-react";
 import Breadcrumb from "@/components/layout/Breadcrumb";
 import { JsonLd } from "@/components/seo/JsonLd";
+import { buildBlogGuideSchemas } from "@/components/seo/blog-guide-schemas";
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://homara.es";
 const PATH = "/blog/mejores-freidoras-aire-amazon-2026-menos-100-euros";
-const TITLE = "Las 5 mejores freidoras de aire por menos de 100 EUR en 2026";
+const TITLE = "Las 5 mejores freidoras de aire por menos de 100 € en 2026";
 const DESCRIPTION =
-  "Comparativa de las mejores freidoras de aire por menos de 100 EUR en 2026: 5 modelos, pros y contras, tabla resumen y recomendación editorial de Homara.";
+  "Comparativa editorial de 5 freidoras de aire por debajo de 100 € en Amazon (2026): capacidad, potencia, pros, contras y recomendación según uso real.";
+const PUBLISHED_AT = "2026-04-12";
+const UPDATED_AT = "2026-04-12";
+const CATEGORY = "Cocina";
+const KEYWORDS = ["freidora de aire", "freidora aire menos 100 euros", "mejores freidoras 2026", "Cosori", "freidora Amazon"];
 
 export const metadata: Metadata = {
   title: TITLE,
   description: DESCRIPTION,
+  keywords: KEYWORDS,
   alternates: { canonical: PATH },
-  openGraph: { type: "article", title: TITLE, description: DESCRIPTION, url: `${SITE_URL}${PATH}` },
+  openGraph: {
+    type: "article",
+    title: TITLE,
+    description: DESCRIPTION,
+    url: `${SITE_URL}${PATH}`,
+    publishedTime: PUBLISHED_AT,
+    modifiedTime: UPDATED_AT,
+    authors: ["Equipo editorial Homara"],
+    section: CATEGORY,
+  },
+  twitter: { card: "summary_large_image", title: TITLE, description: DESCRIPTION },
 };
 
 type AffiliateProduct = {
@@ -143,36 +159,32 @@ const faqs = [
 ];
 
 export default function AirFryersUnder100GuidePage() {
-  const itemListSchema = {
-    "@context": "https://schema.org",
-    "@type": "ItemList",
-    name: TITLE,
-    itemListElement: affiliateProducts.map((p) => ({
-      "@type": "ListItem",
-      position: p.rank,
-      name: p.name,
-      url: p.affiliateUrl,
-    })),
-  };
-
-  const faqSchema = {
-    "@context": "https://schema.org",
-    "@type": "FAQPage",
-    mainEntity: faqs.map((f) => ({
-      "@type": "Question",
-      name: f.q,
-      acceptedAnswer: { "@type": "Answer", text: f.a },
-    })),
-  };
+  const { article, breadcrumb, faqPage, itemList } = buildBlogGuideSchemas({
+    path: PATH,
+    title: TITLE,
+    description: DESCRIPTION,
+    publishedAt: PUBLISHED_AT,
+    updatedAt: UPDATED_AT,
+    category: CATEGORY,
+    keywords: KEYWORDS,
+    image: affiliateProducts[0]?.imageUrl,
+    rankedItems: affiliateProducts.map((p) => ({ name: p.name })),
+    faqs: faqs.map((f) => ({ question: f.q, answer: f.a })),
+    articleBody: affiliateProducts
+      .map((p) => `${p.name}: ${p.miniReview} ${p.notes.join(". ")}`)
+      .join(" "),
+  });
 
   return (
     <>
-      <JsonLd data={itemListSchema} />
-      <JsonLd data={faqSchema} />
+      <JsonLd data={article} />
+      <JsonLd data={breadcrumb} />
+      {faqPage ? <JsonLd data={faqPage} /> : null}
+      {itemList ? <JsonLd data={itemList} /> : null}
 
       <main className="container mx-auto px-4 pb-16">
         <div className="py-2">
-          <Breadcrumb items={[{ label: "Guías", href: "/blog" }, { label: "Mejores freidoras de aire por menos de 100 EUR" }]} />
+          <Breadcrumb items={[{ label: "Blog", href: "/blog" }, { label: TITLE }]} />
         </div>
 
         <article>

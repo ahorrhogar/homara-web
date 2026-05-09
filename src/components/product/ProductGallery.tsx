@@ -1,9 +1,10 @@
 "use client";
 
+import Image from "next/image";
 import { useState } from "react";
 import { ChevronLeft, ChevronRight, TrendingDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { applyProductImageFallback, PRODUCT_IMAGE_FALLBACK } from "@/lib/productImage";
+import { PRODUCT_IMAGE_FALLBACK } from "@/lib/productImage";
 
 interface ProductGalleryProps {
   images: string[];
@@ -29,11 +30,13 @@ export function ProductGallery({ images, productName, badge }: ProductGalleryPro
   return (
     <div className="min-w-0 space-y-3">
       <div className="bg-secondary/30 rounded-2xl p-8 flex items-center justify-center aspect-square relative overflow-hidden">
-        <img
+        <Image
           src={selectedImage}
           alt={`${productName} — imagen ${clamped + 1}`}
-          className="h-full w-full object-contain rounded-lg"
-          onError={(event) => applyProductImageFallback(event.currentTarget)}
+          fill
+          priority
+          sizes="(min-width: 1024px) 50vw, 100vw"
+          className="object-contain rounded-lg p-8"
         />
 
         {hasMultipleImages ? (
@@ -86,11 +89,13 @@ export function ProductGallery({ images, productName, badge }: ProductGalleryPro
               }`}
               aria-label={`Ver imagen ${index + 1}`}
             >
-              <img
+              <Image
                 src={image || PRODUCT_IMAGE_FALLBACK}
                 alt={`${productName} miniatura ${index + 1}`}
+                width={64}
+                height={64}
+                sizes="64px"
                 className="h-full w-full object-contain p-1"
-                onError={(event) => applyProductImageFallback(event.currentTarget)}
               />
             </button>
           ))}

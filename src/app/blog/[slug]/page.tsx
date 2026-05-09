@@ -32,6 +32,7 @@ export async function generateMetadata({
   return {
     title: article.title,
     description: article.excerpt,
+    keywords: article.tags?.length ? article.tags : undefined,
     alternates: { canonical: article.path },
     openGraph: {
       title: article.title,
@@ -39,8 +40,16 @@ export async function generateMetadata({
       type: "article",
       publishedTime: article.publishedAt,
       modifiedTime: article.updatedAt || article.publishedAt,
+      authors: ["Equipo editorial Homara"],
+      section: article.categoryName,
       url: `${SITE_URL}${article.path}`,
       images: article.coverImage ? [{ url: article.coverImage, alt: article.coverImageAlt || article.title }] : [],
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: article.title,
+      description: article.excerpt,
+      images: article.coverImage ? [article.coverImage] : undefined,
     },
   };
 }
@@ -57,16 +66,35 @@ export default async function EditorialArticlePage({
     notFound();
   }
 
+  const articleBody = article.sections.map((s) => `${s.heading}. ${s.body}`).join(" ").slice(0, 5000);
+  const wordCount = articleBody ? articleBody.split(/\s+/).filter(Boolean).length : undefined;
+
   const articleSchema = {
     "@context": "https://schema.org",
     "@type": "Article",
     headline: article.title,
     description: article.excerpt,
+    articleBody,
+    wordCount,
+    inLanguage: "es",
+    keywords: article.tags?.length ? article.tags.join(", ") : undefined,
+    articleSection: article.categoryName,
     datePublished: article.publishedAt,
     dateModified: article.updatedAt || article.publishedAt,
-    author: { "@type": "Organization", name: "Homara" },
+    author: {
+      "@type": "Organization",
+      name: "Equipo editorial Homara",
+      url: SITE_URL,
+    },
+    publisher: {
+      "@type": "Organization",
+      name: "Homara",
+      logo: { "@type": "ImageObject", url: `${SITE_URL}/homara-logo.svg` },
+    },
     mainEntityOfPage: `${SITE_URL}${article.path}`,
-    image: article.coverImage ? [article.coverImage] : undefined,
+    image: article.coverImage
+      ? [{ "@type": "ImageObject", url: article.coverImage, width: 1200, height: 630 }]
+      : undefined,
   };
 
   const breadcrumbSchema = {
@@ -74,7 +102,7 @@ export default async function EditorialArticlePage({
     "@type": "BreadcrumbList",
     itemListElement: [
       { "@type": "ListItem", position: 1, name: "Inicio", item: `${SITE_URL}/` },
-      { "@type": "ListItem", position: 2, name: "Guías", item: `${SITE_URL}/blog` },
+      { "@type": "ListItem", position: 2, name: "Blog", item: `${SITE_URL}/blog` },
       { "@type": "ListItem", position: 3, name: article.title, item: `${SITE_URL}${article.path}` },
     ],
   };
@@ -86,7 +114,7 @@ export default async function EditorialArticlePage({
 
       <main className="pb-14">
         <div className="container mx-auto px-4 py-2">
-          <Breadcrumb items={[{ label: "Guías", href: "/blog" }, { label: article.title }]} />
+          <Breadcrumb items={[{ label: "Blog", href: "/blog" }, { label: article.title }]} />
         </div>
 
         <article className="container mx-auto px-4">
@@ -104,11 +132,20 @@ export default async function EditorialArticlePage({
                 {article.excerpt}
               </p>
 
-              <div className="mt-5 flex flex-wrap gap-4 text-sm text-muted-foreground">
+              <div className="mt-5 flex flex-wrap gap-x-4 gap-y-2 text-sm text-muted-foreground">
+                <span className="inline-flex items-center gap-1.5">
+                  Por <strong className="font-semibold text-foreground">Equipo editorial Homara</strong>
+                </span>
                 <span className="inline-flex items-center gap-1.5">
                   <CalendarDays className="h-4 w-4" />
-                  {formatDate(article.publishedAt)}
+                  Publicado el {formatDate(article.publishedAt)}
                 </span>
+                {article.updatedAt && article.updatedAt !== article.publishedAt ? (
+                  <span className="inline-flex items-center gap-1.5">
+                    <CalendarDays className="h-4 w-4" />
+                    Actualizado el {formatDate(article.updatedAt)}
+                  </span>
+                ) : null}
                 <span className="inline-flex items-center gap-1.5">
                   <Clock3 className="h-4 w-4" />
                   {article.readMinutes} min de lectura

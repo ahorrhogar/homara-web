@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import {
@@ -39,20 +40,80 @@ export async function generateMetadata({
     return { title: "Producto no encontrado", robots: { index: false } };
   }
 
+  const description =
+    (product.description || `Compara precios y ofertas reales de ${product.name}. Datos editoriales, especificaciones y enlaces a las tiendas con stock.`).slice(
+      0,
+      300,
+    );
+
   return {
-    title: `${product.name} — Compara precios y ofertas`,
-    description:
-      product.description ||
-      `Compara precios de ${product.name} entre las mejores tiendas de España.`,
+    title: `${product.name} — Precios, ofertas y opiniones`,
+    description,
     alternates: { canonical: `/producto/${product.slug}` },
     openGraph: {
       title: product.name,
-      description: product.description || undefined,
+      description,
       url: `${SITE_URL}/producto/${product.slug}`,
       images: product.images.filter(Boolean).slice(0, 1).map((url) => ({ url })),
       type: "website",
     },
+    twitter: {
+      card: "summary_large_image",
+      title: product.name,
+      description,
+      images: product.images.filter(Boolean).slice(0, 1),
+    },
   };
+}
+
+function buildProductFaq(
+  product: { name: string; brand: string; specs?: ReadonlyArray<{ name: string; value: string }> },
+  offerCount: number,
+): Array<{ question: string; answer: string }> {
+  const faqs: Array<{ question: string; answer: string }> = [];
+  const specs = product.specs ?? [];
+  const lookup = (key: string) =>
+    specs.find((s) => s.name?.toLowerCase().includes(key))?.value;
+
+  const dimensions = lookup("dimens") || lookup("medid") || lookup("tamaño");
+  const material = lookup("material");
+  const warranty = lookup("garant");
+  const power = lookup("potenc") || lookup("consumo");
+
+  if (dimensions) {
+    faqs.push({
+      question: `¿Qué medidas tiene el ${product.name}?`,
+      answer: `Según las especificaciones del fabricante, sus dimensiones son ${dimensions}.`,
+    });
+  }
+  if (material) {
+    faqs.push({
+      question: `¿De qué material está fabricado?`,
+      answer: `Está fabricado con ${material}.`,
+    });
+  }
+  if (power) {
+    faqs.push({
+      question: `¿Cuál es su potencia o consumo?`,
+      answer: `El fabricante indica un valor de ${power}.`,
+    });
+  }
+  if (warranty) {
+    faqs.push({
+      question: `¿Qué garantía incluye?`,
+      answer: `La garantía declarada por el fabricante es de ${warranty}.`,
+    });
+  }
+
+  faqs.push({
+    question: `¿Dónde puedo comprar el ${product.name} al mejor precio?`,
+    answer:
+      offerCount > 0
+        ? `Comparamos ${offerCount} ofertas activas para este producto en distintas tiendas. La página muestra el precio más bajo y enlaza a la tienda con stock.`
+        : `Actualmente no hay ofertas activas verificadas para este producto. Consulta las páginas de ${product.brand} en las tiendas oficiales.`,
+  });
+
+  return faqs.slice(0, 6);
 }
 
 export default async function ProductPage({ params }: { params: Promise<{ slug: string }> }) {
@@ -88,47 +149,104 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
 
   const realDiscount = computeDiscountPercent(product);
   const galleryImages = product.images.filter(Boolean);
-  const productSchema = {
+
+  const productSchema: Record<string, unknown> = {
     "@context": "https://schema.org",
     "@type": "Product",
+    "@id": `${SITE_URL}/producto/${product.slug}#product`,
     name: product.name,
-    description: product.description,
+    description: product.description || undefined,
+    sku: product.slug,
     brand: { "@type": "Brand", name: product.brand },
     image: galleryImages.slice(0, 6),
-    aggregateRating:
-      product.rating && product.reviewCount
-        ? {
-            "@type": "AggregateRating",
-            ratingValue: product.rating,
-            reviewCount: product.reviewCount,
-          }
-        : undefined,
-    offers: offers.length
+    url: `${SITE_URL}/producto/${product.slug}`,
+  };
+
+  if (product.rating && product.reviewCount) {
+    productSchema.aggregateRating = {
+      "@type": "AggregateRating",
+      ratingValue: product.rating,
+      reviewCount: product.reviewCount,
+      bestRating: 5,
+      worstRating: 1,
+    };
+  }
+
+  if (offers.length > 0) {
+    productSchema.offers = {
+      "@type": "AggregateOffer",
+      priceCurrency: "EUR",
+      lowPrice: product.minPrice,
+      highPrice: product.maxPrice,
+      offerCount: offers.length,
+      offers: offers.map((offer) => ({
+        "@type": "Offer",
+        url: `${SITE_URL}/api/redirect?offerId=${offer.id}&track=1`,
+        priceCurrency: "EUR",
+        price: offer.price,
+        availability: offer.inStock
+          ? "https://schema.org/InStock"
+          : "https://schema.org/OutOfStock",
+        seller: { "@type": "Organization", name: offer.merchant.name },
+      })),
+    };
+  }
+
+  const breadcrumbSchema = {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    itemListElement: [
+      { "@type": "ListItem", position: 1, name: "Inicio", item: SITE_URL },
+      ...(category
+        ? [
+            {
+              "@type": "ListItem",
+              position: 2,
+              name: category.name,
+              item: `${SITE_URL}/categoria/${category.slug}`,
+            },
+          ]
+        : []),
+      ...(category && subcategory
+        ? [
+            {
+              "@type": "ListItem",
+              position: 3,
+              name: subcategory.name,
+              item: `${SITE_URL}/categoria/${category.slug}/${subcategory.slug}`,
+            },
+          ]
+        : []),
+      {
+        "@type": "ListItem",
+        position: category && subcategory ? 4 : category ? 3 : 2,
+        name: product.name,
+        item: `${SITE_URL}/producto/${product.slug}`,
+      },
+    ],
+  };
+
+  const productFaq = buildProductFaq(product, offers.length);
+  const faqSchema =
+    productFaq.length >= 2
       ? {
-          "@type": "AggregateOffer",
-          priceCurrency: "EUR",
-          lowPrice: product.minPrice,
-          highPrice: product.maxPrice,
-          offerCount: offers.length,
-          offers: offers.map((offer) => ({
-            "@type": "Offer",
-            url: `${SITE_URL}/api/redirect?offerId=${offer.id}&track=1`,
-            priceCurrency: "EUR",
-            price: offer.price,
-            availability: offer.inStock
-              ? "https://schema.org/InStock"
-              : "https://schema.org/OutOfStock",
-            seller: { "@type": "Organization", name: offer.merchant.name },
+          "@context": "https://schema.org",
+          "@type": "FAQPage",
+          mainEntity: productFaq.map((item) => ({
+            "@type": "Question",
+            name: item.question,
+            acceptedAnswer: { "@type": "Answer", text: item.answer },
           })),
         }
-      : undefined,
-  };
+      : null;
 
   const sortedOffers = [...offers].sort((a, b) => a.price + a.shippingCost - (b.price + b.shippingCost));
 
   return (
     <>
       <JsonLd data={productSchema} />
+      <JsonLd data={breadcrumbSchema} />
+      {faqSchema ? <JsonLd data={faqSchema} /> : null}
 
       <main className="container mx-auto px-4">
         <Breadcrumb items={breadcrumbs} />
@@ -232,9 +350,12 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
                     <div className="flex items-center gap-3 min-w-0">
                       <div className="w-10 h-10 rounded-lg bg-secondary/80 border border-border flex items-center justify-center overflow-hidden flex-shrink-0">
                         {offer.merchant.logo ? (
-                          <img
+                          <Image
                             src={offer.merchant.logo}
                             alt={offer.merchant.name}
+                            width={28}
+                            height={28}
+                            sizes="28px"
                             className="w-7 h-7 object-contain"
                           />
                         ) : (
@@ -285,6 +406,22 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
                 );
               })}
             </div>
+          </section>
+        ) : null}
+
+        {productFaq.length >= 2 ? (
+          <section className="mb-12">
+            <h2 className="font-display text-xl md:text-2xl font-bold text-foreground mb-5">
+              Preguntas frecuentes
+            </h2>
+            <dl className="divide-y divide-border rounded-2xl border border-border bg-card">
+              {productFaq.map((item) => (
+                <div key={item.question} className="p-4">
+                  <dt className="font-semibold text-foreground text-sm mb-1">{item.question}</dt>
+                  <dd className="text-sm text-muted-foreground leading-relaxed">{item.answer}</dd>
+                </div>
+              ))}
+            </dl>
           </section>
         ) : null}
 

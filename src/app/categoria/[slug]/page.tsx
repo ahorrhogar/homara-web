@@ -27,16 +27,29 @@ export async function generateMetadata({
     return { title: "Categoría no encontrada", robots: { index: false } };
   }
 
+  const description = (
+    category.description ||
+    `Compara productos de ${category.name.toLowerCase()}: precios reales, datos editoriales y ofertas activas en las principales tiendas.`
+  ).slice(0, 300);
+
+  const heroImage = category.image || undefined;
+
   return {
-    title: `${category.name} — Compara precios y ofertas`,
-    description:
-      category.description ||
-      `Compara productos de ${category.name.toLowerCase()} entre las mejores tiendas de España.`,
+    title: `${category.name} — Comparativa y precios`,
+    description,
     alternates: { canonical: `/categoria/${category.slug}` },
     openGraph: {
       title: `${category.name} — Homara`,
-      description: category.description || undefined,
+      description,
       url: `${SITE_URL}/categoria/${category.slug}`,
+      type: "website",
+      images: heroImage ? [{ url: heroImage }] : undefined,
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: `${category.name} — Homara`,
+      description,
+      images: heroImage ? [heroImage] : undefined,
     },
   };
 }

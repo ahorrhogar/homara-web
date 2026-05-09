@@ -1,5 +1,6 @@
 import { CalendarDays, ArrowUpRight, Clock3, Tag } from "lucide-react";
-import Link from 'next/link';
+import Image from "next/image";
+import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
 import type { EditorialArticle } from "@/domain/editorial/types";
 import { cn } from "@/lib/utils";
@@ -42,11 +43,12 @@ const EditorialArticleCard = ({ article, compact = false }: EditorialArticleCard
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_20%,rgba(255,255,255,0.34),transparent_45%)]" aria-hidden="true" />
 
         {article.coverImage ? (
-          <img
+          <Image
             src={article.coverImage}
             alt={article.coverImageAlt || article.title}
-            loading="lazy"
-            className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+            fill
+            sizes="(min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw"
+            className="object-cover transition-transform duration-500 group-hover:scale-105"
           />
         ) : null}
 

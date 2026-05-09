@@ -3,17 +3,34 @@ import Link from "next/link";
 import { ArrowRight, BadgeEuro, Coffee, ExternalLink, Sparkles, Star, Zap } from "lucide-react";
 import Breadcrumb from "@/components/layout/Breadcrumb";
 import { JsonLd } from "@/components/seo/JsonLd";
+import { buildBlogGuideSchemas } from "@/components/seo/blog-guide-schemas";
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://homara.es";
 const PATH = "/blog/mejores-cafeteras-superautomaticas-amantes-del-cafe-2026";
 const TITLE = "Las mejores cafeteras superautomáticas para amantes del café (2026)";
 const DESCRIPTION = "Comparativa editorial de las mejores cafeteras superautomáticas para amantes del café en 2026: modelos, pros, contras y recomendación Homara.";
 
+const PUBLISHED_AT = "2026-03-26";
+const UPDATED_AT = "2026-03-26";
+const CATEGORY = "Cocina";
+const KEYWORDS = ["cafetera superautomática", "mejor cafetera 2026", "cafetera grano", "cafetera espresso", "cafetera con molinillo"];
+
 export const metadata: Metadata = {
   title: TITLE,
   description: DESCRIPTION,
+  keywords: KEYWORDS,
   alternates: { canonical: PATH },
-  openGraph: { type: "article", title: TITLE, description: DESCRIPTION, url: SITE_URL + PATH },
+  openGraph: {
+    type: "article",
+    title: TITLE,
+    description: DESCRIPTION,
+    url: `${SITE_URL}${PATH}`,
+    publishedTime: PUBLISHED_AT,
+    modifiedTime: UPDATED_AT,
+    authors: ["Equipo editorial Homara"],
+    section: CATEGORY,
+  },
+  twitter: { card: "summary_large_image", title: TITLE, description: DESCRIPTION },
 };
 
 type CoffeeMachine = {
@@ -200,22 +217,33 @@ const faqs = [
 ];
 
 export default function GuidePage() {
+  const { article, breadcrumb, faqPage, itemList } = buildBlogGuideSchemas({
+    path: PATH,
+    title: TITLE,
+    description: DESCRIPTION,
+    publishedAt: PUBLISHED_AT,
+    updatedAt: UPDATED_AT,
+    category: CATEGORY,
+    keywords: KEYWORDS,
+    image: coffeeMachines[0]?.imageUrl,
+    rankedItems: coffeeMachines.map((p) => ({ name: p.name })),
+    faqs: faqs.map((f) => ({ question: f.q, answer: f.a })),
+    articleBody: coffeeMachines.map((p) => `${p.name}: ${p.miniReview}`).join(" "),
+  });
+
   return (
-    <main className="container mx-auto px-4 pb-16">
-      <div className="py-2">
-        <Breadcrumb items={[{ label: "Guías", href: "/blog" }, { label: TITLE }]} />
-      </div>
-      <main className="flex-1">
-        <div className="container mx-auto px-4 py-2">
-          <Breadcrumb
-            items={[
-              { label: "Guias", href: "/guias" },
-              { label: "Mejores cafeteras superautomaticas" },
-            ]}
-          />
+    <>
+      <JsonLd data={article} />
+      <JsonLd data={breadcrumb} />
+      {faqPage ? <JsonLd data={faqPage} /> : null}
+      {itemList ? <JsonLd data={itemList} /> : null}
+
+      <main className="container mx-auto px-4 pb-16">
+        <div className="py-2">
+          <Breadcrumb items={[{ label: "Blog", href: "/blog" }, { label: TITLE }]} />
         </div>
 
-        <article className="container mx-auto px-4 pb-16">
+        <article className="pb-16">
           <header className="relative overflow-hidden rounded-3xl border border-border bg-gradient-to-br from-accent/15 via-secondary/50 to-card p-6 md:p-10">
             <div className="absolute -right-10 -top-10 h-32 w-32 rounded-full bg-accent/20 blur-2xl" aria-hidden="true" />
             <div className="absolute -left-12 bottom-0 h-24 w-24 rounded-full bg-primary/15 blur-xl" aria-hidden="true" />
@@ -534,6 +562,6 @@ export default function GuidePage() {
           </section>
         </article>
       </main>
-    </main>
+    </>
   );
 }

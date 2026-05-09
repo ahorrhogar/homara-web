@@ -1,3 +1,5 @@
+import type { Metadata } from "next";
+import Image from "next/image";
 import Link from "next/link";
 import { Sparkles, ArrowRight, TrendingUp, Star, Flame, Zap } from "lucide-react";
 import Hero from "@/components/home/Hero";
@@ -11,10 +13,52 @@ import { JsonLd } from "@/components/seo/JsonLd";
 import { getCategories, getTrendingCategories } from "@/data/catalog/categories";
 import { getHomeCollections } from "@/data/catalog/products";
 import { computeDiscountPercent } from "@/domain/catalog/product-logic";
-import { applyProductImageFallback, PRODUCT_IMAGE_FALLBACK } from "@/lib/productImage";
+import { PRODUCT_IMAGE_FALLBACK } from "@/lib/productImage";
 import type { Category, Product } from "@/domain/catalog/types";
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://homara.es";
+
+export const metadata: Metadata = {
+  title: "Comparador de hogar y jardín en español",
+  description:
+    "Compara productos para tu hogar y jardín con criterio editorial: precios reales, datos concretos y recomendaciones razonadas. Cocina, terraza, muebles y más.",
+  alternates: { canonical: "/" },
+  openGraph: {
+    type: "website",
+    url: "/",
+    title: "Homara — Comparador editorial de hogar y jardín",
+    description:
+      "Reseñas y comparativas con datos concretos. Encuentra el producto correcto sin ahogarte en pestañas.",
+  },
+};
+
+const HOMEPAGE_FAQ = [
+  {
+    question: "¿Homara es una tienda?",
+    answer:
+      "No. Homara es un comparador editorial: analizamos productos, mostramos precios actualizados de varias tiendas y enlazamos a la que ofrece la mejor opción. La compra siempre se realiza en la tienda final.",
+  },
+  {
+    question: "¿Cómo elegís los productos que recomendáis?",
+    answer:
+      "Seleccionamos productos con datos verificables (medidas, materiales, consumo, garantía), comparamos contra alternativas y descartamos los que no cumplen. No publicamos recomendaciones sin datos concretos.",
+  },
+  {
+    question: "¿Los precios que muestra Homara son los reales?",
+    answer:
+      "Tomamos los precios de las APIs oficiales de las tiendas. Pueden variar en cualquier momento; antes de comprar, confirma siempre el precio en la página de la tienda.",
+  },
+  {
+    question: "¿Cómo gana dinero Homara?",
+    answer:
+      "Cuando un usuario compra a través de los enlaces a tiendas, recibimos una comisión de afiliación. Esta comisión no encarece el producto y no influye en nuestra valoración editorial.",
+  },
+  {
+    question: "¿Puedo pedir recomendaciones personalizadas?",
+    answer:
+      "Sí. El asistente de Homara te recomienda productos según tu presupuesto, estilo y necesidades. Es gratuito y no requiere registro.",
+  },
+];
 
 function normalize(value: string): string {
   return String(value || "")
@@ -140,21 +184,39 @@ export default async function HomePage() {
   const bestSellersHref = getCollectionShowAllHref(bestSellers, categoryHrefById, defaultCategoryHref);
   const favoritesHref = getCollectionShowAllHref(favoriteProducts, categoryHrefById, defaultCategoryHref);
 
-  const websiteSchema = {
+  const faqSchema = {
     "@context": "https://schema.org",
-    "@type": "WebSite",
-    name: "Homara",
-    url: SITE_URL,
-    potentialAction: {
-      "@type": "SearchAction",
-      target: { "@type": "EntryPoint", urlTemplate: `${SITE_URL}/buscar?q={search_term_string}` },
-      "query-input": "required name=search_term_string",
-    },
+    "@type": "FAQPage",
+    mainEntity: HOMEPAGE_FAQ.map((item) => ({
+      "@type": "Question",
+      name: item.question,
+      acceptedAnswer: { "@type": "Answer", text: item.answer },
+    })),
   };
+
+  const topProductsItemList =
+    topProducts.length > 0
+      ? {
+          "@context": "https://schema.org",
+          "@type": "ItemList",
+          name: "Top productos para hogar y jardín",
+          itemListOrder: "https://schema.org/ItemListOrderDescending",
+          numberOfItems: topProducts.length,
+          itemListElement: topProducts.map((product, index) => ({
+            "@type": "ListItem",
+            position: index + 1,
+            url: `${SITE_URL}/producto/${product.slug}`,
+            name: product.name,
+          })),
+        }
+      : null;
 
   return (
     <>
-      <JsonLd data={websiteSchema} />
+      <JsonLd data={faqSchema} />
+      {topProductsItemList ? <JsonLd data={topProductsItemList} /> : null}
+
+      <h1 className="sr-only">Comparador editorial de productos para hogar y jardín</h1>
 
       <Hero />
 
@@ -184,7 +246,7 @@ export default async function HomePage() {
                         -{realDiscount}%
                       </span>
                     ) : null}
-                    <div className="aspect-square rounded-lg overflow-hidden bg-secondary/50 mb-2">
+                    <div className="relative aspect-square rounded-lg overflow-hidden bg-secondary/50 mb-2">
                       <ProductPreviewImage src={previewImage} alt={product.name} />
                     </div>
                     <p className="text-xs text-muted-foreground">{product.brand}</p>
@@ -278,7 +340,7 @@ export default async function HomePage() {
           <h2 className="font-display text-xl md:text-2xl font-bold text-foreground text-center mb-8">
             ¿Cómo funciona Homara?
           </h2>
-          <div className="grid md:grid-cols-3 gap-6 max-w-3xl mx-auto">
+          <div className="grid md:grid-cols-3 gap-6 max-w-3xl mx-auto mb-10">
             {HOW_IT_WORKS.map((step) => (
               <div key={step.title} className="text-center">
                 <div className="w-14 h-14 rounded-xl bg-accent/10 text-accent flex items-center justify-center mx-auto mb-3">
@@ -288,6 +350,19 @@ export default async function HomePage() {
                 <p className="text-xs text-muted-foreground">{step.desc}</p>
               </div>
             ))}
+          </div>
+          <div className="max-w-3xl mx-auto">
+            <h2 className="font-display text-lg md:text-xl font-bold text-foreground mb-4">
+              Preguntas frecuentes
+            </h2>
+            <dl className="divide-y divide-border rounded-xl border border-border bg-card">
+              {HOMEPAGE_FAQ.map((item) => (
+                <div key={item.question} className="p-4">
+                  <dt className="font-semibold text-foreground text-sm mb-1">{item.question}</dt>
+                  <dd className="text-sm text-muted-foreground leading-relaxed">{item.answer}</dd>
+                </div>
+              ))}
+            </dl>
           </div>
         </div>
       </section>
@@ -356,12 +431,12 @@ const HOW_IT_WORKS = [
 
 function ProductPreviewImage({ src, alt }: { src: string; alt: string }) {
   return (
-    <img
+    <Image
       src={src}
       alt={alt}
-      className="w-full h-full object-contain p-2"
-      loading="lazy"
-      onError={(event) => applyProductImageFallback(event.currentTarget as HTMLImageElement)}
+      fill
+      sizes="(min-width: 1024px) 16vw, (min-width: 768px) 33vw, 50vw"
+      className="object-contain p-2"
     />
   );
 }

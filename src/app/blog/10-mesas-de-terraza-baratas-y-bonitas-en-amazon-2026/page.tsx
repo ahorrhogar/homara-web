@@ -3,17 +3,34 @@ import Link from "next/link";
 import { ArrowRight, BadgeEuro, ChefHat, ExternalLink, Sparkles, Star, Zap } from "lucide-react";
 import Breadcrumb from "@/components/layout/Breadcrumb";
 import { JsonLd } from "@/components/seo/JsonLd";
+import { buildBlogGuideSchemas } from "@/components/seo/blog-guide-schemas";
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://homara.es";
 const PATH = "/blog/10-mesas-de-terraza-baratas-y-bonitas-en-amazon-2026";
 const TITLE = "10 mesas de terraza baratas y bonitas en Amazon (2026)";
 const DESCRIPTION = "Selección editorial de 10 mesas de terraza baratas y bonitas en Amazon en 2026: comparativa, pros, contras y guía de compra Homara.";
 
+const PUBLISHED_AT = "2026-04-08";
+const UPDATED_AT = "2026-04-08";
+const CATEGORY = "Terraza";
+const KEYWORDS = ["mesa terraza", "mesas Amazon terraza", "muebles exterior", "mesa jardín barata", "decoración terraza"];
+
 export const metadata: Metadata = {
   title: TITLE,
   description: DESCRIPTION,
+  keywords: KEYWORDS,
   alternates: { canonical: PATH },
-  openGraph: { type: "article", title: TITLE, description: DESCRIPTION, url: SITE_URL + PATH },
+  openGraph: {
+    type: "article",
+    title: TITLE,
+    description: DESCRIPTION,
+    url: `${SITE_URL}${PATH}`,
+    publishedTime: PUBLISHED_AT,
+    modifiedTime: UPDATED_AT,
+    authors: ["Equipo editorial Homara"],
+    section: CATEGORY,
+  },
+  twitter: { card: "summary_large_image", title: TITLE, description: DESCRIPTION },
 };
 
 type TerraceTableProduct = {
@@ -340,22 +357,33 @@ const faqs = [
 ];
 
 export default function GuidePage() {
+  const { article, breadcrumb, faqPage, itemList } = buildBlogGuideSchemas({
+    path: PATH,
+    title: TITLE,
+    description: DESCRIPTION,
+    publishedAt: PUBLISHED_AT,
+    updatedAt: UPDATED_AT,
+    category: CATEGORY,
+    keywords: KEYWORDS,
+    image: terraceTableProducts[0]?.imageUrl,
+    rankedItems: terraceTableProducts.map((p) => ({ name: p.name })),
+    faqs: faqs.map((f) => ({ question: f.q, answer: f.a })),
+    articleBody: terraceTableProducts.map((p) => `${p.name}: ${p.miniReview}`).join(" "),
+  });
+
   return (
-    <main className="container mx-auto px-4 pb-16">
-      <div className="py-2">
-        <Breadcrumb items={[{ label: "Guías", href: "/blog" }, { label: TITLE }]} />
-      </div>
-      <main className="flex-1">
-        <div className="container mx-auto px-4 py-2">
-          <Breadcrumb
-            items={[
-              { label: "Guias", href: "/guias" },
-              { label: "10 mesas de terraza baratas y bonitas en Amazon" },
-            ]}
-          />
+    <>
+      <JsonLd data={article} />
+      <JsonLd data={breadcrumb} />
+      {faqPage ? <JsonLd data={faqPage} /> : null}
+      {itemList ? <JsonLd data={itemList} /> : null}
+
+      <main className="container mx-auto px-4 pb-16">
+        <div className="py-2">
+          <Breadcrumb items={[{ label: "Blog", href: "/blog" }, { label: TITLE }]} />
         </div>
 
-        <article className="container mx-auto px-4 pb-16">
+        <article className="pb-16">
           <header className="relative overflow-hidden rounded-3xl border border-border bg-gradient-to-br from-accent/15 via-secondary/50 to-card p-6 md:p-10">
             <div className="absolute -right-10 -top-10 h-32 w-32 rounded-full bg-accent/20 blur-2xl" aria-hidden="true" />
             <div className="absolute -left-12 bottom-0 h-24 w-24 rounded-full bg-primary/15 blur-xl" aria-hidden="true" />
@@ -636,6 +664,6 @@ export default function GuidePage() {
           </section>
         </article>
       </main>
-    </main>
+    </>
   );
 }
