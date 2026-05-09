@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
+import { Suspense } from "react";
 import { Sparkles, ArrowRight, TrendingUp, Star, Flame, Zap } from "lucide-react";
 import Hero from "@/components/home/Hero";
 import TrendingCategories from "@/components/home/TrendingCategories";
@@ -59,6 +60,16 @@ const HOMEPAGE_FAQ = [
       "Sí. El asistente de Homara te recomienda productos según tu presupuesto, estilo y necesidades. Es gratuito y no requiere registro.",
   },
 ];
+
+const FAQ_SCHEMA = {
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  mainEntity: HOMEPAGE_FAQ.map((item) => ({
+    "@type": "Question",
+    name: item.question,
+    acceptedAnswer: { "@type": "Answer", text: item.answer },
+  })),
+};
 
 function normalize(value: string): string {
   return String(value || "")
@@ -143,7 +154,32 @@ async function safeFetchHomeData() {
   }
 }
 
-export default async function HomePage() {
+export default function HomePage() {
+  return (
+    <>
+      <JsonLd data={FAQ_SCHEMA} />
+      <h1 className="sr-only">Comparador editorial de productos para hogar y jardín</h1>
+      <Hero />
+      <Suspense fallback={<HomeSectionsSkeleton />}>
+        <HomeCatalogSections />
+      </Suspense>
+      <SEOContent />
+    </>
+  );
+}
+
+function HomeSectionsSkeleton() {
+  // Reserve roughly the vertical space the data-bound sections will occupy so the
+  // Hero doesn't shift when content streams in. Visually neutral — no spinners.
+  return (
+    <div
+      aria-hidden
+      className="bg-secondary/30 min-h-[800px] md:min-h-[1100px]"
+    />
+  );
+}
+
+async function HomeCatalogSections() {
   const { categories, trending, collections } = await safeFetchHomeData();
 
   const { topProducts, bestDeals, topRatedProducts, bestSellers, favoriteProducts, featuredProducts } = collections;
@@ -184,16 +220,6 @@ export default async function HomePage() {
   const bestSellersHref = getCollectionShowAllHref(bestSellers, categoryHrefById, defaultCategoryHref);
   const favoritesHref = getCollectionShowAllHref(favoriteProducts, categoryHrefById, defaultCategoryHref);
 
-  const faqSchema = {
-    "@context": "https://schema.org",
-    "@type": "FAQPage",
-    mainEntity: HOMEPAGE_FAQ.map((item) => ({
-      "@type": "Question",
-      name: item.question,
-      acceptedAnswer: { "@type": "Answer", text: item.answer },
-    })),
-  };
-
   const topProductsItemList =
     topProducts.length > 0
       ? {
@@ -213,12 +239,7 @@ export default async function HomePage() {
 
   return (
     <>
-      <JsonLd data={faqSchema} />
       {topProductsItemList ? <JsonLd data={topProductsItemList} /> : null}
-
-      <h1 className="sr-only">Comparador editorial de productos para hogar y jardín</h1>
-
-      <Hero />
 
       <TrendingCategories categories={categories} trending={trending} />
 
@@ -417,8 +438,6 @@ export default async function HomePage() {
           subtitle="Seleccionados por el equipo editorial"
         />
       ) : null}
-
-      <SEOContent />
     </>
   );
 }
