@@ -2,6 +2,7 @@ import { createHash } from "node:crypto";
 import type { NextRequest } from "next/server";
 
 import { db } from "@/lib/db";
+import { getClientIp } from "@/lib/getClientIp";
 import { RATE_LIMITS } from "@/lib/redis";
 
 const IP_HASH_SECRET = process.env.IP_HASH_SECRET || process.env.BETTER_AUTH_SECRET || "homara-ip";
@@ -9,12 +10,6 @@ const IP_HASH_SECRET = process.env.IP_HASH_SECRET || process.env.BETTER_AUTH_SEC
 function hashIp(ip?: string | null): string | null {
   if (!ip) return null;
   return createHash("sha256").update(`${IP_HASH_SECRET}:${ip}`).digest("hex").slice(0, 32);
-}
-
-function getClientIp(req: NextRequest): string | undefined {
-  const forwarded = req.headers.get("x-forwarded-for") || "";
-  const real = req.headers.get("x-real-ip") || "";
-  return (forwarded.split(",")[0]?.trim() || real || "").trim() || undefined;
 }
 
 interface ViewBody {

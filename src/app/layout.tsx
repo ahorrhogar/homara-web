@@ -3,6 +3,7 @@ import { Suspense } from "react";
 import { Inter, Plus_Jakarta_Sans } from "next/font/google";
 import { Providers } from "@/app/providers";
 import { AnalyticsScripts } from "@/components/analytics/AnalyticsScripts";
+import { GoogleAnalyticsMount } from "@/components/analytics/GoogleAnalyticsMount";
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
 import CookieBanner from "@/components/layout/CookieBanner";
@@ -165,6 +166,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
             <Footer categories={categories} />
           </div>
           <CookieBanner />
+          <GoogleAnalyticsMount gaId={process.env.GA_ID} />
           <AnalyticsScripts />
         </Providers>
       </body>

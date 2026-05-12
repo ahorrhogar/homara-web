@@ -1,14 +1,9 @@
 import type { Metadata } from "next";
-import Image from "next/image";
-import Link from "next/link";
 import { notFound } from "next/navigation";
 import {
   Star,
   Tag,
   TrendingDown,
-  Truck,
-  ShieldCheck,
-  ExternalLink,
   TrendingUp,
   Minus,
 } from "lucide-react";
@@ -16,6 +11,8 @@ import Breadcrumb from "@/components/layout/Breadcrumb";
 import { ProductGrid } from "@/components/product/ProductCard";
 import { ProductGallery } from "@/components/product/ProductGallery";
 import { ProductSpecs } from "@/components/product/ProductSpecs";
+import { OfferRow } from "@/components/product/OfferRow";
+import { OfferComparator } from "@/components/product/OfferComparator";
 import { JsonLd } from "@/components/seo/JsonLd";
 import { getCategories } from "@/data/catalog/categories";
 import { getOffersForProduct, getPriceAnalysis } from "@/data/catalog/offers";
@@ -25,7 +22,6 @@ import {
   extractDomainFromAffiliateUrl,
   isAffiliateUrlAllowed,
 } from "@/infrastructure/security/affiliateUrl";
-import { PRODUCT_IMAGE_FALLBACK } from "@/lib/productImage";
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://homara.es";
 
@@ -240,7 +236,15 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
         }
       : null;
 
-  const sortedOffers = [...offers].sort((a, b) => a.price + a.shippingCost - (b.price + b.shippingCost));
+  const sortedOffers = [...offers]
+    .sort((a, b) => a.price + a.shippingCost - (b.price + b.shippingCost))
+    .map((offer) => {
+      const merchantDomain = extractDomainFromAffiliateUrl(offer.merchant.url);
+      return {
+        ...offer,
+        isSafe: isAffiliateUrlAllowed(offer.url, merchantDomain || undefined),
+      };
+    });
 
   return (
     <>
@@ -333,80 +337,27 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
         </div>
 
         {sortedOffers.length > 0 ? (
-          <section className="mb-12">
-            <h2 className="font-display text-xl md:text-2xl font-bold text-foreground mb-5">
-              Todas las ofertas ({sortedOffers.length})
-            </h2>
-            <div className="space-y-3">
-              {sortedOffers.map((offer) => {
-                const merchantDomain = extractDomainFromAffiliateUrl(offer.merchant.url);
-                const isSafe = isAffiliateUrlAllowed(offer.url, merchantDomain || undefined);
-                const total = offer.price + offer.shippingCost;
-                return (
-                  <div
+          <OfferComparator
+            product={{ id: product.id, name: product.name, brand: product.brand }}
+            offers={sortedOffers}
+          >
+            <section className="mb-12">
+              <h2 className="font-display text-xl md:text-2xl font-bold text-foreground mb-5">
+                Todas las ofertas ({sortedOffers.length})
+              </h2>
+              <div className="space-y-3">
+                {sortedOffers.map((offer, index) => (
+                  <OfferRow
                     key={offer.id}
-                    className="flex flex-col gap-3 rounded-2xl border border-border bg-card p-4 sm:flex-row sm:items-center sm:justify-between"
-                  >
-                    <div className="flex items-center gap-3 min-w-0">
-                      <div className="w-10 h-10 rounded-lg bg-secondary/80 border border-border flex items-center justify-center overflow-hidden flex-shrink-0">
-                        {offer.merchant.logo ? (
-                          <Image
-                            src={offer.merchant.logo}
-                            alt={offer.merchant.name}
-                            width={28}
-                            height={28}
-                            sizes="28px"
-                            className="w-7 h-7 object-contain"
-                          />
-                        ) : (
-                          <span className="text-xs font-bold text-muted-foreground">
-                            {offer.merchant.name.charAt(0)}
-                          </span>
-                        )}
-                      </div>
-                      <div className="min-w-0">
-                        <p className="font-semibold text-foreground truncate">{offer.merchant.name}</p>
-                        <p className="text-xs text-muted-foreground flex items-center gap-2">
-                          <span className="inline-flex items-center gap-1">
-                            <Truck className="w-3 h-3" />
-                            {offer.freeShipping ? "Envío gratis" : `+${offer.shippingCost.toFixed(2).replace(".", ",")} € envío`}
-                          </span>
-                          {offer.merchant.trusted ? (
-                            <span className="inline-flex items-center gap-1">
-                              <ShieldCheck className="w-3 h-3" /> Tienda verificada
-                            </span>
-                          ) : null}
-                        </p>
-                      </div>
-                    </div>
-
-                    <div className="flex items-center gap-3 sm:flex-shrink-0">
-                      <div className="text-right">
-                        <p className="font-bold text-foreground">
-                          {offer.price.toFixed(2).replace(".", ",")} €
-                        </p>
-                        <p className="text-xs text-muted-foreground">
-                          Total {total.toFixed(2).replace(".", ",")} €
-                        </p>
-                      </div>
-                      {isSafe ? (
-                        <Link
-                          href={`/api/redirect?offerId=${offer.id}&track=1`}
-                          target="_blank"
-                          rel="noopener noreferrer sponsored"
-                          className="inline-flex items-center gap-1.5 rounded-xl bg-accent px-4 py-2 text-sm font-semibold text-accent-foreground hover:opacity-90 transition-opacity"
-                        >
-                          Ver oferta <ExternalLink className="w-3.5 h-3.5" />
-                        </Link>
-                      ) : (
-                        <span className="text-xs text-muted-foreground italic">No disponible</span>
-                      )}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </section>
+                    offer={offer}
+                    product={{ id: product.id, name: product.name, brand: product.brand }}
+                    index={index}
+                    isSafe={offer.isSafe}
+                  />
+                ))}
+              </div>
+            </section>
+          </OfferComparator>
         ) : null}
 
         {productFaq.length >= 2 ? (
@@ -430,6 +381,9 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
             products={related}
             title="Productos relacionados"
             subtitle="Otros productos que podrían interesarte"
+            listName="related_products"
+            listId={`related_${product.id}`}
+            extraEventParams={{ source_product_id: product.id, source_product_slug: product.slug }}
           />
         ) : null}
       </main>

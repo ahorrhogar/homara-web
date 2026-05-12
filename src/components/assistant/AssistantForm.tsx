@@ -1,11 +1,14 @@
 "use client";
 
 import Image from "next/image";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Sparkles, ArrowRight, Search, Star, Award, DollarSign } from "lucide-react";
 import ProductDestinationLink from "@/components/product/ProductDestinationLink";
 import { PRODUCT_IMAGE_FALLBACK } from "@/lib/productImage";
 import { buildAssistantRecommendations } from "@/domain/assistant/recommendation";
+import { gaEvent } from "@/infrastructure/analytics/ga4";
+import { buildProductItem } from "@/infrastructure/analytics/items";
+import { setLastInteraction } from "@/infrastructure/analytics/last-interaction";
 import type {
   AssistantPriority,
   AssistantResult,
@@ -33,6 +36,9 @@ const TAG_LABELS: Record<string, { label: string; className: string }> = {
   recommended: { label: "🏆 Recomendado", className: "bg-accent/10 text-accent" },
 };
 
+const BUDGET_DEBOUNCE_MS = 400;
+const ASSISTANT_RESULTS_LIST_NAME = "assistant_results";
+
 export function AssistantForm({ categories, styles, products }: AssistantFormProps) {
   const [budget, setBudget] = useState(500);
   const [categoryId, setCategoryId] = useState("");
@@ -41,7 +47,54 @@ export function AssistantForm({ categories, styles, products }: AssistantFormPro
   const [results, setResults] = useState<AssistantResult[]>([]);
   const [searched, setSearched] = useState(false);
 
+  const fieldsChangedRef = useRef<Set<string>>(new Set());
+  const submittedRef = useRef(false);
+  const budgetDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    gaEvent("assistant_view", {});
+
+    function onVisibility() {
+      if (
+        document.visibilityState === "hidden" &&
+        fieldsChangedRef.current.size > 0 &&
+        !submittedRef.current
+      ) {
+        gaEvent("assistant_abandoned", {
+          touched_fields: [...fieldsChangedRef.current].join(","),
+          touched_count: fieldsChangedRef.current.size,
+        });
+      }
+    }
+    document.addEventListener("visibilitychange", onVisibility);
+    return () => {
+      document.removeEventListener("visibilitychange", onVisibility);
+      if (budgetDebounceRef.current) clearTimeout(budgetDebounceRef.current);
+    };
+  }, []);
+
+  function markField(name: string) {
+    if (fieldsChangedRef.current.has(name)) return;
+    fieldsChangedRef.current.add(name);
+    gaEvent("assistant_form_field_changed", { field: name });
+  }
+
+  function handleBudgetChange(value: number) {
+    setBudget(value);
+    if (budgetDebounceRef.current) clearTimeout(budgetDebounceRef.current);
+    budgetDebounceRef.current = setTimeout(() => markField("budget"), BUDGET_DEBOUNCE_MS);
+  }
+
   function handleSearch() {
+    submittedRef.current = true;
+
+    gaEvent("assistant_form_submitted", {
+      budget,
+      category_id: categoryId || null,
+      style: style || null,
+      priority,
+    });
+
     const next = buildAssistantRecommendations(
       products,
       { budget, categoryId: categoryId || undefined, style: style || undefined, priority },
@@ -49,6 +102,52 @@ export function AssistantForm({ categories, styles, products }: AssistantFormPro
     );
     setResults(next);
     setSearched(true);
+
+    gaEvent("assistant_results_viewed", {
+      budget,
+      priority,
+      result_count: next.length,
+      top_product_id: next[0]?.product.id ?? null,
+      top_tag: next[0]?.tag ?? null,
+    });
+
+    setLastInteraction({
+      source: "assistant",
+      priority,
+      budget,
+      category_id: categoryId || null,
+    });
+  }
+
+  function handleResultClick({ result, index }: { result: AssistantResult; index: number }) {
+    const tag = result.tag ?? null;
+    const listId = `assistant_${priority}`;
+    gaEvent("assistant_result_clicked", {
+      product_id: result.product.id,
+      index,
+      tag,
+      priority,
+    });
+    gaEvent("select_item", {
+      item_list_name: ASSISTANT_RESULTS_LIST_NAME,
+      item_list_id: listId,
+      currency: "EUR",
+      items: [
+        buildProductItem(result.product, {
+          listName: ASSISTANT_RESULTS_LIST_NAME,
+          listId,
+          index,
+        }),
+      ],
+      assistant_tag: tag,
+      assistant_priority: priority,
+    });
+    setLastInteraction({
+      source: "assistant_result",
+      product_id: result.product.id,
+      index,
+      tag,
+    });
   }
 
   return (
@@ -70,7 +169,7 @@ export function AssistantForm({ categories, styles, products }: AssistantFormPro
             <input
               type="number"
               value={budget}
-              onChange={(e) => setBudget(Number(e.target.value))}
+              onChange={(e) => handleBudgetChange(Number(e.target.value))}
               className="w-full px-4 py-2.5 rounded-xl border border-border bg-secondary/30 text-foreground focus:outline-none focus:ring-2 focus:ring-accent/50"
               min={10}
               max={10000}
@@ -81,7 +180,10 @@ export function AssistantForm({ categories, styles, products }: AssistantFormPro
             <span className="block text-sm font-medium text-foreground mb-1.5">Categoría</span>
             <select
               value={categoryId}
-              onChange={(e) => setCategoryId(e.target.value)}
+              onChange={(e) => {
+                setCategoryId(e.target.value);
+                markField("category");
+              }}
               className="w-full px-4 py-2.5 rounded-xl border border-border bg-secondary/30 text-foreground focus:outline-none focus:ring-2 focus:ring-accent/50"
             >
               <option value="">Todas las categorías</option>
@@ -101,7 +203,10 @@ export function AssistantForm({ categories, styles, products }: AssistantFormPro
                   <button
                     key={s}
                     type="button"
-                    onClick={() => setStyle(style === s ? "" : s)}
+                    onClick={() => {
+                      setStyle(style === s ? "" : s);
+                      markField("style");
+                    }}
                     className={`px-3 py-1.5 rounded-lg text-sm font-medium border transition-all ${
                       style === s
                         ? "border-accent bg-accent/10 text-accent shadow-sm"
@@ -122,7 +227,10 @@ export function AssistantForm({ categories, styles, products }: AssistantFormPro
                 <button
                   key={p.value}
                   type="button"
-                  onClick={() => setPriority(p.value)}
+                  onClick={() => {
+                    setPriority(p.value);
+                    markField("priority");
+                  }}
                   className={`flex items-center gap-2 px-4 py-3 rounded-xl text-sm font-medium border transition-all ${
                     priority === p.value
                       ? "border-accent bg-accent/10 text-accent shadow-sm"
@@ -213,6 +321,7 @@ export function AssistantForm({ categories, styles, products }: AssistantFormPro
                       <div className="mt-2">
                         <ProductDestinationLink
                           product={result.product}
+                          onClick={() => handleResultClick({ result, index })}
                           className="text-sm font-medium text-accent hover:underline flex items-center gap-1"
                         >
                           Ver producto <ArrowRight className="w-3 h-3" />

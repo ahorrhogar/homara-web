@@ -1,9 +1,10 @@
 "use client";
 
 import Image from "next/image";
-import Link from "next/link";
 import { useCookieConsent } from "@/hooks/useCookieConsent";
 import type { Category } from "@/domain/catalog/types";
+import { TrackedLink } from "@/components/analytics/TrackedLink";
+import { gaEvent } from "@/infrastructure/analytics/ga4";
 
 interface FooterProps {
   categories: Category[];
@@ -11,6 +12,14 @@ interface FooterProps {
 
 const Footer = ({ categories }: FooterProps) => {
   const { openCookieSettings } = useCookieConsent();
+
+  function handleCookieSettingsClick() {
+    gaEvent("footer_link_clicked", { target_path: "#cookies-settings", group: "legal" });
+    openCookieSettings();
+  }
+
+  const primaryCategories = categories.slice(0, 6);
+  const secondaryCategories = categories.slice(6);
 
   return (
     <footer className="bg-primary text-primary-foreground">
@@ -34,14 +43,16 @@ const Footer = ({ categories }: FooterProps) => {
           <div>
             <h3 className="font-semibold text-sm mb-3 text-primary-foreground/90">Categorías</h3>
             <ul className="space-y-1.5">
-              {categories.slice(0, 6).map((c) => (
+              {primaryCategories.map((c, i) => (
                 <li key={c.id}>
-                  <Link
+                  <TrackedLink
                     href={`/categoria/${c.slug}`}
+                    event="footer_link_clicked"
+                    payload={{ target_path: `/categoria/${c.slug}`, group: "categorias", position: i + 1 }}
                     className="text-sm text-primary-foreground/60 hover:text-accent transition-colors"
                   >
                     {c.name}
-                  </Link>
+                  </TrackedLink>
                 </li>
               ))}
             </ul>
@@ -49,14 +60,20 @@ const Footer = ({ categories }: FooterProps) => {
           <div>
             <h3 className="font-semibold text-sm mb-3 text-primary-foreground/90">Más categorías</h3>
             <ul className="space-y-1.5">
-              {categories.slice(6).map((c) => (
+              {secondaryCategories.map((c, i) => (
                 <li key={c.id}>
-                  <Link
+                  <TrackedLink
                     href={`/categoria/${c.slug}`}
+                    event="footer_link_clicked"
+                    payload={{
+                      target_path: `/categoria/${c.slug}`,
+                      group: "mas_categorias",
+                      position: i + 1,
+                    }}
                     className="text-sm text-primary-foreground/60 hover:text-accent transition-colors"
                   >
                     {c.name}
-                  </Link>
+                  </TrackedLink>
                 </li>
               ))}
             </ul>
@@ -66,14 +83,24 @@ const Footer = ({ categories }: FooterProps) => {
             <h3 className="font-semibold text-sm mb-3 text-primary-foreground/90">Información</h3>
             <ul className="space-y-1.5">
               <li>
-                <Link href="/acerca-de" className="text-sm text-primary-foreground/60 hover:text-accent transition-colors">
+                <TrackedLink
+                  href="/acerca-de"
+                  event="footer_link_clicked"
+                  payload={{ target_path: "/acerca-de", group: "informacion", position: 1 }}
+                  className="text-sm text-primary-foreground/60 hover:text-accent transition-colors"
+                >
                   Acerca de Homara
-                </Link>
+                </TrackedLink>
               </li>
               <li>
-                <Link href="/blog" className="text-sm text-primary-foreground/60 hover:text-accent transition-colors">
+                <TrackedLink
+                  href="/blog"
+                  event="footer_link_clicked"
+                  payload={{ target_path: "/blog", group: "informacion", position: 2 }}
+                  className="text-sm text-primary-foreground/60 hover:text-accent transition-colors"
+                >
                   Guías de compra
-                </Link>
+                </TrackedLink>
               </li>
             </ul>
           </div>
@@ -82,27 +109,39 @@ const Footer = ({ categories }: FooterProps) => {
             <h3 className="font-semibold text-sm mb-3 text-primary-foreground/90">Legal</h3>
             <ul className="space-y-1.5">
               <li>
-                <Link
+                <TrackedLink
                   href="/politica-privacidad"
+                  event="footer_link_clicked"
+                  payload={{ target_path: "/politica-privacidad", group: "legal", position: 1 }}
                   className="text-sm text-primary-foreground/60 hover:text-accent transition-colors"
                 >
                   Política de privacidad
-                </Link>
+                </TrackedLink>
               </li>
               <li>
-                <Link href="/aviso-legal" className="text-sm text-primary-foreground/60 hover:text-accent transition-colors">
+                <TrackedLink
+                  href="/aviso-legal"
+                  event="footer_link_clicked"
+                  payload={{ target_path: "/aviso-legal", group: "legal", position: 2 }}
+                  className="text-sm text-primary-foreground/60 hover:text-accent transition-colors"
+                >
                   Aviso legal
-                </Link>
+                </TrackedLink>
               </li>
               <li>
-                <Link href="/cookies" className="text-sm text-primary-foreground/60 hover:text-accent transition-colors">
+                <TrackedLink
+                  href="/cookies"
+                  event="footer_link_clicked"
+                  payload={{ target_path: "/cookies", group: "legal", position: 3 }}
+                  className="text-sm text-primary-foreground/60 hover:text-accent transition-colors"
+                >
                   Política de cookies
-                </Link>
+                </TrackedLink>
               </li>
               <li>
                 <button
                   type="button"
-                  onClick={openCookieSettings}
+                  onClick={handleCookieSettingsClick}
                   className="text-sm text-primary-foreground/60 hover:text-accent transition-colors"
                 >
                   Configuración de cookies

@@ -5,6 +5,7 @@ import { revalidateTag } from "next/cache";
 
 import { RANKING_SIGNALS_CACHE_TAG } from "@/data/catalog/snapshot";
 import type { OfferRedirectRow } from "@/data/catalog/_helpers";
+import { normalizeSearchTerm } from "@/domain/catalog/search-normalize";
 import { logger } from "@/infrastructure/logging/logger";
 import { db } from "@/lib/db";
 import { RATE_LIMITS } from "@/lib/redis";
@@ -39,8 +40,8 @@ export async function trackClick(
   productId: string,
   merchantId: string,
   options: TrackClickOptions = {},
-): Promise<void> {
-  if (!productId || !merchantId) return;
+): Promise<boolean> {
+  if (!productId || !merchantId) return false;
 
   const ipHash = hashIp(options.ipAddress);
   const limit = await RATE_LIMITS.click(rateLimitKey("click", options.ipAddress, productId));
@@ -51,7 +52,7 @@ export async function trackClick(
       timestamp: new Date().toISOString(),
       context: { productId, merchantId, offerId: options.offerId ?? null },
     });
-    return;
+    return false;
   }
 
   try {
@@ -71,16 +72,11 @@ export async function trackClick(
       timestamp: new Date().toISOString(),
       context: { productId, merchantId, offerId: options.offerId ?? null, error },
     });
-    return;
+    return false;
   }
 
   revalidateTag(RANKING_SIGNALS_CACHE_TAG, "default");
-}
-
-const DIACRITICS = /[̀-ͯ]/g;
-
-function normalizeTerm(term: string): string {
-  return term.normalize("NFD").replace(DIACRITICS, "").toLowerCase().trim().replace(/\s+/g, " ");
+  return true;
 }
 
 export async function trackSearchTerm(
@@ -90,7 +86,7 @@ export async function trackSearchTerm(
   const cleanTerm = String(term || "").trim();
   if (cleanTerm.length < 2) return;
 
-  const normalizedTerm = normalizeTerm(cleanTerm);
+  const normalizedTerm = normalizeSearchTerm(cleanTerm);
   if (!normalizedTerm) return;
 
   const limit = await RATE_LIMITS.searchTerm(

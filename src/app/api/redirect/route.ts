@@ -1,15 +1,17 @@
+import { after } from "next/server";
 import { getOfferRedirectPayload, trackClick } from "@/data/catalog/tracking";
 import { isAffiliateUrlAllowed } from "@/infrastructure/security/affiliateUrl";
+import { mpEvent } from "@/infrastructure/analytics/measurement-protocol";
+import { isOriginSource } from "@/infrastructure/analytics/last-interaction";
 import { logger } from "@/infrastructure/logging/logger";
+import { getClientIp } from "@/lib/getClientIp";
 
 const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
-function getClientIp(request: Request): string | undefined {
-  const forwardedFor = request.headers.get("x-forwarded-for") || "";
-  const realIp = request.headers.get("x-real-ip") || "";
-  const candidate = forwardedFor || realIp;
-  const ip = candidate.split(",")[0]?.trim();
-  return ip || undefined;
+function parseGaClientId(cookieHeader: string | null): string | null {
+  if (!cookieHeader) return null;
+  const match = cookieHeader.match(/_ga=GA\d+\.\d+\.([0-9.]+)/);
+  return match?.[1] ?? null;
 }
 
 export async function GET(request: Request): Promise<Response> {
@@ -43,11 +45,36 @@ export async function GET(request: Request): Promise<Response> {
     }
 
     if (shouldTrack) {
-      await trackClick(offer.product_id, offer.merchant_id, {
+      const tracked = await trackClick(offer.product_id, offer.merchant_id, {
         offerId: offer.id,
         ipAddress: getClientIp(request),
         userAgent: request.headers.get("user-agent") || undefined,
       });
+
+      const eid = requestUrl.searchParams.get("eid");
+      const gaClientId = parseGaClientId(request.headers.get("cookie"));
+      if (tracked && eid && uuidPattern.test(eid) && gaClientId) {
+        const rawOrigin = requestUrl.searchParams.get("origin");
+        const origin = isOriginSource(rawOrigin) ? rawOrigin : undefined;
+        const originAgeRaw = requestUrl.searchParams.get("origin_age");
+        const originAgeSeconds = originAgeRaw ? Number(originAgeRaw) : NaN;
+        after(() =>
+          mpEvent({
+            clientId: gaClientId,
+            eventName: "affiliate_redirect",
+            params: {
+              transaction_id: eid,
+              offer_id: offer.id,
+              merchant_id: offer.merchant_id,
+              product_id: offer.product_id,
+              currency: "EUR",
+              origin,
+              origin_age_seconds:
+                origin && Number.isFinite(originAgeSeconds) ? originAgeSeconds : undefined,
+            },
+          }),
+        );
+      }
     }
 
     return Response.redirect(offer.url, 302);

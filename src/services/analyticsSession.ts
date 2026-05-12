@@ -8,13 +8,17 @@ interface SessionRecord {
 
 let serverFallbackSessionId: string | null = null;
 
-function createSessionId(): string {
+export function createRandomId(prefix?: string): string {
   if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
     return crypto.randomUUID();
   }
 
-  const randomPart = Math.random().toString(36).slice(2, 11);
-  return `sid-${Date.now()}-${randomPart}`;
+  const fallback = `${Date.now()}-${Math.random().toString(36).slice(2, 11)}`;
+  return prefix ? `${prefix}-${fallback}` : fallback;
+}
+
+function createSessionId(): string {
+  return createRandomId("sid");
 }
 
 function safeParseSessionRecord(raw: string): SessionRecord | null {

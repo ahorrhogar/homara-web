@@ -6,6 +6,12 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { Search, Menu, X, Heart, Sparkles, ChevronRight, ChevronLeft } from "lucide-react";
 import { useState, useRef, useEffect, type FormEvent } from "react";
 import type { Category } from "@/domain/catalog/types";
+import { TrackedLink } from "@/components/analytics/TrackedLink";
+import { gaEvent } from "@/infrastructure/analytics/ga4";
+import { normalizeSearchTerm } from "@/domain/catalog/search-normalize";
+
+const SEARCH_REFINED_WINDOW_MS = 5 * 60 * 1000;
+const LAST_SEARCH_KEY = "homara.lastSearch";
 
 interface HeaderProps {
   categories: Category[];
@@ -56,6 +62,41 @@ const Header = ({ categories }: HeaderProps) => {
       return;
     }
 
+    const source = event.currentTarget.dataset.source ?? "header";
+    const normalized = normalizeSearchTerm(trimmedQuery);
+
+    try {
+      const raw = window.sessionStorage.getItem(LAST_SEARCH_KEY);
+      if (raw) {
+        const parsed = JSON.parse(raw) as { term?: string; ts?: number };
+        if (
+          parsed.ts &&
+          parsed.term &&
+          parsed.term !== normalized &&
+          Date.now() - parsed.ts < SEARCH_REFINED_WINDOW_MS
+        ) {
+          gaEvent("search_refined", {
+            previous_term: parsed.term,
+            new_term: normalized,
+            source,
+          });
+        }
+      }
+      window.sessionStorage.setItem(
+        LAST_SEARCH_KEY,
+        JSON.stringify({ term: normalized, ts: Date.now() }),
+      );
+    } catch {
+      /* storage may be blocked */
+    }
+
+    gaEvent("search", {
+      search_term: trimmedQuery,
+      normalized_term: normalized,
+      query_length: trimmedQuery.length,
+      source,
+    });
+
     router.push(`/buscar?q=${encodeURIComponent(trimmedQuery)}`);
   };
 
@@ -65,6 +106,7 @@ const Header = ({ categories }: HeaderProps) => {
     setMegaMenuOpen((previous) => {
       const nextOpen = !previous;
       if (nextOpen) {
+        gaEvent("mega_menu_opened", { from_path: pathname ?? "/" });
         setActiveCategoryId(categories[0]?.id || null);
         setMobileActiveCategoryId(null);
       }
@@ -114,7 +156,7 @@ const Header = ({ categories }: HeaderProps) => {
           </Link>
 
           <div className="flex-1 max-w-2xl">
-            <form className="relative" onSubmit={handleSearchSubmit}>
+            <form className="relative" data-source="header_desktop" onSubmit={handleSearchSubmit}>
               <button
                 type="submit"
                 aria-label="Buscar"
@@ -155,7 +197,7 @@ const Header = ({ categories }: HeaderProps) => {
             />
           </Link>
 
-          <form className="relative flex-1" onSubmit={handleSearchSubmit}>
+          <form className="relative flex-1" data-source="header_mobile" onSubmit={handleSearchSubmit}>
             <button
               type="submit"
               aria-label="Buscar"
@@ -186,18 +228,24 @@ const Header = ({ categories }: HeaderProps) => {
       <div className="hidden md:block border-t border-border">
         <div className="container mx-auto px-4">
           <nav className="flex items-center justify-center gap-0.5 py-1 overflow-x-auto scrollbar-hide">
-            {categories.slice(0, 10).map(cat => (
-              <Link
+            {categories.slice(0, 10).map((cat, i) => (
+              <TrackedLink
                 key={cat.id}
                 href={`/categoria/${cat.slug}`}
+                event="category_link_clicked"
+                payload={{
+                  source_section: "header_nav",
+                  category_slug: cat.slug,
+                  position: i + 1,
+                }}
                 className={`px-3 py-2 text-[13px] font-medium rounded-lg whitespace-nowrap transition-colors ${
                   pathname?.includes(cat.slug)
-                    ? 'text-accent bg-accent/10'
-                    : 'text-foreground/70 hover:text-foreground hover:bg-secondary'
+                    ? "text-accent bg-accent/10"
+                    : "text-foreground/70 hover:text-foreground hover:bg-secondary"
                 }`}
               >
                 {cat.name}
-              </Link>
+              </TrackedLink>
             ))}
           </nav>
         </div>
