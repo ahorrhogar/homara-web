@@ -1,25 +1,7 @@
 import type { MetadataRoute } from "next";
+import { AI_CRAWLER_USER_AGENTS } from "@/infrastructure/analytics/ai-crawlers";
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://homara.es";
-
-const AI_ALLOWED_CRAWLERS = [
-  "GPTBot",
-  "ChatGPT-User",
-  "OAI-SearchBot",
-  "PerplexityBot",
-  "Perplexity-User",
-  "Google-Extended",
-  "Claude-Web",
-  "ClaudeBot",
-  "anthropic-ai",
-  "CCBot",
-  "Applebot-Extended",
-  "Amazonbot",
-  "Diffbot",
-  "DuckAssistBot",
-  "MistralAI-User",
-  "cohere-ai",
-];
 
 export default function robots(): MetadataRoute.Robots {
   return {
@@ -33,7 +15,7 @@ export default function robots(): MetadataRoute.Robots {
       { userAgent: "Bingbot", allow: "/", crawlDelay: 2 },
       { userAgent: "Twitterbot", allow: "/" },
       { userAgent: "facebookexternalhit", allow: "/" },
-      ...AI_ALLOWED_CRAWLERS.map((userAgent) => ({
+      ...AI_CRAWLER_USER_AGENTS.map((userAgent) => ({
         userAgent,
         allow: "/",
         disallow: ["/api/", "/admin/"],

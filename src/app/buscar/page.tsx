@@ -1,7 +1,9 @@
 import type { Metadata } from "next";
 import { Search } from "lucide-react";
 import ProductCard from "@/components/product/ProductCard";
+import { SearchResultsBeacon } from "@/components/search/SearchResultsBeacon";
 import { searchProducts } from "@/data/catalog/products";
+import { normalizeSearchTerm } from "@/domain/catalog/search-normalize";
 
 export const metadata: Metadata = {
   title: "Buscar productos",
@@ -18,10 +20,23 @@ export default async function SearchPage({
 }) {
   const { q } = await searchParams;
   const query = (q || "").trim();
+  const normalizedTerm = normalizeSearchTerm(query);
   const results = query ? await searchProducts(query, 72).catch(() => []) : [];
+  const topProductId = results[0]?.id ?? null;
+  const listId = normalizedTerm ? `search_${normalizedTerm}` : "search";
+  const extraEventParams = { search_term: query, normalized_term: normalizedTerm };
 
   return (
     <main className="container mx-auto px-4 py-8 md:py-10">
+      {query ? (
+        <SearchResultsBeacon
+          query={query}
+          normalizedTerm={normalizedTerm}
+          resultCount={results.length}
+          topProductId={topProductId}
+        />
+      ) : null}
+
       <div className="mb-6">
         <div className="flex items-center gap-2 text-muted-foreground text-sm">
           <Search className="w-4 h-4" />
@@ -48,8 +63,15 @@ export default async function SearchPage({
             <span className="text-sm text-muted-foreground">{results.length} productos encontrados</span>
           </div>
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6">
-            {results.map((product) => (
-              <ProductCard key={product.id} product={product} />
+            {results.map((product, index) => (
+              <ProductCard
+                key={product.id}
+                product={product}
+                listName="search_results"
+                listId={listId}
+                index={index}
+                extraEventParams={extraEventParams}
+              />
             ))}
           </div>
         </>

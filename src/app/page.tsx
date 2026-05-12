@@ -328,6 +328,8 @@ async function HomeCatalogSections() {
             title="🔥 Supergangas"
             subtitle="Los mayores descuentos del momento"
             showAll={dealsHref}
+            listName="supergangas"
+            listId="home_supergangas"
           />
         </div>
       ) : null}
@@ -340,6 +342,8 @@ async function HomeCatalogSections() {
           title="⭐ Mejor valorados"
           subtitle="Los productos con mejores opiniones de nuestros usuarios"
           showAll={topRatedHref}
+          listName="mejor_valorados"
+          listId="home_mejor_valorados"
         />
       ) : null}
 
@@ -394,6 +398,8 @@ async function HomeCatalogSections() {
           title="🏆 Los más vendidos"
           subtitle="Productos con mayor traccion de usuarios"
           showAll={bestSellersHref}
+          listName="mas_vendidos"
+          listId="home_mas_vendidos"
         />
       ) : null}
 
@@ -403,6 +409,8 @@ async function HomeCatalogSections() {
           title="❤️ Favoritos de usuarios"
           subtitle="Los productos mas guardados y recomendados"
           showAll={favoritesHref}
+          listName="favoritos"
+          listId="home_favoritos"
         />
       ) : null}
 
@@ -436,6 +444,8 @@ async function HomeCatalogSections() {
           products={featuredProducts}
           title="💎 Productos destacados"
           subtitle="Seleccionados por el equipo editorial"
+          listName="destacados"
+          listId="home_destacados"
         />
       ) : null}
     </>

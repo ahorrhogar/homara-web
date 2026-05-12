@@ -75,10 +75,14 @@ export default async function BlogHubPage() {
         </header>
 
         {featured.length > 0 ? (
-          <Section title="Recomendado por el equipo" articles={featured} />
+          <Section title="Recomendado por el equipo" articles={featured} listName="recomendado" />
         ) : null}
-        {mostRead.length > 0 ? <Section title="Más leídos" articles={mostRead} /> : null}
-        {latest.length > 0 ? <Section title="Últimas guías" articles={latest} /> : null}
+        {mostRead.length > 0 ? (
+          <Section title="Más leídos" articles={mostRead} listName="mas_leidos" />
+        ) : null}
+        {latest.length > 0 ? (
+          <Section title="Últimas guías" articles={latest} listName="ultimas_guias" />
+        ) : null}
 
         {allPublished.length === 0 ? (
           <div className="rounded-2xl border border-border bg-card p-8 text-center text-muted-foreground">
@@ -93,16 +97,23 @@ export default async function BlogHubPage() {
 function Section({
   title,
   articles,
+  listName,
 }: {
   title: string;
   articles: Awaited<ReturnType<typeof getPublishedArticles>>;
+  listName: string;
 }) {
   return (
     <section className="mb-14">
       <h2 className="font-display text-xl md:text-2xl font-bold text-foreground mb-5">{title}</h2>
       <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-3">
-        {articles.map((article) => (
-          <EditorialArticleCard key={article.id} article={article} />
+        {articles.map((article, index) => (
+          <EditorialArticleCard
+            key={article.id}
+            article={article}
+            listName={listName}
+            index={index}
+          />
         ))}
       </div>
     </section>

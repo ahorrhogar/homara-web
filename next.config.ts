@@ -50,6 +50,12 @@ const config: NextConfig = {
       { source: "/condiciones-generales-de-uso", destination: "/aviso-legal", permanent: true },
     ];
   },
+  async rewrites() {
+    return [
+      { source: "/llms.txt", destination: "/api/llms-served?file=llms" },
+      { source: "/llms-full.txt", destination: "/api/llms-served?file=full" },
+    ];
+  },
 };
 
 export default config;

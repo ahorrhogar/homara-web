@@ -1,8 +1,9 @@
 "use client";
 
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import { ArrowUpDown } from "lucide-react";
 import type { ProductSortBy } from "@/domain/catalog/types";
+import { gaEvent } from "@/infrastructure/analytics/ga4";
 
 const SORT_OPTIONS: Array<{ value: ProductSortBy; label: string }> = [
   { value: "popular", label: "Más populares" },
@@ -21,10 +22,18 @@ interface CategoryToolbarProps {
 export function CategoryToolbar({ totalProducts, defaultSort = "popular" }: CategoryToolbarProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const pathname = usePathname();
   const currentSort = (searchParams?.get("orden") as ProductSortBy) || defaultSort;
 
   function handleChange(event: React.ChangeEvent<HTMLSelectElement>) {
-    const next = event.target.value;
+    const next = event.target.value as ProductSortBy;
+    if (next !== currentSort) {
+      gaEvent("category_sort_changed", {
+        path: pathname,
+        from_sort: currentSort,
+        to_sort: next,
+      });
+    }
     const params = new URLSearchParams(searchParams?.toString() || "");
     if (next === defaultSort) {
       params.delete("orden");
