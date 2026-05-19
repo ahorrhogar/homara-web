@@ -45,7 +45,7 @@ export async function GET(request: Request): Promise<Response> {
     }
 
     if (shouldTrack) {
-      const tracked = await trackClick(offer.product_id, offer.merchant_id, {
+      await trackClick(offer.product_id, offer.merchant_id, {
         offerId: offer.id,
         ipAddress: getClientIp(request),
         userAgent: request.headers.get("user-agent") || undefined,
@@ -53,7 +53,7 @@ export async function GET(request: Request): Promise<Response> {
 
       const eid = requestUrl.searchParams.get("eid");
       const gaClientId = parseGaClientId(request.headers.get("cookie"));
-      if (tracked && eid && uuidPattern.test(eid) && gaClientId) {
+      if (eid && uuidPattern.test(eid) && gaClientId) {
         const rawOrigin = requestUrl.searchParams.get("origin");
         const origin = isOriginSource(rawOrigin) ? rawOrigin : undefined;
         const originAgeRaw = requestUrl.searchParams.get("origin_age");

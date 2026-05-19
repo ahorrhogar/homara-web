@@ -3,7 +3,6 @@ import type { NextRequest } from "next/server";
 
 import { db } from "@/lib/db";
 import { getClientIp } from "@/lib/getClientIp";
-import { RATE_LIMITS } from "@/lib/redis";
 
 const IP_HASH_SECRET = process.env.IP_HASH_SECRET || process.env.BETTER_AUTH_SECRET || "homara-ip";
 
@@ -31,8 +30,6 @@ export async function POST(req: NextRequest): Promise<Response> {
   if (!slug) return Response.json({ ok: false, reason: "missing-slug" }, { status: 400 });
 
   const ip = getClientIp(req);
-  const limit = await RATE_LIMITS.articleView(`${ip ?? "anon"}:${slug}`);
-  if (!limit.success) return Response.json({ ok: true, limited: true });
 
   const article = await db.editorialArticle.findUnique({
     where: { slug },

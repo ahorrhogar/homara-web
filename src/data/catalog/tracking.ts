@@ -8,7 +8,6 @@ import type { OfferRedirectRow } from "@/data/catalog/_helpers";
 import { normalizeSearchTerm } from "@/domain/catalog/search-normalize";
 import { logger } from "@/infrastructure/logging/logger";
 import { db } from "@/lib/db";
-import { RATE_LIMITS } from "@/lib/redis";
 
 export interface TrackClickOptions {
   offerId?: string;
@@ -32,28 +31,14 @@ function hashIp(ip?: string | null): string | null {
   return createHash("sha256").update(`${IP_HASH_SECRET}:${ip}`).digest("hex").slice(0, 32);
 }
 
-function rateLimitKey(scope: string, ip?: string | null, fallback?: string): string {
-  return `${scope}:${ip || fallback || "anon"}`;
-}
-
 export async function trackClick(
   productId: string,
   merchantId: string,
   options: TrackClickOptions = {},
-): Promise<boolean> {
-  if (!productId || !merchantId) return false;
+): Promise<void> {
+  if (!productId || !merchantId) return;
 
   const ipHash = hashIp(options.ipAddress);
-  const limit = await RATE_LIMITS.click(rateLimitKey("click", options.ipAddress, productId));
-  if (!limit.success) {
-    logger.log({
-      level: "info",
-      message: "Click tracking rate-limited",
-      timestamp: new Date().toISOString(),
-      context: { productId, merchantId, offerId: options.offerId ?? null },
-    });
-    return false;
-  }
 
   try {
     await db.click.create({
@@ -72,11 +57,10 @@ export async function trackClick(
       timestamp: new Date().toISOString(),
       context: { productId, merchantId, offerId: options.offerId ?? null, error },
     });
-    return false;
+    return;
   }
 
   revalidateTag(RANKING_SIGNALS_CACHE_TAG, "default");
-  return true;
 }
 
 export async function trackSearchTerm(
@@ -88,11 +72,6 @@ export async function trackSearchTerm(
 
   const normalizedTerm = normalizeSearchTerm(cleanTerm);
   if (!normalizedTerm) return;
-
-  const limit = await RATE_LIMITS.searchTerm(
-    rateLimitKey("search", options.ipAddress, options.sessionId ?? "anon"),
-  );
-  if (!limit.success) return;
 
   try {
     await db.searchEvent.create({

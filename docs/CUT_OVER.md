@@ -2,7 +2,7 @@
 
 This document tracks the production switchover for the
 `feat/neon-better-auth` branch. Run through it once Neon, Vercel Blob,
-Upstash Redis, and Resend secrets are ready.
+and Resend secrets are ready.
 
 ## Pre-flight (before merging to `dev`)
 
@@ -25,7 +25,6 @@ Upstash Redis, and Resend secrets are ready.
 | Better Auth secret | `BETTER_AUTH_SECRET` (generate `openssl rand -base64 32`) |
 | Better Auth base URL | `BETTER_AUTH_URL` = `https://homara.es` |
 | Vercel Blob | `BLOB_READ_WRITE_TOKEN` from Vercel dashboard |
-| Upstash Redis | `UPSTASH_REDIS_REST_URL`, `UPSTASH_REDIS_REST_TOKEN` |
 | Resend | `RESEND_API_KEY` (optional; auth flows are dormant) |
 | Public site URL | `NEXT_PUBLIC_SITE_URL` = `https://homara.es` |
 | Initial admin | `ADMIN_INITIAL_EMAIL`, `ADMIN_INITIAL_PASSWORD` (only used by seed script) |

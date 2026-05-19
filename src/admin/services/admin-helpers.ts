@@ -28,10 +28,6 @@ export function mapAdminErrorMessage(error: ErrorLike | null | undefined | unkno
     return "No se puede eliminar: tiene registros relacionados.";
   }
 
-  if (lowered.includes("rate limit") || lowered.includes("limite temporal")) {
-    return "Has alcanzado el limite temporal de operaciones. Espera unos segundos.";
-  }
-
   if (lowered.includes("not found")) {
     return "Recurso no encontrado.";
   }
