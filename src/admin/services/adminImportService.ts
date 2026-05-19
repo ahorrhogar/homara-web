@@ -22,7 +22,6 @@ import {
 import type { ImportColumnMapping } from "@/admin/types";
 import { requireAdmin } from "@/lib/admin-guard";
 import { db } from "@/lib/db";
-import { RATE_LIMITS } from "@/lib/redis";
 
 // Re-export the preview helper so callers keep the same import path.
 // (Inside a "use server" file, only async functions can be exported, so we
@@ -228,10 +227,6 @@ export async function runCsvImport(params: {
   sourceLabel?: string;
 }): Promise<CsvImportResult> {
   const session = await requireAdmin();
-  const limit = await RATE_LIMITS.adminWrite(`csvImport:${session.user.id}`);
-  if (!limit.success) {
-    throw new Error("Has alcanzado el limite temporal de operaciones. Espera unos segundos.");
-  }
 
   assertCsvLimits(params.csvText);
   const rows = parseCsv(params.csvText);

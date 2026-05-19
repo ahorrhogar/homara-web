@@ -32,7 +32,6 @@ import type {
 import { requireAdmin } from "@/lib/admin-guard";
 import { putImage, type BlobFolder } from "@/lib/blob";
 import { db } from "@/lib/db";
-import { RATE_LIMITS } from "@/lib/redis";
 
 // ─── Filters ──────────────────────────────────────────────────────────────
 
@@ -117,29 +116,6 @@ export interface CategoryMutationInput {
   description?: string;
   sortOrder?: number;
   isActive?: boolean;
-}
-
-// ─── Rate limiting ────────────────────────────────────────────────────────
-
-export type AdminRateLimitScope =
-  | "productWrite"
-  | "productDelete"
-  | "offerWrite"
-  | "offerDelete"
-  | "brandWrite"
-  | "merchantWrite"
-  | "categoryWrite"
-  | "imageUpload"
-  | "imageDelete"
-  | "importRun"
-  | "syncBatch";
-
-export async function requireAdminRateLimit(scope: AdminRateLimitScope): Promise<void> {
-  const session = await requireAdmin();
-  const limit = await RATE_LIMITS.adminWrite(`${scope}:${session.user.id}`);
-  if (!limit.success) {
-    throw new Error("Has alcanzado el límite de operaciones recientes. Espera unos segundos.");
-  }
 }
 
 // ─── Audit helpers ────────────────────────────────────────────────────────
@@ -327,7 +303,6 @@ export async function listBrands(): Promise<AdminBrandRecord[]> {
 
 export async function upsertBrand(input: BrandMutationInput): Promise<AdminBrandRecord> {
   const session = await requireAdmin();
-  await requireAdminRateLimit("brandWrite");
   const data = {
     name: input.name.trim(),
     logoUrl: input.logoUrl?.trim() || null,
@@ -350,7 +325,6 @@ export async function upsertBrand(input: BrandMutationInput): Promise<AdminBrand
 
 export async function deleteBrand(id: string): Promise<void> {
   const session = await requireAdmin();
-  await requireAdminRateLimit("brandWrite");
   const used = await db.product.count({ where: { brandId: id } });
   if (used > 0) throw new Error("No se puede eliminar la marca: tiene productos asociados.");
   await db.brand.delete({ where: { id } });
@@ -371,7 +345,6 @@ export async function listMerchants(): Promise<AdminMerchantRecord[]> {
 
 export async function upsertMerchant(input: MerchantMutationInput): Promise<AdminMerchantRecord> {
   const session = await requireAdmin();
-  await requireAdminRateLimit("merchantWrite");
   const data = {
     name: input.name.trim(),
     logoUrl: input.logoUrl?.trim() || null,
@@ -397,7 +370,6 @@ export async function upsertMerchant(input: MerchantMutationInput): Promise<Admi
 
 export async function deleteMerchant(id: string): Promise<void> {
   const session = await requireAdmin();
-  await requireAdminRateLimit("merchantWrite");
   const used = await db.offer.count({ where: { merchantId: id } });
   if (used > 0) throw new Error("No se puede eliminar la tienda: tiene ofertas asociadas.");
   await db.merchant.delete({ where: { id } });
@@ -438,7 +410,6 @@ async function wouldCreateCategoryCycle(categoryId: string, candidateParentId: s
 
 export async function upsertCategory(input: CategoryMutationInput): Promise<AdminCategoryRecord> {
   const session = await requireAdmin();
-  await requireAdminRateLimit("categoryWrite");
   if (input.id && input.parentId && (await wouldCreateCategoryCycle(input.id, input.parentId))) {
     throw new Error("La jerarquía resultante crearía un ciclo. Elige otro padre.");
   }
@@ -470,7 +441,6 @@ export async function upsertCategory(input: CategoryMutationInput): Promise<Admi
 
 export async function deleteCategory(id: string): Promise<void> {
   const session = await requireAdmin();
-  await requireAdminRateLimit("categoryWrite");
   const products = await db.product.count({ where: { categoryId: id } });
   if (products > 0) throw new Error("No se puede eliminar: hay productos en esta categoría.");
   const children = await db.category.count({ where: { parentId: id } });
@@ -539,7 +509,6 @@ function buildProductSpecsBlob(input: ProductMutationInput): Prisma.JsonObject {
 
 export async function upsertProduct(input: ProductMutationInput): Promise<AdminProductRecord> {
   const session = await requireAdmin();
-  await requireAdminRateLimit("productWrite");
   const data = {
     name: input.name.trim(),
     brandId: input.brandId,
@@ -559,7 +528,6 @@ export async function upsertProduct(input: ProductMutationInput): Promise<AdminP
 
 export async function duplicateProduct(productId: string): Promise<AdminProductRecord> {
   const session = await requireAdmin();
-  await requireAdminRateLimit("productWrite");
   const original = await db.product.findUnique({ where: { id: productId }, include: { images: true } });
   if (!original) throw new Error("Producto no encontrado");
   const clone = await db.product.create({
@@ -588,7 +556,6 @@ export async function duplicateProduct(productId: string): Promise<AdminProductR
 
 export async function deleteProduct(id: string): Promise<void> {
   const session = await requireAdmin();
-  await requireAdminRateLimit("productDelete");
   await db.product.delete({ where: { id } });
   await logAudit(session.user.id, "product.delete", "product", id, {});
   invalidateCatalog();
@@ -629,7 +596,6 @@ export async function listProductImages(productId: string): Promise<AdminProduct
 
 export async function addProductImage(productId: string, url: string, isPrimary: boolean): Promise<AdminProductImageRecord> {
   const session = await requireAdmin();
-  await requireAdminRateLimit("imageUpload");
   if (isPrimary) {
     await db.productImage.updateMany({ where: { productId }, data: { isPrimary: false } });
   }
@@ -644,7 +610,6 @@ export async function addProductImage(productId: string, url: string, isPrimary:
 
 export async function reorderProductImages(productId: string, imageIdsInOrder: string[]): Promise<void> {
   const session = await requireAdmin();
-  await requireAdminRateLimit("imageUpload");
   await db.$transaction(
     imageIdsInOrder.map((id, idx) =>
       db.productImage.updateMany({ where: { id, productId }, data: { sortOrder: idx } }),
@@ -656,7 +621,6 @@ export async function reorderProductImages(productId: string, imageIdsInOrder: s
 
 export async function setPrimaryProductImage(productId: string, imageId: string): Promise<void> {
   const session = await requireAdmin();
-  await requireAdminRateLimit("imageUpload");
   await db.$transaction([
     db.productImage.updateMany({ where: { productId }, data: { isPrimary: false } }),
     db.productImage.updateMany({ where: { id: imageId, productId }, data: { isPrimary: true } }),
@@ -667,7 +631,6 @@ export async function setPrimaryProductImage(productId: string, imageId: string)
 
 export async function deleteProductImage(imageId: string): Promise<void> {
   const session = await requireAdmin();
-  await requireAdminRateLimit("imageDelete");
   const img = await db.productImage.findUnique({ where: { id: imageId } });
   if (!img) return;
   await db.productImage.delete({ where: { id: imageId } });
@@ -682,23 +645,19 @@ async function uploadToBlob(folder: BlobFolder, file: File): Promise<string> {
 }
 
 export async function uploadProductImage(productId: string, file: File, isPrimary: boolean): Promise<AdminProductImageRecord> {
-  await requireAdminRateLimit("imageUpload");
   const url = await uploadToBlob("products", file);
   return addProductImage(productId, url, isPrimary);
 }
 
 export async function uploadBrandLogoImage(file: File): Promise<string> {
-  await requireAdminRateLimit("imageUpload");
   return uploadToBlob("brands", file);
 }
 
 export async function uploadCategoryImageFile(file: File): Promise<string> {
-  await requireAdminRateLimit("imageUpload");
   return uploadToBlob("categories", file);
 }
 
 export async function uploadMerchantLogoImage(file: File): Promise<string> {
-  await requireAdminRateLimit("imageUpload");
   return uploadToBlob("merchants", file);
 }
 
@@ -738,7 +697,6 @@ export async function listOffers(filters: OfferListFilters): Promise<{ rows: Adm
 
 export async function upsertOffer(input: OfferMutationInput): Promise<AdminOfferRecord> {
   const session = await requireAdmin();
-  await requireAdminRateLimit("offerWrite");
   if (input.price <= 0) throw new Error("El precio debe ser mayor que 0.");
   const data = {
     productId: input.productId,
@@ -769,7 +727,6 @@ export async function upsertOffer(input: OfferMutationInput): Promise<AdminOffer
 
 export async function deleteOffer(id: string): Promise<void> {
   const session = await requireAdmin();
-  await requireAdminRateLimit("offerDelete");
   await db.offer.delete({ where: { id } });
   await logAudit(session.user.id, "offer.delete", "offer", id, {});
   invalidateCatalog();
@@ -777,7 +734,6 @@ export async function deleteOffer(id: string): Promise<void> {
 
 export async function deactivateOffer(id: string): Promise<void> {
   const session = await requireAdmin();
-  await requireAdminRateLimit("offerWrite");
   await db.offer.update({ where: { id }, data: { isActive: false } });
   await logAudit(session.user.id, "offer.deactivate", "offer", id, {});
   invalidateCatalog();
@@ -811,7 +767,6 @@ export async function requestOfferSync(offerId: string): Promise<void> {
 
 export async function runOffersSyncBatch(limit = 50): Promise<number> {
   const session = await requireAdmin();
-  await requireAdminRateLimit("syncBatch");
   const safeLimit = Math.max(1, Math.min(200, limit));
   const due = await db.offer.findMany({
     where: { isActive: true, OR: [{ nextCheckAt: null }, { nextCheckAt: { lte: new Date() } }] },
@@ -831,7 +786,6 @@ export async function saveOfferPriceChange(input: {
   metadata?: Record<string, unknown>;
 }): Promise<void> {
   const session = await requireAdmin();
-  await requireAdminRateLimit("offerWrite");
   const offer = await db.offer.findUnique({ where: { id: input.offerId } });
   if (!offer) throw new Error("Oferta no encontrada");
   const PrismaNS = (await import("@prisma/client")).Prisma;
@@ -957,7 +911,6 @@ export async function createImportJob(input: {
   metadata?: Record<string, unknown>;
 }): Promise<{ id: string }> {
   const session = await requireAdmin();
-  await requireAdminRateLimit("importRun");
   const job = await db.importJob.create({
     data: {
       userId: session.user.id,
