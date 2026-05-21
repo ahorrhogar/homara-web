@@ -28,6 +28,8 @@ const config: NextConfig = {
     formats: ["image/avif", "image/webp"],
     minimumCacheTTL: 60 * 60 * 24 * 7,
     remotePatterns: [
+      { protocol: "https", hostname: "cdn.homara.es", pathname: "/**" },
+      // Legacy origins — existing DB rows still point here; kept for back-compat.
       { protocol: "https", hostname: "*.public.blob.vercel-storage.com", pathname: "/**" },
       { protocol: "https", hostname: "m.media-amazon.com", pathname: "/**" },
       { protocol: "https", hostname: "images-na.ssl-images-amazon.com", pathname: "/**" },

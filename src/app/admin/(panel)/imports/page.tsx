@@ -53,6 +53,7 @@ export default function AdminImportsPage() {
   const [preview, setPreview] = useState<CsvPreviewResult | null>(null);
   const [mapping, setMapping] = useState<ImportColumnMapping | null>(null);
   const [selectedJobId, setSelectedJobId] = useState<string | null>(null);
+  const [importProgress, setImportProgress] = useState<{ processed: number; total: number } | null>(null);
 
   const jobsQuery = useQuery({
     queryKey: ["admin-import-jobs"],
@@ -83,13 +84,29 @@ export default function AdminImportsPage() {
         throw new Error("Primero genera preview y revisa mapeo");
       }
 
-      return runCsvImport({
-        csvText,
-        mapping,
-        sourceLabel: "admin_panel_csv",
-      });
+      let jobId: string | undefined;
+      let startIndex = 0;
+      let last: Awaited<ReturnType<typeof runCsvImport>> | null = null;
+      // Loop chunk-by-chunk so each server-action call stays within the
+      // serverless time budget while images are rehosted into R2.
+      for (;;) {
+        const result = await runCsvImport({
+          csvText,
+          mapping,
+          sourceLabel: "admin_panel_csv",
+          jobId,
+          startIndex,
+        });
+        jobId = result.jobId;
+        last = result;
+        setImportProgress({ processed: result.processedRows, total: result.totalRows });
+        if (result.done) break;
+        startIndex = result.nextIndex;
+      }
+      return last!;
     },
     onSuccess: async (result) => {
+      setImportProgress(null);
       await queryClient.invalidateQueries({ queryKey: ["admin-import-jobs"] });
       await queryClient.invalidateQueries({ queryKey: ["admin-products"] });
       await queryClient.invalidateQueries({ queryKey: ["admin-offers"] });
@@ -103,6 +120,7 @@ export default function AdminImportsPage() {
       );
     },
     onError: (error) => {
+      setImportProgress(null);
       toast.error(error instanceof Error ? error.message : "No se pudo ejecutar la importacion");
     },
   });
@@ -152,12 +170,16 @@ export default function AdminImportsPage() {
 
           {preview ? (
             <p className="text-xs text-muted-foreground">
-              Preparado para importar {formatNumber(preview.totalRows)} filas en bloques transaccionales de 100.
+              Preparado para importar {formatNumber(preview.totalRows)} filas. Las imágenes se descargan y rehospedan en R2 durante la importación.
             </p>
           ) : null}
 
           {importMutation.isPending ? (
-            <p className="text-xs text-muted-foreground">Importacion en curso. Si falla una fila, el bloque completo se revierte.</p>
+            <p className="text-xs text-muted-foreground">
+              {importProgress
+                ? `Importando y rehospedando imágenes... ${formatNumber(importProgress.processed)} / ${formatNumber(importProgress.total)} filas`
+                : "Importacion en curso. Las imágenes se rehospedan en R2 por bloques."}
+            </p>
           ) : null}
 
           <div className="space-y-2">
