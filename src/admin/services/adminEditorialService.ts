@@ -9,6 +9,8 @@ import { ARTICLES_CACHE_TAG } from "@/data/catalog/snapshot";
 import { sanitizeNumber, sanitizeText } from "@/infrastructure/security/sanitize";
 import { requireAdmin } from "@/lib/admin-guard";
 import { db } from "@/lib/db";
+import { cleanupReplacedImage, deleteR2ImageIfUnreferenced } from "@/lib/image-cleanup";
+import { rehostRemoteImage } from "@/lib/r2";
 import { invalidateEditorialLiveCache } from "@/services/editorialService";
 
 export interface AdminEditorialListFilters extends AdminListQuery {
@@ -203,12 +205,18 @@ export async function upsertEditorialArticle(
       : nowIso
     : null;
 
+  const previousCover = input.id
+    ? (await db.editorialArticle.findUnique({ where: { id: input.id }, select: { coverImage: true } }))?.coverImage ?? null
+    : null;
+  const sanitizedCover = input.coverImage ? sanitizeText(input.coverImage, 400) : null;
+  const coverImage = sanitizedCover ? (await rehostRemoteImage(sanitizedCover, "articles")).url : null;
+
   const data: Prisma.EditorialArticleCreateInput = {
     slug,
     path: safePath.startsWith("/") ? safePath : `/${safePath}`,
     title: safeTitle,
     excerpt: safeExcerpt,
-    coverImage: input.coverImage ? sanitizeText(input.coverImage, 400) : null,
+    coverImage,
     coverImageAlt: input.coverImageAlt ? sanitizeText(input.coverImageAlt, 200) : null,
     coverTone: input.coverTone || "fresh",
     categorySlug: sanitizeText(input.categorySlug, 80).toLowerCase(),
@@ -229,6 +237,7 @@ export async function upsertEditorialArticle(
     const row = input.id
       ? await db.editorialArticle.update({ where: { id: input.id }, data })
       : await db.editorialArticle.create({ data });
+    await cleanupReplacedImage(previousCover, coverImage);
     const record = mapRow(row);
     await logEditorialAudit(
       session.user.id,
@@ -248,12 +257,18 @@ export async function deleteEditorialArticle(id: string): Promise<void> {
   const safeId = sanitizeText(id, 64);
   if (!safeId) throw new Error("ID de articulo invalido");
 
+  let removedCover: string | null = null;
   try {
-    await db.editorialArticle.delete({ where: { id: safeId } });
+    const removed = await db.editorialArticle.delete({
+      where: { id: safeId },
+      select: { coverImage: true },
+    });
+    removedCover = removed.coverImage ?? null;
   } catch (error) {
     throw new Error(mapAdminErrorMessage(error, "No se pudo eliminar el articulo"));
   }
 
+  await deleteR2ImageIfUnreferenced(removedCover);
   await logEditorialAudit(session.user.id, "editorial.article.delete", safeId, {});
   invalidateArticles();
 }

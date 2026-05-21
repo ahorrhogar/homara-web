@@ -9,6 +9,10 @@ import { sanitizeText } from "@/infrastructure/security/sanitize";
 export const MAX_CSV_CHARS = 2_000_000;
 export const MAX_IMPORT_ROWS = 10_000;
 export const IMPORT_BATCH_SIZE = 100;
+// Rows processed per server-action invocation. Kept small so synchronous
+// image rehosting stays inside a 10s serverless function budget; the client
+// loops until the whole CSV is consumed.
+export const IMPORT_CHUNK_SIZE = 5;
 
 const DEFAULT_MAPPING: ImportColumnMapping = {
   productName: "product_name",

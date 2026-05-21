@@ -30,7 +30,8 @@ import type {
   SyncStatusRecord,
 } from "@/admin/types";
 import { requireAdmin } from "@/lib/admin-guard";
-import { putImage, type BlobFolder } from "@/lib/blob";
+import { cleanupReplacedImage, deleteR2ImageIfUnreferenced } from "@/lib/image-cleanup";
+import { rehostRemoteImage, uploadToR2, type R2Folder } from "@/lib/r2";
 import { db } from "@/lib/db";
 
 // ─── Filters ──────────────────────────────────────────────────────────────
@@ -303,9 +304,14 @@ export async function listBrands(): Promise<AdminBrandRecord[]> {
 
 export async function upsertBrand(input: BrandMutationInput): Promise<AdminBrandRecord> {
   const session = await requireAdmin();
+  const previous = input.id
+    ? await db.brand.findUnique({ where: { id: input.id }, select: { logoUrl: true } })
+    : null;
+  const candidate = input.logoUrl?.trim();
+  const logoUrl = candidate ? (await rehostRemoteImage(candidate, "brands")).url : null;
   const data = {
     name: input.name.trim(),
-    logoUrl: input.logoUrl?.trim() || null,
+    logoUrl,
     isActive: input.isActive ?? true,
   };
   const row = input.id
@@ -318,6 +324,7 @@ export async function upsertBrand(input: BrandMutationInput): Promise<AdminBrand
         data,
         include: { _count: { select: { products: true } } },
       });
+  await cleanupReplacedImage(previous?.logoUrl, logoUrl);
   await logAudit(session.user.id, input.id ? "brand.update" : "brand.create", "brand", row.id, { name: data.name });
   invalidateCatalog();
   return mapBrand(row);
@@ -345,9 +352,14 @@ export async function listMerchants(): Promise<AdminMerchantRecord[]> {
 
 export async function upsertMerchant(input: MerchantMutationInput): Promise<AdminMerchantRecord> {
   const session = await requireAdmin();
+  const previous = input.id
+    ? await db.merchant.findUnique({ where: { id: input.id }, select: { logoUrl: true } })
+    : null;
+  const candidate = input.logoUrl?.trim();
+  const logoUrl = candidate ? (await rehostRemoteImage(candidate, "merchants")).url : null;
   const data = {
     name: input.name.trim(),
-    logoUrl: input.logoUrl?.trim() || null,
+    logoUrl,
     domain: input.domain?.trim() || null,
     country: input.country?.trim() || "ES",
     brandColor: input.brandColor?.trim() || null,
@@ -363,6 +375,7 @@ export async function upsertMerchant(input: MerchantMutationInput): Promise<Admi
         data,
         include: { _count: { select: { offers: true, clicks: true } } },
       });
+  await cleanupReplacedImage(previous?.logoUrl, logoUrl);
   await logAudit(session.user.id, input.id ? "merchant.update" : "merchant.create", "merchant", row.id, { name: data.name });
   invalidateCatalog();
   return mapMerchant(row);
@@ -413,13 +426,18 @@ export async function upsertCategory(input: CategoryMutationInput): Promise<Admi
   if (input.id && input.parentId && (await wouldCreateCategoryCycle(input.id, input.parentId))) {
     throw new Error("La jerarquía resultante crearía un ciclo. Elige otro padre.");
   }
+  const previous = input.id
+    ? await db.category.findUnique({ where: { id: input.id }, select: { imageUrl: true } })
+    : null;
+  const candidateImage = input.imageUrl?.trim();
+  const imageUrl = candidateImage ? (await rehostRemoteImage(candidateImage, "categories")).url : null;
   const slug = input.slug?.trim() || (input.name ? slugify(input.name) : null);
   const data = {
     name: input.name.trim(),
     slug,
     parentId: input.parentId || null,
     icon: input.icon?.trim() || null,
-    imageUrl: input.imageUrl?.trim() || null,
+    imageUrl,
     description: input.description?.trim() || null,
     sortOrder: typeof input.sortOrder === "number" ? input.sortOrder : 0,
     isActive: input.isActive ?? true,
@@ -434,6 +452,7 @@ export async function upsertCategory(input: CategoryMutationInput): Promise<Admi
         data,
         include: { parent: { select: { name: true } }, _count: { select: { products: true } } },
       });
+  await cleanupReplacedImage(previous?.imageUrl, imageUrl);
   await logAudit(session.user.id, input.id ? "category.update" : "category.create", "category", row.id, { name: data.name });
   invalidateCatalog();
   return mapCategory(row);
@@ -556,7 +575,9 @@ export async function duplicateProduct(productId: string): Promise<AdminProductR
 
 export async function deleteProduct(id: string): Promise<void> {
   const session = await requireAdmin();
+  const images = await db.productImage.findMany({ where: { productId: id }, select: { url: true } });
   await db.product.delete({ where: { id } });
+  for (const image of images) await deleteR2ImageIfUnreferenced(image.url);
   await logAudit(session.user.id, "product.delete", "product", id, {});
   invalidateCatalog();
 }
@@ -596,12 +617,13 @@ export async function listProductImages(productId: string): Promise<AdminProduct
 
 export async function addProductImage(productId: string, url: string, isPrimary: boolean): Promise<AdminProductImageRecord> {
   const session = await requireAdmin();
+  const { url: finalUrl } = await rehostRemoteImage(url, "products");
   if (isPrimary) {
     await db.productImage.updateMany({ where: { productId }, data: { isPrimary: false } });
   }
   const max = await db.productImage.aggregate({ where: { productId }, _max: { sortOrder: true } });
   const row = await db.productImage.create({
-    data: { productId, url: url.trim(), isPrimary, sortOrder: (max._max.sortOrder ?? -1) + 1 },
+    data: { productId, url: finalUrl, isPrimary, sortOrder: (max._max.sortOrder ?? -1) + 1 },
   });
   await logAudit(session.user.id, "product_image.add", "product", productId, { imageId: row.id });
   invalidateCatalog();
@@ -634,31 +656,31 @@ export async function deleteProductImage(imageId: string): Promise<void> {
   const img = await db.productImage.findUnique({ where: { id: imageId } });
   if (!img) return;
   await db.productImage.delete({ where: { id: imageId } });
+  await deleteR2ImageIfUnreferenced(img.url);
   await logAudit(session.user.id, "product_image.delete", "product", img.productId, { imageId });
   invalidateCatalog();
 }
 
-async function uploadToBlob(folder: BlobFolder, file: File): Promise<string> {
+async function uploadFile(folder: R2Folder, file: File): Promise<string> {
   const arrayBuffer = await file.arrayBuffer();
-  const result = await putImage(folder, file.name, Buffer.from(arrayBuffer), file.type || undefined);
-  return result.url;
+  return uploadToR2(folder, Buffer.from(arrayBuffer), file.type || "application/octet-stream");
 }
 
 export async function uploadProductImage(productId: string, file: File, isPrimary: boolean): Promise<AdminProductImageRecord> {
-  const url = await uploadToBlob("products", file);
+  const url = await uploadFile("products", file);
   return addProductImage(productId, url, isPrimary);
 }
 
 export async function uploadBrandLogoImage(file: File): Promise<string> {
-  return uploadToBlob("brands", file);
+  return uploadFile("brands", file);
 }
 
 export async function uploadCategoryImageFile(file: File): Promise<string> {
-  return uploadToBlob("categories", file);
+  return uploadFile("categories", file);
 }
 
 export async function uploadMerchantLogoImage(file: File): Promise<string> {
-  return uploadToBlob("merchants", file);
+  return uploadFile("merchants", file);
 }
 
 // ─── Offers ───────────────────────────────────────────────────────────────
