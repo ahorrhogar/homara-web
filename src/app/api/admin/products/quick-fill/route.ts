@@ -25,6 +25,7 @@ const HOSTNAME_TO_MERCHANT: Array<{ pattern: RegExp; merchantName: string }> = [
 
 const FETCH_TIMEOUT_MS = 10_000;
 const MAX_BODY_BYTES = 1_500_000;
+const MAX_REDIRECTS = 5;
 
 function resolveMerchantName(hostname: string): string | null {
   const host = hostname.replace(/^www\./i, "").toLowerCase();
@@ -76,21 +77,84 @@ export async function POST(request: Request): Promise<Response> {
   }
 
   let html: string;
+  let finalHost: string = safe.hostname;
   try {
-    const response = await fetch(safe.toString(), {
-      signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
-      redirect: "follow",
-      headers: {
-        "user-agent": "Mozilla/5.0 (compatible; HomaraAdmin/1.0; +https://homara.es)",
-        "accept-language": "es-ES,es;q=0.9,en;q=0.8",
-        accept: "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
-      },
-    });
+    const signal = AbortSignal.timeout(FETCH_TIMEOUT_MS);
+    // Follow redirects manually so each hop is re-validated through
+    // parseAffiliateUrl — avoids SSRF via a public URL that 30x-redirects to
+    // 169.254.169.254, 127.0.0.1, or any internal address.
+    let currentUrl = safe.toString();
+    let response: Response | null = null;
+    for (let hop = 0; hop <= MAX_REDIRECTS; hop += 1) {
+      const r: Response = await fetch(currentUrl, {
+        signal,
+        redirect: "manual",
+        headers: {
+          "user-agent": "Mozilla/5.0 (compatible; HomaraAdmin/1.0; +https://homara.es)",
+          "accept-language": "es-ES,es;q=0.9,en;q=0.8",
+          accept: "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+        },
+      });
+      if (r.status >= 300 && r.status < 400) {
+        const location = r.headers.get("location");
+        if (!location) {
+          response = r;
+          break;
+        }
+        const nextUrl = new URL(location, currentUrl).toString();
+        const validatedNext = parseAffiliateUrl(nextUrl);
+        if (!validatedNext) {
+          return Response.json({ ok: false, error: "redirect-no-permitido" });
+        }
+        currentUrl = validatedNext.toString();
+        finalHost = validatedNext.hostname;
+        continue;
+      }
+      response = r;
+      break;
+    }
+    if (!response) {
+      return Response.json({ ok: false, error: "demasiadas-redirecciones" });
+    }
     if (!response.ok) {
       return Response.json({ ok: false, error: `fetch-fallo-${response.status}` });
     }
-    const text = await response.text();
-    html = text.length > MAX_BODY_BYTES ? text.slice(0, MAX_BODY_BYTES) : text;
+
+    // Stream-cap the response body at MAX_BODY_BYTES — `await response.text()`
+    // buffers the whole body before our cap and would OOM on hostile origins
+    // serving multi-GB / unbounded chunked responses.
+    const reader = response.body?.getReader();
+    if (!reader) {
+      html = "";
+    } else {
+      const chunks: Uint8Array[] = [];
+      let total = 0;
+      let truncated = false;
+      while (total < MAX_BODY_BYTES) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        if (!value) continue;
+        const remaining = MAX_BODY_BYTES - total;
+        if (value.byteLength > remaining) {
+          chunks.push(value.subarray(0, remaining));
+          total += remaining;
+          truncated = true;
+          break;
+        }
+        chunks.push(value);
+        total += value.byteLength;
+      }
+      if (truncated) {
+        try {
+          await reader.cancel();
+        } catch {
+          // Cancellation is best-effort.
+        }
+      }
+      html = new TextDecoder("utf-8", { fatal: false }).decode(
+        chunks.length === 1 ? chunks[0] : Buffer.concat(chunks.map((c) => Buffer.from(c))),
+      );
+    }
   } catch (error) {
     logger.log({
       level: "warn",
@@ -102,7 +166,9 @@ export async function POST(request: Request): Promise<Response> {
   }
 
   const parsedFields = parseQuickFillHtml(html);
-  const merchantName = resolveMerchantName(safe.hostname);
+  // Merchant resolution uses the final host after redirects so e.g.
+  // amzn.to/abc → amazon.es resolves to the right merchant.
+  const merchantName = resolveMerchantName(finalHost);
 
   let merchantId: string | null = null;
   let resolvedMerchantName: string | null = merchantName;

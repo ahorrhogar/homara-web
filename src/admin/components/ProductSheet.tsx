@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -58,6 +58,17 @@ function specsToText(specs: Array<{ label: string; value: string }>): string {
   return specs.map((item) => `${item.label}: ${item.value}`).join("\n");
 }
 
+// react-hook-form's `valueAsNumber: true` returns NaN when the input is empty.
+// NaN then falls through Zod with confusing "Expected number, received nan"
+// errors and slips into server-side `<= 0` checks. These helpers coerce empty
+// inputs to a safe value before they hit the form state.
+function numberFromInput(value: unknown, fallback: number | undefined): number | undefined {
+  if (value === "" || value === null || value === undefined) return fallback;
+  const n = typeof value === "number" ? value : Number(value);
+  if (!Number.isFinite(n)) return fallback;
+  return n;
+}
+
 function parseSpecsText(value: string): Array<{ label: string; value: string }> {
   return value
     .split("\n")
@@ -74,11 +85,15 @@ function parseSpecsText(value: string): Array<{ label: string; value: string }> 
 
 const productSheetSchema = z.object({
   name: z.string().trim().min(3, "Nombre requerido"),
+  // Loosened regex: legacy slugs (accents, dots, underscores from pre-migration
+  // seeds) must remain editable without forcing a rename — HARD RULE #2.
+  // Slugify normalizes new slugs as the user types the name; this regex just
+  // blocks structurally broken values (whitespace, slashes, query strings).
   slug: z
     .string()
     .trim()
     .min(3, "Slug requerido")
-    .regex(/^[a-z0-9-]+$/, "Solo letras minúsculas, números y guiones"),
+    .regex(/^[^\s/?#&]+$/, "Slug no puede tener espacios, /, ?, # ni &"),
   brandId: z.string().uuid("Selecciona una marca"),
   parentCategoryId: z.string().uuid("Selecciona una categoría"),
   subcategoryId: z.string().optional(),
@@ -187,9 +202,6 @@ export function ProductSheet({ open, onOpenChange, mode, product, onSaved }: Pro
     enabled: Boolean(editProductId),
   });
   const offerCount = offersQuery.data?.total ?? 0;
-  const firstOffer = offersQuery.data?.rows[0];
-
-  const categories = categoriesQuery.data || [];
 
   const form = useForm<ProductSheetFormValues>({
     resolver: zodResolver(productSheetSchema),
@@ -197,21 +209,43 @@ export function ProductSheet({ open, onOpenChange, mode, product, onSaved }: Pro
     mode: "onTouched",
   });
 
+  // Track the (open, mode, productId) tuple we last hydrated for so background
+  // refetches of categories / offers / brands never re-fire form.reset and
+  // overwrite in-progress edits. We rebuild the form values inside the effect
+  // using the freshest data the queries have at firing time.
+  const lastHydratedRef = useRef<string | null>(null);
+  const categoriesData = categoriesQuery.data;
+  const offersData = offersQuery.data;
+
   useEffect(() => {
-    if (!open) return;
+    if (!open) {
+      lastHydratedRef.current = null;
+      return;
+    }
+
+    const hydrationKey = `${mode}:${product?.id ?? "new"}`;
+    if (lastHydratedRef.current === hydrationKey) return;
+
     if (mode === "create" || !product) {
       form.reset(INITIAL_VALUES);
       setSlugLocked(false);
       setShowQuickFill(true);
       setShowAdvanced(false);
       setSavedProductId(null);
+      lastHydratedRef.current = hydrationKey;
       return;
     }
-    const selectedCategory = categories.find((c) => c.id === product.categoryId);
+
+    // Edit mode: wait until categoriesQuery and offersQuery have at least one
+    // resolved snapshot before hydrating so we don't reset with placeholder
+    // (empty) parent/subcategory/offer values and then reset again 200 ms
+    // later — which is exactly what was wiping admin input mid-typing.
+    if (!categoriesData || !offersData) return;
+
+    const selectedCategory = categoriesData.find((c) => c.id === product.categoryId);
     const parentCategoryId = selectedCategory?.parentId || product.categoryId;
     const subcategoryId = selectedCategory?.parentId ? selectedCategory.id : "";
-    const attrs = product.attributes as Record<string, unknown>;
-    const offer = firstOffer;
+    const offer = offersData.rows[0];
     const offerValues = offer
       ? {
           merchantId: offer.merchantId,
@@ -238,13 +272,13 @@ export function ProductSheet({ open, onOpenChange, mode, product, onSaved }: Pro
       technicalSpecsText: specsToText(product.technicalSpecs),
       sku: product.sku || "",
       ean: product.ean || "",
-      material: typeof attrs.material === "string" ? attrs.material : "",
-      color: typeof attrs.color === "string" ? attrs.color : "",
-      style: typeof attrs.style === "string" ? attrs.style : "",
-      dimensions: typeof attrs.dimensions === "string" ? attrs.dimensions : "",
-      weight: typeof attrs.weight === "string" ? attrs.weight : "",
-      rating: typeof attrs.rating === "number" ? attrs.rating : undefined,
-      reviewCount: typeof attrs.reviewCount === "number" ? attrs.reviewCount : undefined,
+      material: product.material || "",
+      color: product.color || "",
+      style: product.style || "",
+      dimensions: product.dimensions || "",
+      weight: product.weight || "",
+      rating: product.rating,
+      reviewCount: product.reviewCount,
       isActive: product.isActive,
       featured: product.featured,
       teamRecommended: product.teamRecommended,
@@ -254,7 +288,8 @@ export function ProductSheet({ open, onOpenChange, mode, product, onSaved }: Pro
     setShowQuickFill(false);
     setShowAdvanced(false);
     setSavedProductId(product.id);
-  }, [open, mode, product, categories, firstOffer, form]);
+    lastHydratedRef.current = hydrationKey;
+  }, [open, mode, product, categoriesData, offersData, form]);
 
   const watchedName = form.watch("name");
   useEffect(() => {
@@ -264,15 +299,15 @@ export function ProductSheet({ open, onOpenChange, mode, product, onSaved }: Pro
 
   const watchedParentCategory = form.watch("parentCategoryId");
   const parentCategoryOptions = useMemo(
-    () => categories.filter((c) => !c.parentId).map((c) => ({ value: c.id, label: c.name })),
-    [categories],
+    () => (categoriesData || []).filter((c) => !c.parentId).map((c) => ({ value: c.id, label: c.name })),
+    [categoriesData],
   );
   const subcategoryOptions = useMemo(
     () =>
-      categories
+      (categoriesData || [])
         .filter((c) => c.parentId === watchedParentCategory)
         .map((c) => ({ value: c.id, label: c.name })),
-    [categories, watchedParentCategory],
+    [categoriesData, watchedParentCategory],
   );
   const brandOptions = useMemo(
     () => (brandsQuery.data || []).map((b) => ({ value: b.id, label: b.name })),
@@ -586,7 +621,9 @@ export function ProductSheet({ open, onOpenChange, mode, product, onSaved }: Pro
                     type="number"
                     step="0.01"
                     min="0"
-                    {...form.register("offer.price", { valueAsNumber: true })}
+                    {...form.register("offer.price", {
+                      setValueAs: (v: unknown) => numberFromInput(v, 0),
+                    })}
                   />
                 </FieldRow>
                 <FieldRow label="Precio anterior (€)">
@@ -690,14 +727,18 @@ export function ProductSheet({ open, onOpenChange, mode, product, onSaved }: Pro
                       step="0.1"
                       min="0"
                       max="5"
-                      {...form.register("rating", { valueAsNumber: true })}
+                      {...form.register("rating", {
+                        setValueAs: (v: unknown) => numberFromInput(v, undefined),
+                      })}
                     />
                   </FieldRow>
                   <FieldRow label="Nº reseñas">
                     <Input
                       type="number"
                       min="0"
-                      {...form.register("reviewCount", { valueAsNumber: true })}
+                      {...form.register("reviewCount", {
+                        setValueAs: (v: unknown) => numberFromInput(v, undefined),
+                      })}
                     />
                   </FieldRow>
                 </div>
@@ -742,7 +783,9 @@ export function ProductSheet({ open, onOpenChange, mode, product, onSaved }: Pro
                       min="0"
                       max="100"
                       step="1"
-                      {...form.register("editorialPriority", { valueAsNumber: true })}
+                      {...form.register("editorialPriority", {
+                        setValueAs: (v: unknown) => numberFromInput(v, 0) ?? 0,
+                      })}
                     />
                   </FieldRow>
                 </div>

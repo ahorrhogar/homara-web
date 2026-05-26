@@ -286,6 +286,13 @@ function mapProduct(row: ProductRow): AdminProductRecord {
     editorialPriority: Number(specs.editorialPriority ?? attributes.editorialPriority ?? 0),
     sku: typeof specs.sku === "string" ? specs.sku : undefined,
     ean: typeof specs.ean === "string" ? specs.ean : undefined,
+    material: typeof specs.material === "string" ? specs.material : undefined,
+    color: typeof specs.color === "string" ? specs.color : undefined,
+    style: typeof specs.style === "string" ? specs.style : undefined,
+    dimensions: typeof specs.dimensions === "string" ? specs.dimensions : undefined,
+    weight: typeof specs.weight === "string" ? specs.weight : undefined,
+    rating: typeof specs.rating === "number" ? specs.rating : undefined,
+    reviewCount: typeof specs.reviewCount === "number" ? specs.reviewCount : undefined,
     createdAt: row.createdAt.toISOString(),
     updatedAt: row.createdAt.toISOString(),
     primaryImageUrl: primaryImage,
@@ -605,51 +612,78 @@ export async function upsertProductWithOffer(input: ProductWithOfferInput): Prom
 
   const PrismaNS = (await import("@prisma/client")).Prisma;
 
-  const specs: Prisma.JsonObject = {
-    slug: input.slug,
-    longDescription: input.longDescription,
-    featured: input.featured,
-    teamRecommended: input.teamRecommended,
-    editorialPriority: input.editorialPriority,
-  };
-  if (input.tags?.length) specs.tags = input.tags;
-  if (input.technicalSpecs?.length) specs.attributes = input.technicalSpecs as unknown as Prisma.JsonArray;
-  if (input.sku) specs.sku = input.sku;
-  if (input.ean) specs.ean = input.ean;
-  if (input.material) specs.material = input.material;
-  if (input.color) specs.color = input.color;
-  if (input.style) specs.style = input.style;
-  if (input.dimensions) specs.dimensions = input.dimensions;
-  if (input.weight) specs.weight = input.weight;
-  if (typeof input.rating === "number") specs.rating = input.rating;
-  if (typeof input.reviewCount === "number") specs.reviewCount = input.reviewCount;
-
-  const productData = {
-    name: input.name.trim(),
-    brandId: input.brandId,
-    categoryId: input.categoryId,
-    description: input.shortDescription.trim(),
-    specs: specs as Prisma.InputJsonValue,
-    isActive: input.isActive,
-  };
+  // The slug is a structural identifier — collisions on create would silently
+  // overwrite a foreign product (HARD RULE #2). We surface them as errors and
+  // let the admin pick a different name. In edit mode the slug stays whatever
+  // was previously saved and is not re-validated for collisions against itself.
+  let collisionImage: string | null = null;
+  if (!input.productId) {
+    const colliding = await db.product.findFirst({
+      where: { specs: { path: ["slug"], equals: input.slug } },
+      select: { id: true, name: true },
+    });
+    if (colliding) {
+      throw new Error(`Ya existe un producto con el slug «${input.slug}» («${colliding.name}»). Cambia el nombre o slug.`);
+    }
+  } else {
+    const previousImage = await db.productImage.findFirst({
+      where: { productId: input.productId, isPrimary: true },
+      select: { url: true },
+    });
+    collisionImage = previousImage?.url ?? null;
+  }
 
   const result = await db.$transaction(async (tx) => {
+    // Read-then-merge so we never wipe spec keys the form doesn't expose
+    // (bestseller, isNew, future fields) on save.
+    const existingProductRow = input.productId
+      ? await tx.product.findUnique({
+          where: { id: input.productId },
+          select: { specs: true },
+        })
+      : null;
+    const existingSpecs = existingProductRow?.specs && typeof existingProductRow.specs === "object" && !Array.isArray(existingProductRow.specs)
+      ? (existingProductRow.specs as Record<string, unknown>)
+      : {};
+
+    const specs: Prisma.JsonObject = {
+      ...existingSpecs,
+      slug: input.slug,
+      longDescription: input.longDescription,
+      featured: input.featured,
+      teamRecommended: input.teamRecommended,
+      editorialPriority: input.editorialPriority,
+      // technicalSpecs is the canonical source — always overwrite (allows
+      // intentional clearing by the admin via the textarea).
+      attributes: (input.technicalSpecs ?? []) as unknown as Prisma.JsonArray,
+      tags: input.tags ?? [],
+      sku: input.sku ?? null,
+      ean: input.ean ?? null,
+      material: input.material ?? null,
+      color: input.color ?? null,
+      style: input.style ?? null,
+      dimensions: input.dimensions ?? null,
+      weight: input.weight ?? null,
+      rating: typeof input.rating === "number" ? input.rating : null,
+      reviewCount: typeof input.reviewCount === "number" ? input.reviewCount : null,
+    };
+
+    const productData = {
+      name: input.name.trim(),
+      brandId: input.brandId,
+      categoryId: input.categoryId,
+      description: input.shortDescription.trim(),
+      specs: specs as Prisma.InputJsonValue,
+      isActive: input.isActive,
+    };
+
     let productId: string;
     if (input.productId) {
       await tx.product.update({ where: { id: input.productId }, data: productData });
       productId = input.productId;
     } else {
-      const existing = await tx.product.findFirst({
-        where: { specs: { path: ["slug"], equals: input.slug } },
-        select: { id: true },
-      });
-      if (existing) {
-        await tx.product.update({ where: { id: existing.id }, data: productData });
-        productId = existing.id;
-      } else {
-        const created = await tx.product.create({ data: productData, select: { id: true } });
-        productId = created.id;
-      }
+      const created = await tx.product.create({ data: productData, select: { id: true } });
+      productId = created.id;
     }
 
     if (resolvedImageUrl) {
@@ -670,7 +704,7 @@ export async function upsertProductWithOffer(input: ProductWithOfferInput): Prom
 
     const existingOffer = await tx.offer.findFirst({
       where: { productId, merchantId: input.offer.merchantId },
-      select: { id: true, price: true },
+      select: { id: true, price: true, isFeatured: true },
     });
     const priceDecimal = new PrismaNS.Decimal(input.offer.price);
     const oldPriceDecimal = input.offer.oldPrice ? new PrismaNS.Decimal(input.offer.oldPrice) : null;
@@ -683,7 +717,9 @@ export async function upsertProductWithOffer(input: ProductWithOfferInput): Prom
       url: input.offer.url.trim(),
       stock: input.offer.stock,
       isActive: input.offer.isActive,
-      isFeatured: false,
+      // Preserve the existing isFeatured flag — the new sheet doesn't expose
+      // it, so hardcoding false would silently clear a flag set elsewhere.
+      isFeatured: existingOffer?.isFeatured ?? false,
       sourceType: input.offer.sourceType,
       updateMode: "manual" as const,
       syncStatus: "ok" as const,
@@ -717,6 +753,12 @@ export async function upsertProductWithOffer(input: ProductWithOfferInput): Prom
 
     return { productId, offerId };
   });
+
+  // If the admin replaced the primary image with a different URL, clean up the
+  // previous R2 blob (mirrors upsertBrand / upsertMerchant / upsertCategory).
+  if (collisionImage && resolvedImageUrl && collisionImage !== resolvedImageUrl) {
+    await cleanupReplacedImage(collisionImage, resolvedImageUrl);
+  }
 
   await logAudit(
     session.user.id,

@@ -24,6 +24,13 @@ export interface AdminProductRecord {
   editorialPriority: number;
   sku?: string;
   ean?: string;
+  material?: string;
+  color?: string;
+  style?: string;
+  dimensions?: string;
+  weight?: string;
+  rating?: number;
+  reviewCount?: number;
   createdAt: string;
   updatedAt: string;
   primaryImageUrl?: string;
