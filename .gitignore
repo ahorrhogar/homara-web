@@ -22,6 +22,9 @@ next-env.d.ts.bak
 dist
 dist-ssr
 
+# Firecrawl scrape cache (regeneratable via scripts/scrape-products.ts)
+scripts/data/scraped/
+
 # Env
 *.local
 .env
