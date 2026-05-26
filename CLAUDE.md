@@ -29,31 +29,34 @@ Package manager: **npm** only (the `bun.lock*` files were removed during migrati
 - `npm run typecheck` — `tsc --noEmit`.
 - `npm run test` / `npm run test:watch` — Jest (configured via `next/jest`). Pattern: `src/**/*.{test,spec}.{ts,tsx}`. Test setup file: `jest.setup.ts`.
 - Single test: `npx jest src/domain/catalog/home-ranking.test.ts` (or `-t "<name>"` to filter).
-- Supabase (when CLI is linked): `supabase db push`, `supabase db reset --linked`. Migrations live in `supabase/migrations/` and are timestamp-prefixed; never edit a merged migration — add a new one.
+- Database (Prisma + Postgres / Neon in prod): `npm run db:migrate` (dev, creates + applies), `npm run db:migrate:deploy` (prod / re-apply), `npm run db:reset` (force re-create), `npm run db:studio` (browser inspector). Migrations live in `prisma/migrations/` and are timestamp-prefixed; never edit a merged migration — `prisma migrate dev <name>` creates a new one. `npm run vercel-build` runs `prisma migrate deploy && npm run build`.
+- Seed scripts: `npm run db:seed-admin` (create initial admin), `npm run db:seed-products` (load `scripts/data/products.ts` into the catalog). Run via `dotenv -e .env.local -- tsx scripts/<name>.ts`. The legacy `scripts/seed_*_supabase.mjs` files are deprecated artifacts of the Supabase era — do not mirror them.
 
 ## Required environment
 
 `.env.local` from `.env.example`:
 
-- `NEXT_PUBLIC_SUPABASE_URL` / `NEXT_PUBLIC_SUPABASE_ANON_KEY` — required (used by both browser and server clients via `@supabase/ssr`).
-- `SUPABASE_URL` / `SUPABASE_ANON_KEY` — server-only fallback (read by `src/integrations/supabase/server.ts` and `src/middleware.ts` when the `NEXT_PUBLIC_*` versions aren't set).
+- `DATABASE_URL` — pooled Postgres connection (Neon in prod; `postgresql://mono:mono@localhost:5433/homara` in local dev). Includes `?pgbouncer=true&connection_limit=1` against Neon's pooler.
+- `DIRECT_URL` — non-pooled connection used by `prisma migrate` for schema operations.
 - `NEXT_PUBLIC_SITE_URL` — used by `app/sitemap.ts`, `app/robots.ts`, and `metadataBase`. Defaults to `https://homara.es` when unset.
+- `FIRECRAWL_API_KEY` — only needed for `scripts/scrape-products.ts` (one-shot SEO product scrape pipeline). Not required by the app.
+- Auth secrets and SMTP config live in `.env.local`; see `src/lib/auth.ts` for the full Better Auth configuration.
 
-The legacy `VITE_*` variables and the `VITE_USE_REDIRECT_API` feature flag have been removed — every offer link now flows through `/api/redirect?offerId=…&track=1`.
+The legacy `VITE_*`, `SUPABASE_*`, and `VITE_USE_REDIRECT_API` variables have all been removed — every offer link now flows through `/api/redirect?offerId=…&track=1`, and the DB is reached via Prisma (`src/lib/db.ts`).
 
 ## Architecture
 
-**Next.js 15 (App Router) + React 19 + TypeScript + Supabase**, deployed on Vercel. Path alias: `@/*` → `src/*` (preserved from the Vite era).
+**Next.js 15 (App Router) + React 19 + TypeScript + Prisma + Postgres (Neon)**, deployed on Vercel. Auth is Better Auth (see `src/lib/auth.ts`). Path alias: `@/*` → `src/*` (preserved from the Vite era).
 
 ### Layered data flow
 
 ```
-src/app/**/page.tsx (RSC)  →  src/data/catalog/* (server-only, unstable_cache + tags)  →  Supabase
+src/app/**/page.tsx (RSC)  →  src/data/catalog/* (server-only, unstable_cache + tags)  →  Prisma → Postgres
                               src/data/editorial/* (static editorial source)
 
-Mutations on /admin/(panel)/*: browser-side React Query → src/admin/services/* → Supabase (cookie-auth)
+Mutations on /admin/(panel)/*: browser-side React Query → src/admin/services/* → Prisma (via server actions / API routes)
                                then  src/admin/_actions/cache.ts (server action) → revalidateTag('catalog' | 'articles' | 'ranking-signals')
-Click tracking on /api/redirect: src/data/catalog/tracking.ts → Supabase RPC, then revalidateTag('ranking-signals')
+Click tracking on /api/redirect: src/data/catalog/tracking.ts → Prisma click insert, then revalidateTag('ranking-signals')
 ```
 
 - **`src/domain/`** — pure business types and logic. No I/O, no React. Examples: `catalog/home-ranking.ts`, `catalog/offer-sync.ts`, `editorial/article-logic.ts`, `assistant/recommendation`. Tests run under the Node Jest environment.
@@ -67,10 +70,11 @@ Click tracking on /api/redirect: src/data/catalog/tracking.ts → Supabase RPC, 
 - **`src/data/editorial/`** — static editorial source for the article catalog (`static-source.ts`, `types.ts`).
 - **`src/services/`** — application services that survive the migration: `analyticsService`, `analyticsSession`, `cookieConsentService`, `editorialService`, `editorialTrackingService`, `productNavigationService`. The legacy `productService` / `categoryService` / `offerService` / `searchTrackingService` were deleted in Step 7 — App Router code reads from `src/data/catalog/*` directly.
 - **`src/infrastructure/`** — cross-cutting: `analytics/`, `logging/`, `rate-limit/`, `security/` (sanitize, safe-redirect, affiliateUrl).
-- **`src/integrations/supabase/`** — `client.ts` exports `getSupabaseClient()` (browser, via `@supabase/ssr` `createBrowserClient`); `server.ts` exports `createServerSupabaseClient()` (cookie-aware, for RSC + server actions + middleware) and `createAnonymousServerSupabaseClient()` (cookieless, for sitemap + redirect); `anonymous.ts` exports `getAnonymousSupabaseClient()` (sync, works in any context — used by `unstable_cache` callbacks).
-- **`src/admin/`** — admin panel. Auth is enforced **server-side** by `src/middleware.ts` (refreshes the Supabase session, calls the `is_admin` RPC, redirects to `/admin/login` or `/admin/denegado` before any RSC renders). The login form is a client component posting to a server action at `src/admin/_actions/auth.ts`. The browser-side admin services in `src/admin/services/*` invoke `src/admin/_actions/cache.ts` after mutations to push `revalidateTag()` through the public-site cache pipeline.
+- **`src/lib/db.ts`** — Prisma singleton (`db`). The single entry point for every DB read/write. Use `import { db } from "@/lib/db"` in server code; never instantiate `new PrismaClient()` elsewhere. Schema is `prisma/schema.prisma`.
+- **`src/lib/auth.ts`** — Better Auth configuration (email/password). Server actions and route handlers call `auth.api.*` for sign-in/sign-up; sessions are managed via Better Auth cookies. Admin role is gated on `user.role === "admin"`.
+- **`src/admin/`** — admin panel. Auth is enforced **server-side** by `src/middleware.ts` (validates the Better Auth session, checks `user.role`, redirects to `/admin/login` or `/admin/denegado` before any RSC renders). The login form is a client component posting to a server action at `src/admin/_actions/auth.ts`. The browser-side admin services in `src/admin/services/*` invoke `src/admin/_actions/cache.ts` after mutations to push `revalidateTag()` through the public-site cache pipeline.
 - **`src/app/api/redirect/route.ts`** — affiliate redirect endpoint. Validates the `offerId` UUID, runs `isAffiliateUrlAllowed`, optionally records a click via `trackClick` from `@/data/catalog/tracking`, and 302s to the merchant URL.
-- **`src/app/sitemap.ts`** — generates `/sitemap.xml` from a static route list plus a Supabase fetch of active categories and published `editorial_articles`. Cached for 1 hour.
+- **`src/app/sitemap.ts`** — generates `/sitemap.xml` from a static route list plus a Prisma read of active categories and published `editorial_articles`. Cached for 1 hour.
 - **`src/app/robots.ts`** — generates `/robots.txt`. Disallows `/api/` and `/admin/`.
 
 ### Routing (Next.js App Router, `src/app/`)
@@ -92,7 +96,7 @@ Click tracking on /api/redirect: src/data/catalog/tracking.ts → Supabase RPC, 
 
 ### TypeScript posture
 
-`tsconfig.json` runs with `strict: false`, `strictNullChecks: false`, `noImplicitAny: false`, `noUnusedLocals: false`. The catalog data layer (`src/data/catalog/*`) and App Router pages were written defensively to be strict-clean, but the legacy admin code (`src/admin/services/*`, `src/app/admin/(panel)/*`) carries ~195 errors under full `strict: true`, mostly `'data' is possibly null` from Supabase query patterns. Flipping to strict is a follow-up cleanup, not migration scope. New files should be written as if `strict: true` were on. ESLint disables `@typescript-eslint/no-unused-vars`, `@typescript-eslint/no-explicit-any`, `react/no-unescaped-entities`, and `@next/next/no-img-element` (the last for the 3 remaining `<img>` tags in two hardcoded blog guides).
+`tsconfig.json` runs with `strict: false`, `strictNullChecks: false`, `noImplicitAny: false`, `noUnusedLocals: false`. The catalog data layer (`src/data/catalog/*`) and App Router pages were written defensively to be strict-clean, but the legacy admin code (`src/admin/services/*`, `src/app/admin/(panel)/*`) carries ~195 errors under full `strict: true`, mostly `'data' is possibly null` from the previous Supabase query patterns that survived the Prisma migration. Flipping to strict is a follow-up cleanup. New files should be written as if `strict: true` were on. ESLint disables `@typescript-eslint/no-unused-vars`, `@typescript-eslint/no-explicit-any`, `react/no-unescaped-entities`, and `@next/next/no-img-element` (the last for the 3 remaining `<img>` tags in two hardcoded blog guides).
 
 ### SEO + structured data expectations
 
@@ -102,13 +106,15 @@ When touching pages that ship to production:
 - **Interlinking** (`homara-brain/03-SEO/Interlinking.md`): every article links to its parent category and ≥2 related pieces; every category links to its subcategories and ≥3 cluster articles; every comparativa links to the individual product pages it compares. Anchor text must read naturally.
 - **Canonicals**: filters/paginations canonical to the parent unless they have their own intent. Internal search pages: `noindex`.
 - Performance budgets: LCP < 2.5s, CLS < 0.1, INP < 200ms. Use AVIF/WebP + lazy load for images.
-- The sitemap is dynamic — adding a new editorial slug doesn't require manual sitemap edits, but it does require the article row in Supabase (or the static guide pages map in `api/sitemap.xml.ts`).
+- The sitemap is dynamic — adding a new editorial slug doesn't require manual sitemap edits, but it does require the `editorial_articles` row in Postgres (via Prisma) or the static guide page added under `src/app/blog/<slug>/page.tsx`.
 
-## Working with Supabase migrations
+## Working with Prisma migrations
 
-- Migrations are append-only, timestamp-prefixed: `YYYYMMDDhhmmss_description.sql`. Patterns visible in the directory: catalog schema, admin panel, RLS hardening, click-tracking thresholds, and per-cluster seed migrations (e.g. `*_terrace_tables_*`, `*_publish_*_article.sql`).
-- Click-tracking and admin-auth migrations encode the security model — don't loosen RLS without reading the existing hardening migrations (`*_affiliate_security_hardening.sql`, `*_click_tracking_hardening.sql`, `*_admin_users_single_source_auth.sql`).
-- `scripts/seed_*_supabase.mjs` are one-shot seed runners for editorial product clusters (umbrellas, pools). Use them as a template when seeding a new cluster; don't repurpose an existing one.
+- Migrations are append-only, timestamp-prefixed, generated by `prisma migrate dev <name>` and saved under `prisma/migrations/<timestamp>_<name>/migration.sql`. Never edit a merged migration — create a new one with a small, focused change.
+- Schema is `prisma/schema.prisma`. Many editorial fields (product slug, long description, rating, review count, sku, ean, tags, material/dimensions/weight, etc.) live in `Product.specs` (JSONB), NOT as top-level columns. See `SPEC_META_KEYS` in `src/data/catalog/_helpers.ts:82` for the authoritative list; `_helpers.ts:414` is the slug-resolution rule (`specs.slug || slugify(name)`).
+- To find a product by slug from a script: `db.product.findFirst({ where: { specs: { path: ["slug"], equals: slug } } })`. No native Prisma `upsert` because there's no unique index on slug — use find-then-create-or-update.
+- Local dev DB: `postgresql://mono:mono@localhost:5433/homara` (per `.env.local`). On Vercel the build runs `prisma migrate deploy` before `next build`.
+- Seed pipeline for products: `scripts/scrape-products.ts` (Firecrawl-driven) writes `scripts/data/products.ts`; `scripts/seed-products.ts` (`npm run db:seed-products`) reads that file and upserts brands → categories → products → product_images → merchants → offers → price_history.
 
 ## Conventions for new code (post-migration)
 

@@ -31,7 +31,7 @@ import type {
 } from "@/admin/types";
 import { requireAdmin } from "@/lib/admin-guard";
 import { cleanupReplacedImage, deleteR2ImageIfUnreferenced } from "@/lib/image-cleanup";
-import { rehostRemoteImage, uploadToR2, type R2Folder } from "@/lib/r2";
+import { normalizeExternalImageUrl, uploadToR2, type R2Folder } from "@/lib/r2";
 import { db } from "@/lib/db";
 
 // ─── Filters ──────────────────────────────────────────────────────────────
@@ -147,6 +147,12 @@ function invalidateCatalog() {
   revalidateTag(CATALOG_CACHE_TAG, "default");
   revalidateTag(CATEGORIES_CACHE_TAG, "default");
   revalidateTag(RANKING_SIGNALS_CACHE_TAG, "default");
+}
+
+function resolveImageUrlOrThrow(input: string): string {
+  const { url, warning } = normalizeExternalImageUrl(input);
+  if (warning) throw new Error(warning);
+  return url;
 }
 
 // ─── Mappers ──────────────────────────────────────────────────────────────
@@ -308,7 +314,7 @@ export async function upsertBrand(input: BrandMutationInput): Promise<AdminBrand
     ? await db.brand.findUnique({ where: { id: input.id }, select: { logoUrl: true } })
     : null;
   const candidate = input.logoUrl?.trim();
-  const logoUrl = candidate ? (await rehostRemoteImage(candidate, "brands")).url : null;
+  const logoUrl = candidate ? resolveImageUrlOrThrow(candidate) : null;
   const data = {
     name: input.name.trim(),
     logoUrl,
@@ -356,7 +362,7 @@ export async function upsertMerchant(input: MerchantMutationInput): Promise<Admi
     ? await db.merchant.findUnique({ where: { id: input.id }, select: { logoUrl: true } })
     : null;
   const candidate = input.logoUrl?.trim();
-  const logoUrl = candidate ? (await rehostRemoteImage(candidate, "merchants")).url : null;
+  const logoUrl = candidate ? resolveImageUrlOrThrow(candidate) : null;
   const data = {
     name: input.name.trim(),
     logoUrl,
@@ -430,7 +436,7 @@ export async function upsertCategory(input: CategoryMutationInput): Promise<Admi
     ? await db.category.findUnique({ where: { id: input.id }, select: { imageUrl: true } })
     : null;
   const candidateImage = input.imageUrl?.trim();
-  const imageUrl = candidateImage ? (await rehostRemoteImage(candidateImage, "categories")).url : null;
+  const imageUrl = candidateImage ? resolveImageUrlOrThrow(candidateImage) : null;
   const slug = input.slug?.trim() || (input.name ? slugify(input.name) : null);
   const data = {
     name: input.name.trim(),
@@ -617,7 +623,7 @@ export async function listProductImages(productId: string): Promise<AdminProduct
 
 export async function addProductImage(productId: string, url: string, isPrimary: boolean): Promise<AdminProductImageRecord> {
   const session = await requireAdmin();
-  const { url: finalUrl } = await rehostRemoteImage(url, "products");
+  const finalUrl = resolveImageUrlOrThrow(url);
   if (isPrimary) {
     await db.productImage.updateMany({ where: { productId }, data: { isPrimary: false } });
   }

@@ -10,7 +10,7 @@ import { sanitizeNumber, sanitizeText } from "@/infrastructure/security/sanitize
 import { requireAdmin } from "@/lib/admin-guard";
 import { db } from "@/lib/db";
 import { cleanupReplacedImage, deleteR2ImageIfUnreferenced } from "@/lib/image-cleanup";
-import { rehostRemoteImage } from "@/lib/r2";
+import { normalizeExternalImageUrl } from "@/lib/r2";
 import { invalidateEditorialLiveCache } from "@/services/editorialService";
 
 export interface AdminEditorialListFilters extends AdminListQuery {
@@ -209,7 +209,12 @@ export async function upsertEditorialArticle(
     ? (await db.editorialArticle.findUnique({ where: { id: input.id }, select: { coverImage: true } }))?.coverImage ?? null
     : null;
   const sanitizedCover = input.coverImage ? sanitizeText(input.coverImage, 400) : null;
-  const coverImage = sanitizedCover ? (await rehostRemoteImage(sanitizedCover, "articles")).url : null;
+  let coverImage: string | null = null;
+  if (sanitizedCover) {
+    const normalized = normalizeExternalImageUrl(sanitizedCover);
+    if (normalized.warning) throw new Error(normalized.warning);
+    coverImage = normalized.url;
+  }
 
   const data: Prisma.EditorialArticleCreateInput = {
     slug,

@@ -1,5 +1,5 @@
 #!/bin/bash
-# Stop hook: if Claude made code edits this turn, block the stop and ask it to run /simplify.
+# Stop hook: if Claude made code edits this turn, block the stop and ask it to run /code-review.
 # Loop guard: if the previous Stop already fired this hook (stop_hook_active=true), exit silently.
 
 set -u
@@ -33,7 +33,7 @@ EDIT_HITS=$(tail -n +"$LAST_USER_LINE" "$TRANSCRIPT" 2>/dev/null \
 
 if [ "${EDIT_HITS:-0}" -gt 0 ]; then
   cat <<'JSON'
-{"decision":"block","reason":"This turn made code edits. Before stopping, run the /simplify skill on the changes: review for reuse, quality, and efficiency, then fix any issues found. Once /simplify completes, stop normally."}
+{"decision":"block","reason":"This turn made code edits. Before stopping, run the /code-review skill on the changes: review for correctness, quality, and efficiency, then fix any issues found. Once /code-review completes, stop normally."}
 JSON
 fi
 

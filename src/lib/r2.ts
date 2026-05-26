@@ -110,6 +110,31 @@ export interface RehostResult {
   warning?: string;
 }
 
+export interface NormalizedExternalImage {
+  url: string;
+  warning?: string;
+}
+
+/**
+ * Validate a user-supplied image URL without touching the network or R2.
+ * Returns the trimmed URL on success; on validation failure returns the
+ * (possibly empty) input with a Spanish warning so callers can surface it.
+ */
+export function normalizeExternalImageUrl(input: string): NormalizedExternalImage {
+  const trimmed = input.trim();
+  if (!trimmed) return { url: "", warning: "URL vacía" };
+  if (!/^https?:\/\//i.test(trimmed)) {
+    return { url: trimmed, warning: "URL no es http(s)" };
+  }
+  try {
+    const parsed = new URL(trimmed);
+    if (!parsed.hostname) return { url: trimmed, warning: "URL sin host" };
+  } catch {
+    return { url: trimmed, warning: "URL no es válida" };
+  }
+  return { url: trimmed };
+}
+
 /**
  * Download a remote image and store it in R2. On any failure (network,
  * non-2xx, non-image, oversize, R2 not configured) returns the original URL

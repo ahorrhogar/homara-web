@@ -59,7 +59,7 @@ Hemos descartado packs sin ficha técnica clara, sin garantía mínima de dos a�
   - Respaldo rígido, poco cómodo para sobremesas largas.
   - Patas cromadas se rayan con el roce.
 - **Mini-veredicto:** la opción más equilibrada bajo 100 euros si valoras durabilidad sobre confort.
-- [Ver oferta]({{OFFER:mejores-sillas-comedor-pack-4-6-unidades-2026}})
+- [Ver oferta]({{OFFER:ikea-teodores-pack-4}})
 
 ### 2. SONGMICS LDC082 · pack 4
 
@@ -79,7 +79,7 @@ Hemos descartado packs sin ficha técnica clara, sin garantía mínima de dos a�
   - Base metálica puede oxidarse en cocinas húmedas.
   - Colores claros marcan suciedad.
 - **Mini-veredicto:** mejora a la TEODORES en carga y confort por 15 euros más.
-- [Ver oferta]({{OFFER:mejores-sillas-comedor-pack-4-6-unidades-2026}})
+- [Ver oferta]({{OFFER:songmics-ldc082-pack-4}})
 
 ### 3. Vidaxl Eames-style · pack 6
 
@@ -99,7 +99,7 @@ Hemos descartado packs sin ficha técnica clara, sin garantía mínima de dos a�
   - Carga máxima justa para adultos grandes.
   - Calidad de plástico variable según lote.
 - **Mini-veredicto:** opción de volumen si el presupuesto manda y el uso es ocasional.
-- [Ver oferta]({{OFFER:mejores-sillas-comedor-pack-4-6-unidades-2026}})
+- [Ver oferta]({{OFFER:vidaxl-eames-style-pack-6}})
 
 ### 4. Tectake industrial · pack 4
 
@@ -119,7 +119,7 @@ Hemos descartado packs sin ficha técnica clara, sin garantía mínima de dos a�
   - Polipiel se cuartea pasados 3-4 años de uso intenso.
   - Pesan 6 kg cada una, difícil moverlas a diario.
 - **Mini-veredicto:** la apuesta segura para quien busca el estilo industrial sin pagarlo caro.
-- [Ver oferta]({{OFFER:mejores-sillas-comedor-pack-4-6-unidades-2026}})
+- [Ver oferta]({{OFFER:tectake-industrial-pack-4}})
 
 ### 5. Yaheetech tapizado terciopelo · pack 6
 
@@ -139,7 +139,7 @@ Hemos descartado packs sin ficha técnica clara, sin garantía mínima de dos a�
   - Terciopelo atrapa pelo de mascotas.
   - Manchas de aceite requieren tapicero.
 - **Mini-veredicto:** el mejor coste por unidad en tapizado bajo 30 euros.
-- [Ver oferta]({{OFFER:mejores-sillas-comedor-pack-4-6-unidades-2026}})
+- [Ver oferta]({{OFFER:yaheetech-tapizado-terciopelo-pack-6}})
 
 ### 6. VASAGLE LDC093 · pack 4
 
@@ -159,7 +159,7 @@ Hemos descartado packs sin ficha técnica clara, sin garantía mínima de dos a�
   - Montaje de 20 minutos por silla.
   - Polipiel del asiento sufre con uñas de mascotas.
 - **Mini-veredicto:** punto dulce calidad-precio en gama media.
-- [Ver oferta]({{OFFER:mejores-sillas-comedor-pack-4-6-unidades-2026}})
+- [Ver oferta]({{OFFER:vasagle-ldc093-pack-4}})
 
 ### 7. IKEA STEFAN · pack 6
 
@@ -179,7 +179,7 @@ Hemos descartado packs sin ficha técnica clara, sin garantía mínima de dos a�
   - Asiento sin acolchado, requiere cojín.
   - Pino se marca con golpes.
 - **Mini-veredicto:** la inversión más segura a largo plazo del ranking.
-- [Ver oferta]({{OFFER:mejores-sillas-comedor-pack-4-6-unidades-2026}})
+- [Ver oferta]({{OFFER:ikea-stefan-pack-6}})
 
 ### 8. Maisons du Monde Mauricette · pack 4
 
@@ -199,7 +199,7 @@ Hemos descartado packs sin ficha técnica clara, sin garantía mínima de dos a�
   - Ratán necesita aspirado regular.
   - No apto para terrazas exteriores sin tratamiento.
 - **Mini-veredicto:** estética distintiva si el comedor recibe luz natural.
-- [Ver oferta]({{OFFER:mejores-sillas-comedor-pack-4-6-unidades-2026}})
+- [Ver oferta]({{OFFER:maisons-du-monde-mauricette-pack-4}})
 
 ### 9. Kave Home Yvette · pack 4
 
@@ -219,7 +219,7 @@ Hemos descartado packs sin ficha técnica clara, sin garantía mínima de dos a�
   - Montaje requiere dos personas.
   - Bouclé claro mancha con vino tinto.
 - **Mini-veredicto:** la silla premium accesible si el comedor lo justifica.
-- [Ver oferta]({{OFFER:mejores-sillas-comedor-pack-4-6-unidades-2026}})
+- [Ver oferta]({{OFFER:kave-home-yvette-pack-4}})
 
 ### 10. Kave Home Better · pack 6
 
@@ -239,7 +239,7 @@ Hemos descartado packs sin ficha técnica clara, sin garantía mínima de dos a�
   - Lino se arruga con el uso diario.
   - Limpieza requiere fundas hechas a medida.
 - **Mini-veredicto:** la opción top del ranking para comedores que reciben 6 personas habitualmente.
-- [Ver oferta]({{OFFER:mejores-sillas-comedor-pack-4-6-unidades-2026}})
+- [Ver oferta]({{OFFER:kave-home-better-pack-6}})
 
 ## Recomendaciones por perfil
 
