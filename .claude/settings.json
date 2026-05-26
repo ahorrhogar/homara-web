@@ -5,7 +5,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash $CLAUDE_PROJECT_DIR/.claude/hooks/simplify-on-stop.sh"
+            "command": "bash $CLAUDE_PROJECT_DIR/.claude/hooks/code-review-on-stop.sh"
           }
         ]
       }
