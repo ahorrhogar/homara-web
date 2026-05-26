@@ -31,6 +31,7 @@ import type {
 } from "@/admin/types";
 import { requireAdmin } from "@/lib/admin-guard";
 import { cleanupReplacedImage, deleteR2ImageIfUnreferenced } from "@/lib/image-cleanup";
+import { isAffiliateUrlAllowed } from "@/infrastructure/security/affiliateUrl";
 import { normalizeExternalImageUrl, uploadToR2, type R2Folder } from "@/lib/r2";
 import { db } from "@/lib/db";
 
@@ -88,6 +89,41 @@ export interface OfferMutationInput {
   lastSyncError?: string;
   priorityScore?: number;
   freshnessScore?: number;
+}
+
+export interface ProductWithOfferInput {
+  productId?: string;
+  name: string;
+  slug: string;
+  brandId: string;
+  categoryId: string;
+  shortDescription: string;
+  longDescription: string;
+  technicalSpecs?: Array<{ label: string; value: string }>;
+  tags?: string[];
+  sku?: string;
+  ean?: string;
+  material?: string;
+  color?: string;
+  style?: string;
+  dimensions?: string;
+  weight?: string;
+  rating?: number;
+  reviewCount?: number;
+  isActive: boolean;
+  featured: boolean;
+  teamRecommended: boolean;
+  editorialPriority: number;
+  primaryImageUrl?: string;
+  offer: {
+    merchantId: string;
+    price: number;
+    oldPrice?: number;
+    url: string;
+    stock: boolean;
+    isActive: boolean;
+    sourceType: OfferSourceType;
+  };
 }
 
 export interface BrandMutationInput {
@@ -549,6 +585,148 @@ export async function upsertProduct(input: ProductMutationInput): Promise<AdminP
   await logAudit(session.user.id, input.id ? "product.update" : "product.create", "product", row.id, { name: data.name });
   invalidateCatalog();
   return mapProduct(row);
+}
+
+export async function upsertProductWithOffer(input: ProductWithOfferInput): Promise<{ productId: string; offerId: string }> {
+  const session = await requireAdmin();
+  if (input.offer.price <= 0) throw new Error("El precio debe ser mayor que 0.");
+
+  const merchant = await db.merchant.findUnique({
+    where: { id: input.offer.merchantId },
+    select: { domain: true },
+  });
+  if (!merchant) throw new Error("Tienda no encontrada.");
+  if (!isAffiliateUrlAllowed(input.offer.url.trim(), merchant.domain)) {
+    throw new Error("La URL de oferta no es válida.");
+  }
+
+  const trimmedImageUrl = input.primaryImageUrl?.trim();
+  const resolvedImageUrl = trimmedImageUrl ? resolveImageUrlOrThrow(trimmedImageUrl) : null;
+
+  const PrismaNS = (await import("@prisma/client")).Prisma;
+
+  const specs: Prisma.JsonObject = {
+    slug: input.slug,
+    longDescription: input.longDescription,
+    featured: input.featured,
+    teamRecommended: input.teamRecommended,
+    editorialPriority: input.editorialPriority,
+  };
+  if (input.tags?.length) specs.tags = input.tags;
+  if (input.technicalSpecs?.length) specs.attributes = input.technicalSpecs as unknown as Prisma.JsonArray;
+  if (input.sku) specs.sku = input.sku;
+  if (input.ean) specs.ean = input.ean;
+  if (input.material) specs.material = input.material;
+  if (input.color) specs.color = input.color;
+  if (input.style) specs.style = input.style;
+  if (input.dimensions) specs.dimensions = input.dimensions;
+  if (input.weight) specs.weight = input.weight;
+  if (typeof input.rating === "number") specs.rating = input.rating;
+  if (typeof input.reviewCount === "number") specs.reviewCount = input.reviewCount;
+
+  const productData = {
+    name: input.name.trim(),
+    brandId: input.brandId,
+    categoryId: input.categoryId,
+    description: input.shortDescription.trim(),
+    specs: specs as Prisma.InputJsonValue,
+    isActive: input.isActive,
+  };
+
+  const result = await db.$transaction(async (tx) => {
+    let productId: string;
+    if (input.productId) {
+      await tx.product.update({ where: { id: input.productId }, data: productData });
+      productId = input.productId;
+    } else {
+      const existing = await tx.product.findFirst({
+        where: { specs: { path: ["slug"], equals: input.slug } },
+        select: { id: true },
+      });
+      if (existing) {
+        await tx.product.update({ where: { id: existing.id }, data: productData });
+        productId = existing.id;
+      } else {
+        const created = await tx.product.create({ data: productData, select: { id: true } });
+        productId = created.id;
+      }
+    }
+
+    if (resolvedImageUrl) {
+      const primary = await tx.productImage.findFirst({
+        where: { productId, isPrimary: true },
+        select: { id: true, url: true },
+      });
+      if (primary) {
+        if (primary.url !== resolvedImageUrl) {
+          await tx.productImage.update({ where: { id: primary.id }, data: { url: resolvedImageUrl } });
+        }
+      } else {
+        await tx.productImage.create({
+          data: { productId, url: resolvedImageUrl, isPrimary: true, sortOrder: 0 },
+        });
+      }
+    }
+
+    const existingOffer = await tx.offer.findFirst({
+      where: { productId, merchantId: input.offer.merchantId },
+      select: { id: true, price: true },
+    });
+    const priceDecimal = new PrismaNS.Decimal(input.offer.price);
+    const oldPriceDecimal = input.offer.oldPrice ? new PrismaNS.Decimal(input.offer.oldPrice) : null;
+    const offerData = {
+      productId,
+      merchantId: input.offer.merchantId,
+      price: priceDecimal,
+      oldPrice: oldPriceDecimal,
+      currentPrice: priceDecimal,
+      url: input.offer.url.trim(),
+      stock: input.offer.stock,
+      isActive: input.offer.isActive,
+      isFeatured: false,
+      sourceType: input.offer.sourceType,
+      updateMode: "manual" as const,
+      syncStatus: "ok" as const,
+      lastCheckedAt: new Date(),
+      lastUpdatedBy: session.user.id,
+    };
+
+    let offerId: string;
+    if (existingOffer) {
+      await tx.offer.update({ where: { id: existingOffer.id }, data: offerData });
+      offerId = existingOffer.id;
+    } else {
+      const created = await tx.offer.create({ data: offerData, select: { id: true } });
+      offerId = created.id;
+    }
+
+    await tx.priceHistory.create({
+      data: {
+        productId,
+        offerId,
+        merchantId: input.offer.merchantId,
+        price: priceDecimal,
+        oldPrice: existingOffer?.price ?? oldPriceDecimal,
+        sourceType: input.offer.sourceType,
+        updateMode: "manual",
+        syncStatus: "ok",
+        changedBy: session.user.id,
+        changeReason: input.productId ? "admin-edit" : "admin-create",
+      },
+    });
+
+    return { productId, offerId };
+  });
+
+  await logAudit(
+    session.user.id,
+    input.productId ? "product.upsert_with_offer" : "product.create_with_offer",
+    "product",
+    result.productId,
+    { offerId: result.offerId },
+  );
+  invalidateCatalog();
+  return result;
 }
 
 export async function duplicateProduct(productId: string): Promise<AdminProductRecord> {
