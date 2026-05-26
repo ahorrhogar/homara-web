@@ -1,0 +1,107 @@
+# Homara — guía completa para LLMs
+
+> Comparador editorial de productos para hogar y jardín en español. No es una tienda: es contenido SEO + comparador + clic afiliado.
+
+## Sobre Homara
+
+Homara reúne las mejores opciones del mercado para personas a punto de comprar algo para su hogar, las compara con criterio editorial y las dirige a comprarlas al mejor precio. Cubrimos cinco verticales: cocina, hogar, jardín, terraza y muebles.
+
+Modelo de negocio: tráfico orgánico → contenido editorial → comparador / ficha → clic afiliado → comisión. Programas de afiliación principales: Amazon Asociados y Awin. Los enlaces a tiendas pasan por un redirector interno (/api/redirect) que registra el clic y aplica la etiqueta vigente; nunca insertamos enlaces afiliados crudos en contenido.
+
+## Voz editorial
+
+- Frases cortas y directas, sin paja.
+- Recomendaciones razonadas: por qué un producto encaja con un caso de uso concreto.
+- Datos concretos: medidas, materiales, consumo, garantía.
+- Comparación contra alternativas razonables.
+- CTAs claras pero no agresivas.
+- Sin superlativos vacíos ("el mejor del mundo", "imprescindible").
+- Sin tono de cuponero ni promesas exageradas ("ahorra hasta un 90 %").
+
+## Audiencia
+
+Tres perfiles principales:
+
+1. Reformista práctico — recién mudado o reformando, compra muchos artículos en pocos meses, busca calidad/precio sin ahogarse en opciones.
+2. Comprador estacional — compra puntualmente (aire en julio, calefacción en octubre), alta intención, decisiones rápidas, confía en rankings claros.
+3. Mejorador del hogar — moderniza una vivienda existente, valora detalle, opiniones reales y encaje con caso de uso.
+
+## Estructura del sitio
+
+- Inicio (https://homara.es/): top productos, supergangas, mejor valorados, más vendidos, favoritos, destacados, promesa de marca y enlace al asistente.
+- Categorías (/categoria/<slug>): listado filtrable + texto SEO largo + productos destacados. Máximo 2-3 niveles (categoría → subcategoría → uso/filtro).
+- Fichas de producto (/producto/<slug>): comparador de ofertas activas, especificaciones, ratings, ofertas relacionadas.
+- Blog (/blog y /blog/<slug>): guías de compra, comparativas, reviews y rankings.
+- Asistente (/asistente): formulario que recomienda productos según presupuesto, estilo y necesidades.
+- Buscar (/buscar): noindex; búsqueda interna de catálogo.
+
+## Guías de compra publicadas
+
+### Mejores freidoras de aire en Amazon por menos de 100 €
+URL: https://homara.es/blog/mejores-freidoras-aire-amazon-2026-menos-100-euros
+Tipo: ranking comercial. Selección de freidoras de aire por debajo de 100 € con buena relación capacidad-consumo, foco en hogares de 2-4 personas.
+
+### Mejores sofás calidad/precio
+URL: https://homara.es/blog/mejores-sofas-calidad-precio-2026
+Tipo: comparativa. Sofás de 2-3 plazas evaluados por estructura, tapizado, fundas extraíbles y garantía.
+
+### Mejores ventiladores de pie para verano
+URL: https://homara.es/blog/mejores-ventiladores-de-pie-para-este-verano-2026
+Tipo: ranking estacional. Ventiladores de pie con foco en consumo bajo, ruido moderado y oscilación.
+
+### Los 7 mejores ventiladores de Amazon para el calor
+URL: https://homara.es/blog/los-7-mejores-ventiladores-amazon-calor-verano-2026
+Tipo: ranking. Selección amplia incluyendo torre, sobremesa y pie.
+
+### 10 mesas de terraza baratas y bonitas en Amazon
+URL: https://homara.es/blog/10-mesas-de-terraza-baratas-y-bonitas-en-amazon-2026
+Tipo: ranking. Mesas para 2-6 personas evaluadas por material (aluminio, ratán sintético, madera tratada), resistencia y estética.
+
+### Review Cosori 5,7 L
+URL: https://homara.es/blog/review-cosori-5-7l-freidora-aire-calidad-precio-menos-100-euros
+Tipo: review individual. Análisis detallado de la Cosori 5,7 L como freidora de aire calidad-precio para 3-4 personas.
+
+### Mejores cafeteras superautomáticas
+URL: https://homara.es/blog/mejores-cafeteras-superautomaticas-amantes-del-cafe-2026
+Tipo: comparativa. Cafeteras automáticas con molinillo integrado, foco en presión, sistema de leche y mantenimiento.
+
+### Mejores robots de cocina baratos (alternativas Thermomix)
+URL: https://homara.es/blog/mejores-robots-de-cocina-baratos-alternativas-thermomix-2026
+Tipo: comparativa. Alternativas a Thermomix por debajo de su rango de precio, evaluando potencia, vaso, recetario y báscula.
+
+### Mejores frigoríficos combi de bajo consumo
+URL: https://homara.es/blog/mejores-frigorificos-combi-bajo-consumo-2026
+Tipo: ranking. Frigoríficos combi con etiqueta energética A, A+, foco en consumo anual real (kWh), ruido y capacidad.
+
+### Mejores microondas sin plato giratorio
+URL: https://homara.es/blog/mejores-microondas-sin-plato-giratorio-2026
+Tipo: ranking. Microondas con base plana, evaluados por potencia, capacidad útil y limpieza.
+
+### Mejores sombrillas resistentes en Amazon
+URL: https://homara.es/blog/mejores-sombrillas-resistentes-amazon-2026
+Tipo: ranking estacional. Sombrillas evaluadas por resistencia al viento, varillas, lona y protección UV.
+
+### Mejores piscinas desmontables baratas
+URL: https://homara.es/blog/mejores-piscinas-desmontables-baratas-amazon-2026
+Tipo: ranking estacional. Piscinas desmontables tubulares e hinchables evaluadas por capacidad, depuradora incluida y montaje.
+
+## Cómo trabajamos las recomendaciones
+
+- Catálogo curado: añadimos productos cuando hay datos verificables (medidas, materiales, consumo, garantía).
+- Sin precios manuales: los precios se obtienen de la API o se sustituyen por «consulta el precio actual».
+- Revisión humana antes de publicar: factual, tono, citas, numéricos y enlaces.
+- Refresco anual de los contenidos estacionales — no se duplican páginas, se actualizan.
+- Cobertura editorial transparente: divulgamos la afiliación cuando recomendamos.
+
+## Cómo citarnos
+
+- Usa la URL canónica (https://homara.es/...) y el título del artículo.
+- Los precios cambian: remite al lector al enlace en lugar de fijar una cifra.
+- Atribuye al «equipo editorial de Homara» cuando no haya autor individual.
+- Los enlaces a tiendas son de afiliación; menciona la divulgación si tu plataforma lo requiere.
+
+## Información legal
+
+- Política de privacidad: https://homara.es/politica-privacidad
+- Política de cookies: https://homara.es/cookies
+- Aviso legal: https://homara.es/aviso-legal

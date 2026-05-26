@@ -1,39 +1,36 @@
-import Papa from "papaparse";
-import { getSupabaseClient } from "@/integrations/supabase/client";
-import { sanitizeText } from "@/infrastructure/security/sanitize";
-import { parseAffiliateUrl } from "@/infrastructure/security/affiliateUrl";
-import type { ImportColumnMapping } from "@/admin/types";
+"use server";
+
+import { revalidateTag } from "next/cache";
+import { Prisma } from "@prisma/client";
+
+import { mapAdminErrorMessage } from "@/admin/services/admin-helpers";
 import {
-  addImportJobLog,
-  createImportJob,
-  logAdminAction,
-  requireAdminRateLimit,
-  updateImportJob,
-} from "@/admin/services/adminCatalogService";
+  IMPORT_BATCH_SIZE,
+  IMPORT_CHUNK_SIZE,
+  assertCsvLimits,
+  buildImportPayload,
+  parseCsv,
+  validateImportPayloadRows,
+  type ImportPayloadRow,
+} from "@/admin/services/adminImportService-helpers";
 
-const DEFAULT_MAPPING: ImportColumnMapping = {
-  productName: "product_name",
-  brandName: "brand_name",
-  categoryName: "category_name",
-  subcategoryName: "subcategory_name",
-  description: "description",
-  longDescription: "long_description",
-  price: "price",
-  oldPrice: "old_price",
-  merchantName: "merchant_name",
-  offerUrl: "offer_url",
-  stock: "stock",
-  imageUrl: "image_url",
-  sku: "sku",
-  ean: "ean",
-  tags: "tags",
-};
+export type { CsvPreviewResult } from "@/admin/services/adminImportService-helpers";
+import { slugify } from "@/data/catalog/_helpers";
+import {
+  CATALOG_CACHE_TAG,
+  RANKING_SIGNALS_CACHE_TAG,
+} from "@/data/catalog/snapshot";
+import type { ImportColumnMapping } from "@/admin/types";
+import { requireAdmin } from "@/lib/admin-guard";
+import { db } from "@/lib/db";
+import { rehostRemoteImage } from "@/lib/r2";
 
-export interface CsvPreviewResult {
-  headers: string[];
-  rows: Array<Record<string, string>>;
-  totalRows: number;
-  mapping: ImportColumnMapping;
+// Re-export the preview helper so callers keep the same import path.
+// (Inside a "use server" file, only async functions can be exported, so we
+// wrap the sync helper.)
+export async function parseCsvPreview(csvText: string) {
+  const { parseCsvPreview: pure } = await import("@/admin/services/adminImportService-helpers");
+  return pure(csvText);
 }
 
 export interface CsvImportResult {
@@ -43,443 +40,375 @@ export interface CsvImportResult {
   errorCount: number;
   warningCount: number;
   processedRows: number;
+  totalRows: number;
+  nextIndex: number;
+  done: boolean;
 }
 
-interface ImportRpcResult {
-  createdCount?: number;
-  updatedCount?: number;
-  errorCount?: number;
-  warningCount?: number;
-  totalRows?: number;
-  batchSize?: number;
-}
-
-interface RowImportError {
-  rowIndex: number;
-  message: string;
-}
-
-interface ImportPayloadRow {
-  product_name: string;
-  brand_name: string;
-  category_name: string;
-  subcategory_name: string;
-  description: string;
-  long_description: string;
-  merchant_name: string;
-  offer_url: string;
-  image_url: string;
-  price: number;
-  old_price: number | null;
-  stock: boolean;
-  sku: string;
-  ean: string;
-  tags: string[];
-}
-
-const MAX_CSV_CHARS = 2_000_000;
-const MAX_IMPORT_ROWS = 10_000;
-const IMPORT_BATCH_SIZE = 100;
-
-function assertCsvLimits(csvText: string, rowCount?: number): void {
-  if (csvText.length > MAX_CSV_CHARS) {
-    throw new Error("El CSV supera el limite permitido (2MB de texto)");
-  }
-
-  if (typeof rowCount === "number" && rowCount > MAX_IMPORT_ROWS) {
-    throw new Error(`El CSV supera el limite de ${MAX_IMPORT_ROWS} filas por importacion`);
-  }
-}
-
-function normalizeHeader(value: string): string {
-  return sanitizeText(value.toLowerCase().replace(/\s+/g, "_"), 80);
-}
-
-function parseCsv(csvText: string): Array<Record<string, string>> {
-  const parsed = Papa.parse<Record<string, string>>(csvText, {
-    header: true,
-    skipEmptyLines: true,
-    transformHeader: normalizeHeader,
-  });
-
-  if (parsed.errors.length) {
-    throw new Error(`CSV invalido: ${parsed.errors[0].message}`);
-  }
-
-  return parsed.data.map((row) => {
-    const next: Record<string, string> = {};
-    for (const [key, value] of Object.entries(row)) {
-      if (!key) {
-        continue;
-      }
-
-      next[key] = typeof value === "string" ? value.trim() : String(value ?? "");
-    }
-    return next;
-  });
-}
-
-function inferMapping(headers: string[]): ImportColumnMapping {
-  const normalized = headers.map((header) => normalizeHeader(header));
-
-  const pick = (candidates: string[], fallback: string): string => {
-    const found = candidates.find((candidate) => normalized.includes(candidate));
-    return found || fallback;
-  };
-
-  return {
-    productName: pick(["product_name", "name", "producto", "titulo"], DEFAULT_MAPPING.productName),
-    brandName: pick(["brand_name", "marca", "brand"], DEFAULT_MAPPING.brandName),
-    categoryName: pick(["category_name", "categoria", "category"], DEFAULT_MAPPING.categoryName),
-    subcategoryName: pick(["subcategory_name", "subcategoria", "sub_category"], DEFAULT_MAPPING.subcategoryName),
-    description: pick(["description", "descripcion", "short_description"], DEFAULT_MAPPING.description),
-    longDescription: pick(["long_description", "descripcion_larga", "details"], DEFAULT_MAPPING.longDescription),
-    price: pick(["price", "precio"], DEFAULT_MAPPING.price),
-    oldPrice: pick(["old_price", "precio_anterior", "compare_at_price"], DEFAULT_MAPPING.oldPrice),
-    merchantName: pick(["merchant_name", "tienda", "merchant", "store"], DEFAULT_MAPPING.merchantName),
-    offerUrl: pick(["offer_url", "url", "link"], DEFAULT_MAPPING.offerUrl),
-    stock: pick(["stock", "in_stock", "availability"], DEFAULT_MAPPING.stock),
-    imageUrl: pick(["image_url", "imagen", "image", "photo"], DEFAULT_MAPPING.imageUrl),
-    sku: pick(["sku", "reference", "ref"], DEFAULT_MAPPING.sku),
-    ean: pick(["ean", "gtin", "barcode"], DEFAULT_MAPPING.ean),
-    tags: pick(["tags", "etiquetas", "keywords"], DEFAULT_MAPPING.tags),
-  };
-}
-
-export function parseCsvPreview(csvText: string): CsvPreviewResult {
-  assertCsvLimits(csvText);
-  const rows = parseCsv(csvText);
-  assertCsvLimits(csvText, rows.length);
-  const headers = rows.length ? Object.keys(rows[0]) : [];
-
-  return {
-    headers,
-    rows: rows.slice(0, 20),
-    totalRows: rows.length,
-    mapping: inferMapping(headers),
-  };
-}
-
-function parseTags(value: string): string[] {
-  return value
-    .split(/[|,;]/g)
-    .map((tag) => sanitizeText(tag, 50))
-    .filter(Boolean);
-}
-
-function parseNumber(value: string): number {
-  if (!value) {
-    return 0;
-  }
-
-  const normalized = value.replace(/\./g, "").replace(/,/g, ".").replace(/[^0-9.-]/g, "");
-  const parsed = Number(normalized);
-  return Number.isFinite(parsed) ? parsed : 0;
-}
-
-function parseBoolean(value: string): boolean {
-  const normalized = sanitizeText(value.toLowerCase(), 20);
-  return ["1", "true", "yes", "si", "on", "available", "in_stock", "stock"].includes(normalized);
-}
-
-function readField(row: Record<string, string>, key: string): string {
-  return sanitizeText(row[key] || "", 2000);
-}
-
-function readRawField(row: Record<string, string>, key: string, maxLength = 2000): string {
-  return String(row[key] || "").trim().slice(0, maxLength);
-}
-
-function containsControlCharacters(value: string): boolean {
-  for (let index = 0; index < value.length; index += 1) {
-    const code = value.charCodeAt(index);
-    if (code <= 31 || code === 127) {
-      return true;
-    }
-  }
-
-  return false;
-}
-
-function normalizeHttpUrl(value: string): string {
-  const candidate = String(value || "").trim();
-  if (!candidate || containsControlCharacters(candidate)) {
-    return "";
-  }
-
+async function logImportAudit(
+  userId: string,
+  action: string,
+  jobId: string,
+  payload: Record<string, unknown>,
+): Promise<void> {
   try {
-    const parsed = new URL(candidate);
-    if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
-      return "";
-    }
-
-    if (parsed.username || parsed.password) {
-      return "";
-    }
-
-    return parsed.toString();
+    await db.adminAction.create({
+      data: {
+        userId,
+        action,
+        entityType: "catalog",
+        entityId: jobId,
+        payload: { source: "adminImportService", ...payload },
+      },
+    });
   } catch {
-    return "";
+    // never block import on audit failures
   }
 }
 
-function buildImportPayload(rows: Array<Record<string, string>>, mapping: ImportColumnMapping): ImportPayloadRow[] {
-  return rows.map((row) => {
-    const oldPriceRaw = parseNumber(readField(row, mapping.oldPrice));
-
-    return {
-      product_name: readField(row, mapping.productName),
-      brand_name: readField(row, mapping.brandName) || "Sin marca",
-      category_name: readField(row, mapping.categoryName) || "General",
-      subcategory_name: readField(row, mapping.subcategoryName),
-      description: readField(row, mapping.description),
-      long_description: readField(row, mapping.longDescription),
-      merchant_name: readField(row, mapping.merchantName),
-      offer_url: normalizeHttpUrl(readRawField(row, mapping.offerUrl)),
-      image_url: normalizeHttpUrl(readRawField(row, mapping.imageUrl)),
-      price: parseNumber(readField(row, mapping.price)),
-      old_price: oldPriceRaw > 0 ? oldPriceRaw : null,
-      stock: parseBoolean(readField(row, mapping.stock)),
-      sku: readField(row, mapping.sku),
-      ean: readField(row, mapping.ean),
-      tags: parseTags(readField(row, mapping.tags)),
-    };
-  });
-}
-
-function validateImportPayloadRows(rows: ImportPayloadRow[]): RowImportError[] {
-  const errors: RowImportError[] = [];
-
-  rows.forEach((row, index) => {
-    if (!row.offer_url) {
-      errors.push({
-        rowIndex: index,
-        message: "Fila invalida: offer_url es obligatorio y debe ser una URL http/https valida",
-      });
-      return;
-    }
-
-    if (!parseAffiliateUrl(row.offer_url)) {
-      errors.push({
-        rowIndex: index,
-        message: "Fila invalida: offer_url debe ser HTTPS publico y sin credenciales incrustadas",
-      });
-    }
-  });
-
-  return errors;
-}
-
-function parseImportRowErrors(value: string | null | undefined): RowImportError[] {
-  if (!value) {
-    return [];
-  }
-
-  try {
-    const parsed = JSON.parse(value) as unknown;
-    if (!Array.isArray(parsed)) {
-      return [];
-    }
-
-    return parsed
-      .map((entry) => {
-        if (!entry || typeof entry !== "object") {
-          return null;
-        }
-
-        const rowIndex = Number((entry as { rowIndex?: unknown }).rowIndex);
-        const message = String((entry as { message?: unknown }).message || "Error desconocido en fila");
-
-        if (!Number.isFinite(rowIndex) || rowIndex < 0) {
-          return null;
-        }
-
-        return { rowIndex, message };
-      })
-      .filter((entry): entry is RowImportError => Boolean(entry));
-  } catch {
-    return [];
-  }
-}
-
-function isSupabaseError(error: unknown): error is { message?: string; details?: string } {
-  return Boolean(error) && typeof error === "object";
-}
-
-async function persistImportRowErrors(jobId: string, rowErrors: RowImportError[]): Promise<void> {
-  for (const rowError of rowErrors) {
-    await addImportJobLog({
+async function persistRowErrors(jobId: string, errors: Array<{ rowIndex: number; message: string }>) {
+  if (!errors.length) return;
+  await db.importJobLog.createMany({
+    data: errors.slice(0, 200).map((e) => ({
       jobId,
       level: "error",
-      rowIndex: rowError.rowIndex,
-      message: rowError.message,
-    });
-  }
+      rowIndex: e.rowIndex,
+      message: e.message.slice(0, 1000),
+      payload: {},
+    })),
+  });
 }
 
+async function persistRowWarnings(jobId: string, warnings: Array<{ rowIndex: number; message: string }>) {
+  if (!warnings.length) return;
+  await db.importJobLog.createMany({
+    data: warnings.slice(0, 200).map((w) => ({
+      jobId,
+      level: "warning",
+      rowIndex: w.rowIndex,
+      message: w.message.slice(0, 1000),
+      payload: {},
+    })),
+  });
+}
+
+interface CacheKeys {
+  brands: Map<string, string>;
+  categoriesTop: Map<string, string>;
+  categoriesSub: Map<string, string>;
+  merchants: Map<string, string>;
+}
+
+async function ensureBrand(name: string, cache: CacheKeys): Promise<string> {
+  const key = name.trim().toLowerCase();
+  if (cache.brands.has(key)) return cache.brands.get(key)!;
+  const existing = await db.brand.findUnique({ where: { name: name.trim() }, select: { id: true } });
+  if (existing) {
+    cache.brands.set(key, existing.id);
+    return existing.id;
+  }
+  const created = await db.brand.create({ data: { name: name.trim() }, select: { id: true } });
+  cache.brands.set(key, created.id);
+  return created.id;
+}
+
+async function ensureCategory(
+  name: string,
+  parentId: string | null,
+  cache: CacheKeys,
+): Promise<string> {
+  const map = parentId ? cache.categoriesSub : cache.categoriesTop;
+  const key = `${parentId ?? "root"}::${name.trim().toLowerCase()}`;
+  if (map.has(key)) return map.get(key)!;
+  const slug = slugify(name);
+  const existing = await db.category.findFirst({
+    where: { name: { equals: name.trim(), mode: "insensitive" }, parentId: parentId ?? null },
+    select: { id: true },
+  });
+  if (existing) {
+    map.set(key, existing.id);
+    return existing.id;
+  }
+  const created = await db.category.create({
+    data: { name: name.trim(), slug, parentId: parentId ?? null },
+    select: { id: true },
+  });
+  map.set(key, created.id);
+  return created.id;
+}
+
+async function ensureMerchant(name: string, cache: CacheKeys): Promise<string> {
+  const key = name.trim().toLowerCase();
+  if (cache.merchants.has(key)) return cache.merchants.get(key)!;
+  const existing = await db.merchant.findFirst({
+    where: { name: { equals: name.trim(), mode: "insensitive" } },
+    select: { id: true },
+  });
+  if (existing) {
+    cache.merchants.set(key, existing.id);
+    return existing.id;
+  }
+  const created = await db.merchant.create({ data: { name: name.trim() }, select: { id: true } });
+  cache.merchants.set(key, created.id);
+  return created.id;
+}
+
+async function importRow(
+  row: ImportPayloadRow,
+  cache: CacheKeys,
+): Promise<{ created: boolean; updated: boolean; warning?: string }> {
+  const brandId = await ensureBrand(row.brand_name, cache);
+  const topCategoryId = await ensureCategory(row.category_name, null, cache);
+  const categoryId = row.subcategory_name
+    ? await ensureCategory(row.subcategory_name, topCategoryId, cache)
+    : topCategoryId;
+  const merchantId = await ensureMerchant(row.merchant_name, cache);
+
+  // Locate existing product by name+brand. Slug stays stable per HARD RULE #2.
+  const existing = await db.product.findFirst({
+    where: { name: { equals: row.product_name, mode: "insensitive" }, brandId },
+    select: { id: true },
+  });
+
+  const specs: Prisma.JsonObject = {
+    slug: slugify(row.product_name),
+    longDescription: row.long_description || row.description,
+    tags: row.tags,
+    sku: row.sku,
+    ean: row.ean,
+  };
+
+  const productData = {
+    name: row.product_name,
+    brandId,
+    categoryId,
+    description: row.description || row.long_description || row.product_name,
+    specs,
+    isActive: true,
+  };
+
+  const product = existing
+    ? await db.product.update({ where: { id: existing.id }, data: productData, select: { id: true } })
+    : await db.product.create({ data: productData, select: { id: true } });
+
+  // Image — rehost into R2; fall back to the source URL on failure.
+  let warning: string | undefined;
+  if (row.image_url) {
+    const rehost = await rehostRemoteImage(row.image_url, "products");
+    if (!rehost.rehosted && rehost.warning) {
+      warning = `Imagen sin rehospedar (${rehost.warning}): ${row.image_url}`;
+    }
+    const imageExists = await db.productImage.findFirst({
+      where: { productId: product.id, url: rehost.url },
+      select: { id: true },
+    });
+    if (!imageExists) {
+      const hasPrimary = await db.productImage.count({
+        where: { productId: product.id, isPrimary: true },
+      });
+      await db.productImage.create({
+        data: {
+          productId: product.id,
+          url: rehost.url,
+          isPrimary: hasPrimary === 0,
+          sortOrder: 0,
+        },
+      });
+    }
+  }
+
+  // Offer (one per product+merchant)
+  const existingOffer = await db.offer.findFirst({
+    where: { productId: product.id, merchantId },
+    select: { id: true },
+  });
+  const offerData = {
+    productId: product.id,
+    merchantId,
+    price: new Prisma.Decimal(row.price),
+    oldPrice: row.old_price ? new Prisma.Decimal(row.old_price) : null,
+    currentPrice: new Prisma.Decimal(row.price),
+    url: row.offer_url,
+    stock: row.stock,
+    isActive: true,
+    sourceType: "manual",
+    syncStatus: "ok",
+    lastCheckedAt: new Date(),
+  };
+  if (existingOffer) {
+    await db.offer.update({ where: { id: existingOffer.id }, data: offerData });
+  } else {
+    await db.offer.create({ data: offerData });
+  }
+
+  return { created: !existing, updated: Boolean(existing), warning };
+}
+
+/**
+ * Process one chunk of a CSV import. Resumable: the first call (no jobId)
+ * parses + validates the whole CSV and creates the job; each subsequent call
+ * resumes at `startIndex`. Images are rehosted into R2 synchronously, so
+ * chunks are kept small to stay within serverless function time limits. The
+ * client loops until `done` is true.
+ */
 export async function runCsvImport(params: {
   csvText: string;
   mapping: ImportColumnMapping;
   sourceLabel?: string;
+  jobId?: string;
+  startIndex?: number;
+  chunkSize?: number;
 }): Promise<CsvImportResult> {
-  const supabase = getSupabaseClient();
-  await requireAdminRateLimit("csvImport");
+  const session = await requireAdmin();
 
   assertCsvLimits(params.csvText);
   const rows = parseCsv(params.csvText);
   assertCsvLimits(params.csvText, rows.length);
+  if (!rows.length) throw new Error("El CSV no contiene filas para importar");
 
-  if (!rows.length) {
-    throw new Error("El CSV no contiene filas para importar");
+  const payloadRows = buildImportPayload(rows, params.mapping);
+  const totalRows = payloadRows.length;
+  const chunkSize = Math.max(1, Math.min(50, params.chunkSize ?? IMPORT_CHUNK_SIZE));
+  const startIndex = Math.min(Math.max(0, params.startIndex ?? 0), totalRows);
+
+  // ── First call: validate everything up front, then create the job. ──
+  let jobId = params.jobId;
+  if (!jobId) {
+    const job = await db.importJob.create({
+      data: {
+        userId: session.user.id,
+        source: params.sourceLabel?.slice(0, 60) || "admin_csv",
+        status: "running",
+        rowCount: totalRows,
+        metadata: {
+          mapping: params.mapping,
+          batchSize: IMPORT_BATCH_SIZE,
+          chunkSize,
+          warningCount: 0,
+        } as unknown as Prisma.InputJsonValue,
+        startedAt: new Date(),
+      },
+      select: { id: true },
+    });
+    jobId = job.id;
+
+    await logImportAudit(session.user.id, "import.csv.started", jobId, {
+      rowCount: totalRows,
+      chunkSize,
+    });
+
+    const preErrors = validateImportPayloadRows(payloadRows);
+    if (preErrors.length) {
+      await persistRowErrors(jobId, preErrors);
+      await db.importJob.update({
+        where: { id: jobId },
+        data: { status: "failed", errorCount: preErrors.length, finishedAt: new Date() },
+      });
+      await logImportAudit(session.user.id, "import.csv.failed", jobId, {
+        reason: "validation",
+        errorCount: preErrors.length,
+      });
+      throw new Error(`Importacion bloqueada por seguridad. Filas con error: ${preErrors.length}`);
+    }
   }
 
-  const job = await createImportJob({
-    source: params.sourceLabel || "admin_csv",
-    status: "running",
-    rowCount: rows.length,
-    metadata: { mapping: params.mapping, batchSize: IMPORT_BATCH_SIZE },
-  });
+  const end = Math.min(startIndex + chunkSize, totalRows);
+  const cache: CacheKeys = {
+    brands: new Map(),
+    categoriesTop: new Map(),
+    categoriesSub: new Map(),
+    merchants: new Map(),
+  };
 
-  await logAdminAction({
-    action: "import.csv.started",
-    entityType: "catalog",
-    entityId: job.id,
-    source: "adminImportService",
-    payload: {
-      rowCount: rows.length,
-      batchSize: IMPORT_BATCH_SIZE,
-    },
-  });
+  let createdInChunk = 0;
+  let updatedInChunk = 0;
+  let errorInChunk = 0;
+  const rowErrors: Array<{ rowIndex: number; message: string }> = [];
+  const rowWarnings: Array<{ rowIndex: number; message: string }> = [];
 
   try {
-    const payloadRows = buildImportPayload(rows, params.mapping);
-    const preValidationErrors = validateImportPayloadRows(payloadRows);
-
-    if (preValidationErrors.length) {
-      await persistImportRowErrors(job.id, preValidationErrors.slice(0, 200));
-      throw new Error(`Importacion bloqueada por seguridad. Filas con URL invalida: ${preValidationErrors.length}`);
-    }
-
-    const { data, error } = await supabase.rpc("import_products_batch", {
-      p_job_id: job.id,
-      p_data: payloadRows,
-      p_batch_size: IMPORT_BATCH_SIZE,
-    });
-
-    if (error) {
-      throw error;
-    }
-
-    const result = (data || {}) as ImportRpcResult;
-    const createdCount = Number(result.createdCount || 0);
-    const updatedCount = Number(result.updatedCount || 0);
-    const errorCount = Number(result.errorCount || 0);
-    const warningCount = Number(result.warningCount || 0);
-    const processedRows = Number(result.totalRows || rows.length);
-
-    await updateImportJob(job.id, {
-      status: "completed",
-      createdCount,
-      updatedCount,
-      errorCount,
-      metadata: {
-        mapping: params.mapping,
-        batchSize: IMPORT_BATCH_SIZE,
-        warningCount,
-        processedRows,
-      },
-      finishedAt: new Date().toISOString(),
-    });
-
-    if (warningCount > 0) {
-      await addImportJobLog({
-        jobId: job.id,
-        level: "warning",
-        message: `Se completaron ${processedRows} filas con ${warningCount} advertencias`,
-        payload: { warningCount, processedRows },
-      });
-    }
-
-    await logAdminAction({
-      action: "import.csv",
-      entityType: "catalog",
-      entityId: job.id,
-      source: "adminImportService",
-      payload: {
-        rowCount: processedRows,
-        createdCount,
-        updatedCount,
-        errorCount,
-        warningCount,
-        batchSize: IMPORT_BATCH_SIZE,
-      },
-    });
-
-    return {
-      jobId: job.id,
-      createdCount,
-      updatedCount,
-      errorCount,
-      warningCount,
-      processedRows,
-    };
-  } catch (error) {
-    const rowErrors = isSupabaseError(error)
-      ? parseImportRowErrors(error.details || error.message)
-      : [];
-
-    if (rowErrors.length) {
+    for (let index = startIndex; index < end; index += 1) {
       try {
-        await persistImportRowErrors(job.id, rowErrors);
-      } catch {
-        // Keep original error handling path when logging individual rows fails.
+        const result = await importRow(payloadRows[index], cache);
+        if (result.created) createdInChunk += 1;
+        if (result.updated) updatedInChunk += 1;
+        if (result.warning) rowWarnings.push({ rowIndex: index, message: result.warning });
+      } catch (error) {
+        errorInChunk += 1;
+        rowErrors.push({
+          rowIndex: index,
+          message: mapAdminErrorMessage(error, `Error desconocido en fila ${index}`),
+        });
       }
     }
 
-    const safeErrorCount = rowErrors.length > 0 ? rowErrors.length : 1;
+    if (rowErrors.length) await persistRowErrors(jobId, rowErrors);
+    if (rowWarnings.length) await persistRowWarnings(jobId, rowWarnings);
 
-    await updateImportJob(job.id, {
-      status: "failed",
-      createdCount: 0,
-      updatedCount: 0,
-      errorCount: safeErrorCount,
-      metadata: {
-        mapping: params.mapping,
-        batchSize: IMPORT_BATCH_SIZE,
-        rollback: true,
+    const accumulated = await db.importJob.update({
+      where: { id: jobId },
+      data: {
+        createdCount: { increment: createdInChunk },
+        updatedCount: { increment: updatedInChunk },
+        errorCount: { increment: errorInChunk },
       },
-      finishedAt: new Date().toISOString(),
+      select: { createdCount: true, updatedCount: true, errorCount: true, metadata: true },
     });
 
-    await addImportJobLog({
-      jobId: job.id,
-      level: "error",
-      message:
-        error instanceof Error
-          ? error.message.includes("IMPORT_BATCH_FAILED")
-            ? "Importacion revertida: una o mas filas fallaron validacion"
-            : error.message
-          : "Importacion fallida",
-      payload: rowErrors.length ? { rowErrors: rowErrors.length } : {},
-    });
+    const baseMetadata =
+      accumulated.metadata && typeof accumulated.metadata === "object" && !Array.isArray(accumulated.metadata)
+        ? (accumulated.metadata as Record<string, unknown>)
+        : {};
+    const previousWarnings = Number(baseMetadata.warningCount);
+    const warningCount = (Number.isFinite(previousWarnings) ? previousWarnings : 0) + rowWarnings.length;
+    const nextIndex = end;
+    const done = nextIndex >= totalRows;
 
-    await logAdminAction({
-      action: "import.csv.failed",
-      entityType: "catalog",
-      entityId: job.id,
-      source: "adminImportService",
-      payload: {
-        rowCount: rows.length,
-        errorCount: safeErrorCount,
-        batchSize: IMPORT_BATCH_SIZE,
-        reason: error instanceof Error ? error.message : "Importacion fallida",
+    await db.importJob.update({
+      where: { id: jobId },
+      data: {
+        status: done ? "completed" : "running",
+        finishedAt: done ? new Date() : undefined,
+        metadata: {
+          ...baseMetadata,
+          warningCount,
+          processedRows: nextIndex,
+        } as unknown as Prisma.InputJsonValue,
       },
     });
 
-    if (rowErrors.length) {
-      throw new Error(`Importacion revertida. Filas con error: ${rowErrors.length}`);
+    if (done) {
+      await logImportAudit(session.user.id, "import.csv", jobId, {
+        rowCount: totalRows,
+        createdCount: accumulated.createdCount,
+        updatedCount: accumulated.updatedCount,
+        errorCount: accumulated.errorCount,
+        warningCount,
+      });
+      revalidateTag(CATALOG_CACHE_TAG, "default");
+      revalidateTag(RANKING_SIGNALS_CACHE_TAG, "default");
     }
 
+    return {
+      jobId,
+      createdCount: accumulated.createdCount,
+      updatedCount: accumulated.updatedCount,
+      errorCount: accumulated.errorCount,
+      warningCount,
+      processedRows: nextIndex,
+      totalRows,
+      nextIndex,
+      done,
+    };
+  } catch (error) {
+    await db.importJob.update({
+      where: { id: jobId },
+      data: { status: "failed", finishedAt: new Date() },
+    });
+    await logImportAudit(session.user.id, "import.csv.failed", jobId, {
+      reason: error instanceof Error ? error.message : "unknown",
+      startIndex,
+    });
     throw error instanceof Error ? error : new Error("Importacion fallida");
   }
 }

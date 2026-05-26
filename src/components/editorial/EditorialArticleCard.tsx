@@ -1,12 +1,17 @@
+"use client";
+
 import { CalendarDays, ArrowUpRight, Clock3, Tag } from "lucide-react";
-import { Link } from "react-router-dom";
+import Image from "next/image";
 import { Badge } from "@/components/ui/badge";
 import type { EditorialArticle } from "@/domain/editorial/types";
+import { TrackedLink } from "@/components/analytics/TrackedLink";
 import { cn } from "@/lib/utils";
 
 interface EditorialArticleCardProps {
   article: EditorialArticle;
   compact?: boolean;
+  listName?: string;
+  index?: number;
 }
 
 const toneClassByCoverTone: Record<EditorialArticle["coverTone"], string> = {
@@ -28,25 +33,41 @@ function formatBudget(value: number | undefined): string {
   if (typeof value !== "number") {
     return "Presupuesto variable";
   }
-
   return `Presupuesto medio ${value.toLocaleString("es-ES")} EUR`;
 }
 
-const EditorialArticleCard = ({ article, compact = false }: EditorialArticleCardProps) => {
+const EditorialArticleCard = ({
+  article,
+  compact = false,
+  listName,
+  index,
+}: EditorialArticleCardProps) => {
+  const sharedPayload = {
+    list_name: listName,
+    index,
+    article_slug: article.slug,
+    category_slug: article.categorySlug,
+  };
+
   return (
-    <article
-      className="group h-full overflow-hidden rounded-2xl border border-border bg-card shadow-sm transition-all hover:-translate-y-1 hover:shadow-lg"
-    >
+    <article className="group h-full overflow-hidden rounded-2xl border border-border bg-card shadow-sm transition-all hover:-translate-y-1 hover:shadow-lg">
       <div className={cn("relative overflow-hidden", compact ? "h-36" : "h-48")}>
-        <div className={cn("absolute inset-0 bg-gradient-to-br", toneClassByCoverTone[article.coverTone])} aria-hidden="true" />
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_20%,rgba(255,255,255,0.34),transparent_45%)]" aria-hidden="true" />
+        <div
+          className={cn("absolute inset-0 bg-gradient-to-br", toneClassByCoverTone[article.coverTone])}
+          aria-hidden="true"
+        />
+        <div
+          className="absolute inset-0 bg-[radial-gradient(circle_at_20%_20%,rgba(255,255,255,0.34),transparent_45%)]"
+          aria-hidden="true"
+        />
 
         {article.coverImage ? (
-          <img
+          <Image
             src={article.coverImage}
             alt={article.coverImageAlt || article.title}
-            loading="lazy"
-            className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+            fill
+            sizes="(min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw"
+            className="object-cover transition-transform duration-500 group-hover:scale-105"
           />
         ) : null}
 
@@ -61,7 +82,9 @@ const EditorialArticleCard = ({ article, compact = false }: EditorialArticleCard
       </div>
 
       <div className="flex h-full flex-col p-4 md:p-5">
-        <h3 className="font-display text-lg font-bold leading-snug text-foreground md:text-xl">{article.title}</h3>
+        <h3 className="font-display text-lg font-bold leading-snug text-foreground md:text-xl">
+          {article.title}
+        </h3>
         <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{article.excerpt}</p>
 
         <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-2 text-xs text-muted-foreground">
@@ -81,27 +104,34 @@ const EditorialArticleCard = ({ article, compact = false }: EditorialArticleCard
 
         <div className="mt-4 flex flex-wrap gap-2">
           {article.tags.slice(0, compact ? 2 : 3).map((tag) => (
-            <span key={tag} className="rounded-full bg-secondary px-2.5 py-1 text-xs font-medium text-secondary-foreground">
+            <span
+              key={tag}
+              className="rounded-full bg-secondary px-2.5 py-1 text-xs font-medium text-secondary-foreground"
+            >
               {tag}
             </span>
           ))}
         </div>
 
         <div className="mt-5 flex flex-wrap items-center gap-2">
-          <Link
-            to={article.path}
+          <TrackedLink
+            href={article.path}
+            event="editorial_card_clicked"
+            payload={{ ...sharedPayload, target: "article" }}
             className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground transition-opacity hover:opacity-90"
           >
             Leer guia
             <ArrowUpRight className="h-4 w-4" />
-          </Link>
+          </TrackedLink>
 
-          <Link
-            to={`/categoria/${article.categorySlug}`}
+          <TrackedLink
+            href={`/categoria/${article.categorySlug}`}
+            event="editorial_card_clicked"
+            payload={{ ...sharedPayload, target: "category" }}
             className="inline-flex items-center rounded-lg border border-border px-3 py-2 text-xs font-semibold text-foreground hover:bg-secondary"
           >
             Ver productos de {article.categoryName}
-          </Link>
+          </TrackedLink>
         </div>
       </div>
     </article>

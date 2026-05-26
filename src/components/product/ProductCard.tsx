@@ -1,30 +1,61 @@
-import { Link } from 'react-router-dom';
-import { Product } from '@/domain/catalog/types';
-import { computeDiscountPercent } from '@/domain/catalog/product-logic';
-import { Star, ArrowRight, Tag, TrendingDown, Sparkles } from 'lucide-react';
-import ProductDestinationLink from '@/components/product/ProductDestinationLink';
-import { applyProductImageFallback, PRODUCT_IMAGE_FALLBACK } from '@/lib/productImage';
+"use client";
 
-const ProductCard = ({ product }: { product: Product }) => {
+import { useEffect, useRef } from "react";
+import Image from "next/image";
+import Link from "next/link";
+import { Product } from "@/domain/catalog/types";
+import { computeDiscountPercent } from "@/domain/catalog/product-logic";
+import { Star, ArrowRight, Tag, TrendingDown, Sparkles } from "lucide-react";
+import ProductDestinationLink from "@/components/product/ProductDestinationLink";
+import { PRODUCT_IMAGE_FALLBACK } from "@/lib/productImage";
+import { gaEvent, type GaEventParams } from "@/infrastructure/analytics/ga4";
+import { buildProductItem } from "@/infrastructure/analytics/items";
+
+interface ProductCardProps {
+  product: Product;
+  listName?: string;
+  listId?: string;
+  index?: number;
+  extraEventParams?: GaEventParams;
+}
+
+const ProductCard = ({
+  product,
+  listName,
+  listId,
+  index,
+  extraEventParams,
+}: ProductCardProps) => {
   const realDiscount = computeDiscountPercent(product);
   const showDiscount = realDiscount && realDiscount > 0 && realDiscount <= 60;
   const primaryImage = product.images.find((image) => Boolean(image)) || PRODUCT_IMAGE_FALLBACK;
 
+  const handleClick = () => {
+    if (!listName) return;
+    gaEvent("select_item", {
+      item_list_name: listName,
+      item_list_id: listId,
+      currency: "EUR",
+      items: [buildProductItem(product, { listName, listId, index })],
+      ...(extraEventParams ?? {}),
+    });
+  };
+
   return (
     <ProductDestinationLink
       product={product}
+      onClick={handleClick}
       className="group bg-card rounded-2xl border border-border shadow-card hover:shadow-card-hover hover:-translate-y-1 transition-all duration-300 overflow-hidden flex flex-col"
     >
-      {/* Image */}
       <div className="relative aspect-square bg-secondary/50 overflow-hidden">
-        <img
+        <Image
           src={primaryImage}
           alt={product.name}
-          className="w-full h-full object-contain p-2"
-          onError={(event) => applyProductImageFallback(event.currentTarget)}
+          fill
+          sizes="(min-width: 1024px) 25vw, (min-width: 768px) 33vw, 50vw"
+          className="object-contain p-2"
         />
 
-        {/* Badges */}
         <div className="absolute top-3 left-3 flex flex-col gap-1.5">
           {showDiscount && (
             <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-deal text-deal-foreground text-xs font-bold">
@@ -47,14 +78,12 @@ const ProductCard = ({ product }: { product: Product }) => {
         </div>
       </div>
 
-      {/* Info */}
       <div className="p-4 flex-1 flex flex-col">
         <p className="text-xs text-muted-foreground mb-1">{product.brand}</p>
         <h3 className="font-semibold text-sm text-foreground leading-tight line-clamp-2 mb-2 group-hover:text-accent transition-colors">
           {product.name}
         </h3>
 
-        {/* Rating */}
         {product.rating > 0 && (
           <div className="flex items-center gap-1 mb-2">
             <Star className="w-3.5 h-3.5 fill-accent text-accent" />
@@ -64,7 +93,6 @@ const ProductCard = ({ product }: { product: Product }) => {
         )}
 
         <div className="mt-auto">
-          {/* Price */}
           <div className="flex items-baseline gap-2 mb-1">
             <span className="text-xs text-muted-foreground">desde</span>
             <span className="text-lg font-bold text-foreground">{product.minPrice.toFixed(2).replace('.', ',')} €</span>
@@ -73,7 +101,6 @@ const ProductCard = ({ product }: { product: Product }) => {
             <span className="text-xs text-muted-foreground line-through">{product.originalPrice.toFixed(2).replace('.', ',')} €</span>
           )}
 
-          {/* Offer count */}
           <p className="text-xs text-muted-foreground mt-2 flex items-center gap-1">
             <Tag className="w-3 h-3" /> {product.offerCount} ofertas disponibles
           </p>
@@ -83,25 +110,69 @@ const ProductCard = ({ product }: { product: Product }) => {
   );
 };
 
-export const ProductGrid = ({ products, title, subtitle, showAll }: { products: Product[]; title: string; subtitle?: string; showAll?: string }) => (
-  <section className="py-12">
-    <div className="container mx-auto px-4">
-      <div className="flex items-end justify-between mb-8">
-        <div>
-          <h2 className="font-display text-2xl md:text-3xl font-bold text-foreground">{title}</h2>
-          {subtitle && <p className="text-muted-foreground mt-1">{subtitle}</p>}
+interface ProductGridProps {
+  products: Product[];
+  title: string;
+  subtitle?: string;
+  showAll?: string;
+  listName?: string;
+  listId?: string;
+  extraEventParams?: GaEventParams;
+}
+
+export const ProductGrid = ({
+  products,
+  title,
+  subtitle,
+  showAll,
+  listName,
+  listId,
+  extraEventParams,
+}: ProductGridProps) => {
+  const fired = useRef(false);
+
+  useEffect(() => {
+    if (fired.current || !listName || products.length === 0) return;
+    fired.current = true;
+    gaEvent("view_item_list", {
+      item_list_name: listName,
+      item_list_id: listId,
+      currency: "EUR",
+      items: products.map((p, i) => buildProductItem(p, { listName, listId, index: i })),
+      ...(extraEventParams ?? {}),
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  return (
+    <section className="py-12">
+      <div className="container mx-auto px-4">
+        <div className="flex items-end justify-between mb-8">
+          <div>
+            <h2 className="font-display text-2xl md:text-3xl font-bold text-foreground">{title}</h2>
+            {subtitle && <p className="text-muted-foreground mt-1">{subtitle}</p>}
+          </div>
+          {showAll && (
+            <Link href={showAll} className="hidden md:flex items-center gap-1 text-sm font-medium text-accent hover:underline">
+              Ver todos <ArrowRight className="w-4 h-4" />
+            </Link>
+          )}
         </div>
-        {showAll && (
-          <Link to={showAll} className="hidden md:flex items-center gap-1 text-sm font-medium text-accent hover:underline">
-            Ver todos <ArrowRight className="w-4 h-4" />
-          </Link>
-        )}
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6">
+          {products.map((p, i) => (
+            <ProductCard
+              key={p.id}
+              product={p}
+              listName={listName}
+              listId={listId}
+              index={i}
+              extraEventParams={extraEventParams}
+            />
+          ))}
+        </div>
       </div>
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6">
-        {products.map(p => <ProductCard key={p.id} product={p} />)}
-      </div>
-    </div>
-  </section>
-);
+    </section>
+  );
+};
 
 export default ProductCard;

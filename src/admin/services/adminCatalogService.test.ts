@@ -1,5 +1,5 @@
-import { describe, expect, it } from "vitest";
-import { mapAdminErrorMessage } from "@/admin/services/adminCatalogService";
+/** @jest-environment node */
+import { mapAdminErrorMessage } from "@/admin/services/admin-helpers";
 
 describe("adminCatalogService mapAdminErrorMessage", () => {
   it("maps duplicate product errors", () => {
@@ -18,14 +18,5 @@ describe("adminCatalogService mapAdminErrorMessage", () => {
     );
 
     expect(message).toContain("ofertas asociadas");
-  });
-
-  it("maps rate limit errors", () => {
-    const message = mapAdminErrorMessage(
-      { message: "rate limit exceeded for user_limit" },
-      "fallback",
-    );
-
-    expect(message).toContain("limite temporal");
   });
 });

@@ -1,45 +1,37 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
 import { editorialTrackingService } from "@/services/editorialTrackingService";
 import { canUseAnalytics } from "@/services/cookieConsentService";
-import { getSupabaseClient } from "@/integrations/supabase/client";
 
-vi.mock("@/services/cookieConsentService", () => ({
-  canUseAnalytics: vi.fn(),
+jest.mock("@/services/cookieConsentService", () => ({
+  canUseAnalytics: jest.fn(),
 }));
 
-vi.mock("@/integrations/supabase/client", () => ({
-  getSupabaseClient: vi.fn(),
-}));
+const fetchMock = jest.fn().mockResolvedValue({ ok: true, json: async () => ({ ok: true }) });
+
+beforeEach(() => {
+  jest.clearAllMocks();
+  fetchMock.mockClear();
+  global.fetch = fetchMock as unknown as typeof fetch;
+});
 
 describe("editorialTrackingService", () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-  });
-
   it("does not track without analytics consent", async () => {
-    vi.mocked(canUseAnalytics).mockReturnValue(false);
-
-    const rpc = vi.fn().mockResolvedValue({ data: { accepted: true }, error: null });
-    vi.mocked(getSupabaseClient).mockReturnValue({ rpc } as never);
+    jest.mocked(canUseAnalytics).mockReturnValue(false);
 
     await editorialTrackingService.trackArticleView({ slug: "articulo-test" });
 
-    expect(rpc).not.toHaveBeenCalled();
+    expect(fetchMock).not.toHaveBeenCalled();
   });
 
   it("deduplicates repeated article views in local window", async () => {
-    vi.mocked(canUseAnalytics).mockReturnValue(true);
-
-    const rpc = vi.fn().mockResolvedValue({ data: { accepted: true }, error: null });
-    vi.mocked(getSupabaseClient).mockReturnValue({ rpc } as never);
+    jest.mocked(canUseAnalytics).mockReturnValue(true);
 
     await editorialTrackingService.trackArticleView({ slug: "articulo-unico-test" });
     await editorialTrackingService.trackArticleView({ slug: "articulo-unico-test" });
 
-    expect(rpc).toHaveBeenCalledTimes(1);
-    expect(rpc).toHaveBeenCalledWith(
-      "track_article_view_secure",
-      expect.objectContaining({ p_article_slug: "articulo-unico-test" }),
-    );
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    const [url, init] = fetchMock.mock.calls[0];
+    expect(url).toBe("/api/track/article-view");
+    const body = JSON.parse(String((init as RequestInit).body));
+    expect(body.slug).toBe("articulo-unico-test");
   });
 });

@@ -1,5 +1,7 @@
+"use client";
+
 import type { ReactNode } from "react";
-import { Link } from "react-router-dom";
+import Link from "next/link";
 import type { Product } from "@/domain/catalog/types";
 import {
   getProductNavigationTarget,
@@ -10,12 +12,14 @@ interface ProductDestinationLinkProps {
   product: Product;
   className?: string;
   children: ReactNode;
+  onClick?: () => void;
 }
 
 const ProductDestinationLink = ({
   product,
   className,
   children,
+  onClick,
 }: ProductDestinationLinkProps) => {
   const target = getProductNavigationTarget(product);
 
@@ -27,6 +31,7 @@ const ProductDestinationLink = ({
         rel="noopener noreferrer"
         className={className}
         onClick={() => {
+          onClick?.();
           trackDirectOfferNavigation(product, target);
         }}
       >
@@ -36,7 +41,7 @@ const ProductDestinationLink = ({
   }
 
   return (
-    <Link to={target.href} className={className}>
+    <Link href={target.href} className={className} onClick={onClick}>
       {children}
     </Link>
   );

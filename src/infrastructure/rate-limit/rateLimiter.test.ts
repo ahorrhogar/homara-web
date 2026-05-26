@@ -1,4 +1,3 @@
-import { describe, expect, it, vi } from "vitest";
 import { checkRateLimit } from "@/infrastructure/rate-limit/rateLimiter";
 
 describe("rateLimiter", () => {
@@ -15,20 +14,20 @@ describe("rateLimiter", () => {
   });
 
   it("resets after the window expires", () => {
-    vi.useFakeTimers();
-    vi.setSystemTime(new Date("2026-04-14T12:00:00.000Z"));
+    jest.useFakeTimers();
+    jest.setSystemTime(new Date("2026-04-14T12:00:00.000Z"));
 
     const policy = { key: "unit-test-reset", windowMs: 1_000, maxRequests: 1 };
 
     const first = checkRateLimit(policy);
     const second = checkRateLimit(policy);
-    vi.advanceTimersByTime(1_100);
+    jest.advanceTimersByTime(1_100);
     const third = checkRateLimit(policy);
 
     expect(first.allowed).toBe(true);
     expect(second.allowed).toBe(false);
     expect(third.allowed).toBe(true);
 
-    vi.useRealTimers();
+    jest.useRealTimers();
   });
 });

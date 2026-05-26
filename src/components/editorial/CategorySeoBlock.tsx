@@ -1,5 +1,7 @@
+"use client";
+
 import { useState } from "react";
-import { Link } from "react-router-dom";
+import Link from 'next/link';
 import { ChevronDown, ChevronUp } from "lucide-react";
 import type { CategorySeoDocument } from "@/domain/catalog/category-seo";
 
@@ -51,7 +53,7 @@ export default function CategorySeoBlock({ document }: CategorySeoBlockProps) {
                   {document.relatedLinks.map((entry) => (
                     <li key={`${entry.href}-${entry.label}`}>
                       <Link
-                        to={entry.href}
+                        href={entry.href}
                         className="inline-flex items-center rounded-full border border-border bg-background px-3 py-1.5 text-xs font-medium text-foreground transition-colors hover:border-accent hover:text-accent md:text-sm"
                       >
                         {entry.label}

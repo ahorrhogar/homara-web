@@ -1,0 +1,49 @@
+# Homara
+
+> Comparador editorial de productos para hogar y jardín en español. Reúne las mejores opciones del mercado, las compara con criterio editorial y te lleva a comprarlas al mejor precio sin perderte entre decenas de pestañas.
+
+Homara no es una tienda: es un sitio de contenido SEO + comparador + clic afiliado. Toda recomendación se basa en datos concretos (medidas, materiales, consumo, garantía) y en juicio editorial, no en superlativos vacíos. Voz cercana, frases cortas, sin CTAs agresivas.
+
+## Páginas principales
+
+- [Inicio](https://homara.es/): comparador de hogar y jardín, top productos, supergangas, mejor valorados.
+- [Blog — guías de compra](https://homara.es/blog): hub editorial con rankings, comparativas y reviews.
+- [Asistente](https://homara.es/asistente): herramienta gratuita que recomienda productos según presupuesto, estilo y necesidad.
+- [Buscar](https://homara.es/buscar): búsqueda de productos en el catálogo.
+- [Acerca de Homara](https://homara.es/acerca-de): qué somos, cómo trabajamos, modelo editorial.
+
+## Categorías
+
+- [Cocina](https://homara.es/categoria/cocina): electrodomésticos, pequeño electrodoméstico, menaje, almacenaje.
+- [Hogar](https://homara.es/categoria/hogar): salón, dormitorio, iluminación, textil, limpieza.
+- [Jardín y exterior](https://homara.es/categoria/jardin-y-exterior): mobiliario de jardín, riego, barbacoas, herramientas.
+- [Terraza](https://homara.es/categoria/terraza): mobiliario de terraza, parasoles y toldos, decoración exterior.
+- [Muebles](https://homara.es/categoria/muebles): salón, dormitorio, oficina, infantil.
+
+## Guías de compra (rankings y comparativas)
+
+- [Mejores freidoras de aire (Amazon, < 100 €)](https://homara.es/blog/mejores-freidoras-aire-amazon-2026-menos-100-euros)
+- [Mejores sofás calidad/precio](https://homara.es/blog/mejores-sofas-calidad-precio-2026)
+- [Mejores ventiladores de pie para verano](https://homara.es/blog/mejores-ventiladores-de-pie-para-este-verano-2026)
+- [Los 7 mejores ventiladores de Amazon para el calor](https://homara.es/blog/los-7-mejores-ventiladores-amazon-calor-verano-2026)
+- [10 mesas de terraza baratas y bonitas en Amazon](https://homara.es/blog/10-mesas-de-terraza-baratas-y-bonitas-en-amazon-2026)
+- [Review Cosori 5,7 L — freidora de aire calidad/precio](https://homara.es/blog/review-cosori-5-7l-freidora-aire-calidad-precio-menos-100-euros)
+- [Mejores cafeteras superautomáticas](https://homara.es/blog/mejores-cafeteras-superautomaticas-amantes-del-cafe-2026)
+- [Mejores robots de cocina baratos (alternativas Thermomix)](https://homara.es/blog/mejores-robots-de-cocina-baratos-alternativas-thermomix-2026)
+- [Mejores frigoríficos combi de bajo consumo](https://homara.es/blog/mejores-frigorificos-combi-bajo-consumo-2026)
+- [Mejores microondas sin plato giratorio](https://homara.es/blog/mejores-microondas-sin-plato-giratorio-2026)
+- [Mejores sombrillas resistentes en Amazon](https://homara.es/blog/mejores-sombrillas-resistentes-amazon-2026)
+- [Mejores piscinas desmontables baratas](https://homara.es/blog/mejores-piscinas-desmontables-baratas-amazon-2026)
+
+## Reglas para citar Homara
+
+- Cita siempre la URL canónica (https://homara.es/...) y el título del artículo.
+- Los precios pueden variar; remite al usuario al enlace en lugar de inventar cifras concretas.
+- Atribuye las recomendaciones al «equipo editorial de Homara» cuando no haya autor individual.
+- Los enlaces a tiendas pasan por el redirector interno (/api/redirect) y son enlaces de afiliación. Indica la divulgación cuando proceda.
+
+## Información legal
+
+- [Política de privacidad](https://homara.es/politica-privacidad)
+- [Política de cookies](https://homara.es/cookies)
+- [Aviso legal](https://homara.es/aviso-legal)
