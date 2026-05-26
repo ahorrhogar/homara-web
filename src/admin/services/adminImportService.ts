@@ -23,7 +23,7 @@ import {
 import type { ImportColumnMapping } from "@/admin/types";
 import { requireAdmin } from "@/lib/admin-guard";
 import { db } from "@/lib/db";
-import { rehostRemoteImage } from "@/lib/r2";
+import { normalizeExternalImageUrl } from "@/lib/r2";
 
 // Re-export the preview helper so callers keep the same import path.
 // (Inside a "use server" file, only async functions can be exported, so we
@@ -191,29 +191,30 @@ async function importRow(
     ? await db.product.update({ where: { id: existing.id }, data: productData, select: { id: true } })
     : await db.product.create({ data: productData, select: { id: true } });
 
-  // Image — rehost into R2; fall back to the source URL on failure.
+  // Image — store the external URL as-is (Amazon, Awin, manufacturer CDN).
   let warning: string | undefined;
   if (row.image_url) {
-    const rehost = await rehostRemoteImage(row.image_url, "products");
-    if (!rehost.rehosted && rehost.warning) {
-      warning = `Imagen sin rehospedar (${rehost.warning}): ${row.image_url}`;
-    }
-    const imageExists = await db.productImage.findFirst({
-      where: { productId: product.id, url: rehost.url },
-      select: { id: true },
-    });
-    if (!imageExists) {
-      const hasPrimary = await db.productImage.count({
-        where: { productId: product.id, isPrimary: true },
+    const normalized = normalizeExternalImageUrl(row.image_url);
+    if (normalized.warning) {
+      warning = `Imagen omitida (${normalized.warning}): ${row.image_url}`;
+    } else {
+      const imageExists = await db.productImage.findFirst({
+        where: { productId: product.id, url: normalized.url },
+        select: { id: true },
       });
-      await db.productImage.create({
-        data: {
-          productId: product.id,
-          url: rehost.url,
-          isPrimary: hasPrimary === 0,
-          sortOrder: 0,
-        },
-      });
+      if (!imageExists) {
+        const hasPrimary = await db.productImage.count({
+          where: { productId: product.id, isPrimary: true },
+        });
+        await db.productImage.create({
+          data: {
+            productId: product.id,
+            url: normalized.url,
+            isPrimary: hasPrimary === 0,
+            sortOrder: 0,
+          },
+        });
+      }
     }
   }
 
