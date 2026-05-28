@@ -8,7 +8,7 @@ and Resend secrets are ready.
 
 - [ ] `npm run lint && npm run typecheck && npm test && npm run build` all green locally
 - [ ] Local dev (`npm run dev`) on the feature branch:
-  - [ ] `/admin/login` → sign in as `ahorrhogar@gmail.com` (run `npm run db:seed-admin` first if needed)
+  - [ ] `/admin/registro` → self-register an email listed in `SUPERADMIN_EMAILS`, then `/admin/login` to sign in
   - [ ] `/admin` Dashboard renders without errors
   - [ ] Create a brand, a category, a merchant, a product, an offer
   - [ ] Upload a brand logo (requires `BLOB_READ_WRITE_TOKEN`)
@@ -27,22 +27,20 @@ and Resend secrets are ready.
 | Vercel Blob | `BLOB_READ_WRITE_TOKEN` from Vercel dashboard |
 | Resend | `RESEND_API_KEY` (optional; auth flows are dormant) |
 | Public site URL | `NEXT_PUBLIC_SITE_URL` = `https://homara.es` |
-| Initial admin | `ADMIN_INITIAL_EMAIL`, `ADMIN_INITIAL_PASSWORD` (only used by seed script) |
+| Superadmins | `SUPERADMIN_EMAILS` (comma-separated; grants admin-panel access at runtime) |
 
 Set these on the Vercel project (Production + Preview scopes).
 
-## Apply schema + seed
+## Apply schema
 
 Against the **prod** Neon branch:
 
 ```bash
 DATABASE_URL=… DIRECT_URL=… npx prisma migrate deploy
-DATABASE_URL=… DIRECT_URL=… ADMIN_INITIAL_EMAIL=… ADMIN_INITIAL_PASSWORD=… \
-  tsx scripts/seed-admin.ts
 ```
 
-Tip: do this from a Vercel deploy hook or by running locally with prod
-env vars temporarily exported.
+No admin seed: set `SUPERADMIN_EMAILS` on Vercel, then self-register each
+listed email at `/admin/registro` (the env var grants the access).
 
 ## Deploy + smoke test (preview)
 
@@ -51,7 +49,7 @@ env vars temporarily exported.
    - [ ] Homepage `/` renders (catalog likely empty until you re-seed content)
    - [ ] `/sitemap.xml` returns 200
    - [ ] `/api/redirect?offerId=<uuid>&track=1` → 302 (need an offer row first)
-   - [ ] `/admin/login` works against the prod Neon admin user
+   - [ ] `/admin/registro` + `/admin/login` work for a `SUPERADMIN_EMAILS` account
    - [ ] Image upload via admin panel writes to Vercel Blob
 
 ## Promote to prod
