@@ -1,8 +1,10 @@
 import { betterAuth } from "better-auth";
+import { APIError } from "better-auth/api";
 import { prismaAdapter } from "better-auth/adapters/prisma";
 import { nextCookies } from "better-auth/next-js";
 
 import { db } from "./db";
+import { isSuperadmin } from "./superadmin";
 
 const secret = process.env.BETTER_AUTH_SECRET;
 if (!secret && process.env.NODE_ENV === "production") {
@@ -20,13 +22,20 @@ export const auth = betterAuth({
     minPasswordLength: 12,
   },
 
-  user: {
-    additionalFields: {
-      role: {
-        type: "string",
-        required: false,
-        defaultValue: "user",
-        input: false,
+  databaseHooks: {
+    user: {
+      create: {
+        // Single chokepoint for account creation: only SUPERADMIN_EMAILS
+        // addresses may ever get an account, regardless of entry point (the
+        // /admin/registro server action OR the public /api/auth/sign-up/email
+        // endpoint that better-auth mounts). Without this, the public endpoint
+        // bypasses the isSuperadmin gate in the signup action.
+        before: async (user) => {
+          if (!isSuperadmin(user.email)) {
+            throw new APIError("FORBIDDEN", { message: "Email no autorizado." });
+          }
+          return { data: user };
+        },
       },
     },
   },

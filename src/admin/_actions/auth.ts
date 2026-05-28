@@ -6,10 +6,13 @@ import { redirect } from "next/navigation";
 import { logger } from "@/infrastructure/logging/logger";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
+import { isSuperadmin } from "@/lib/superadmin";
 
 type AuthAction = "auth.login" | "auth.logout" | "auth.login_failed";
 
 const GENERIC_FAILURE = "Credenciales no válidas.";
+const SIGNUP_FAILURE =
+  "No se pudo crear la cuenta. La contraseña debe tener al menos 12 caracteres. Si ya tienes una cuenta, inicia sesión.";
 
 async function safeAudit(
   action: AuthAction,
@@ -47,11 +50,10 @@ export async function signInAdminAction(formData: FormData): Promise<SignInResul
     return { ok: false, message: "Introduce email y contraseña." };
   }
 
-  // Pre-flight role gate. Returning the same generic error for "no user",
-  // "non-admin", and "bad password" keeps account enumeration off the table.
-  const user = await db.user.findUnique({ where: { email }, select: { role: true } });
-  if (!user || user.role !== "admin") {
-    await safeAudit("auth.login_failed", { reason: user ? "non-admin" : "no-user", email });
+  // Pre-flight authority gate. Returning the same generic error for
+  // "not a superadmin" and "bad password" keeps account enumeration off the table.
+  if (!isSuperadmin(email)) {
+    await safeAudit("auth.login_failed", { reason: "non-superadmin", email });
     return { ok: false, message: GENERIC_FAILURE };
   }
 
@@ -81,6 +83,63 @@ export async function signInAdminAction(formData: FormData): Promise<SignInResul
       context: { email },
     });
     return { ok: false, message: GENERIC_FAILURE };
+  }
+}
+
+export async function signUpAdminAction(formData: FormData): Promise<SignInResult> {
+  const email = String(formData.get("email") || "")
+    .trim()
+    .toLowerCase();
+  const password = String(formData.get("password") || "");
+
+  if (!email || !password) {
+    return { ok: false, message: "Introduce email y contraseña." };
+  }
+
+  // Accounts exist solely for admin access (also enforced at the DB-creation hook
+  // in src/lib/auth.ts, which covers the public /api/auth/sign-up endpoint too).
+  // Every failure path returns the identical SIGNUP_FAILURE so a probe cannot tell
+  // an allowlisted email from a rejected one.
+  if (!isSuperadmin(email)) {
+    await safeAudit("auth.login_failed", { reason: "signup-non-superadmin", email });
+    return { ok: false, message: SIGNUP_FAILURE };
+  }
+
+  try {
+    const created = await auth.api.signUpEmail({
+      body: { email, password, name: email.split("@")[0] },
+    });
+
+    if (!created?.user?.id) {
+      await safeAudit("auth.login_failed", { reason: "signup-no-user", email });
+      return { ok: false, message: SIGNUP_FAILURE };
+    }
+
+    // Establish the session right away (global autoSignIn is off).
+    const signedIn = await auth.api.signInEmail({
+      body: { email, password },
+      headers: await headers(),
+      asResponse: false,
+    });
+
+    if (!signedIn?.user?.id) {
+      return { ok: true, redirectTo: "/admin/login" };
+    }
+
+    await safeAudit("auth.login", { email, signup: true }, signedIn.user.id);
+    return { ok: true, redirectTo: "/admin" };
+  } catch (err) {
+    await safeAudit("auth.login_failed", {
+      reason: err instanceof Error ? err.message : "signup-unknown",
+      email,
+    });
+    logger.log({
+      level: "warn",
+      message: "Admin sign-up failed",
+      timestamp: new Date().toISOString(),
+      context: { email },
+    });
+    return { ok: false, message: SIGNUP_FAILURE };
   }
 }
 

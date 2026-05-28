@@ -3,7 +3,8 @@ import { NextResponse, type NextRequest } from "next/server";
 
 const ADMIN_LOGIN_PATH = "/admin/login";
 const ADMIN_DENIED_PATH = "/admin/denegado";
-const PUBLIC_ADMIN_PATHS = new Set([ADMIN_LOGIN_PATH, ADMIN_DENIED_PATH]);
+const ADMIN_SIGNUP_PATH = "/admin/registro";
+const PUBLIC_ADMIN_PATHS = new Set([ADMIN_LOGIN_PATH, ADMIN_DENIED_PATH, ADMIN_SIGNUP_PATH]);
 
 // Edge-runtime gate. We only confirm the presence of a Better Auth session
 // cookie here — full session + role validation happens in the (panel) layout
