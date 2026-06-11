@@ -25,7 +25,7 @@ export async function generateMetadata({
   const { locale, slug } = await params;
   setRequestLocale(locale);
   const t = await getTranslations("category");
-  const category = await getCategoryBySlug(slug).catch(() => undefined);
+  const category = await getCategoryBySlug(slug, locale).catch(() => undefined);
   if (!category) {
     return { title: t("notFound"), robots: { index: false } };
   }
@@ -69,16 +69,18 @@ export default async function CategoryPage({
   const sortBy = parseSort(orden);
 
   const [category, allCategories, allProducts] = await Promise.all([
-    getCategoryBySlug(slug).catch(() => undefined),
-    getCategories().catch(() => []),
-    getProducts().catch(() => []),
+    getCategoryBySlug(slug, locale).catch(() => undefined),
+    getCategories(locale).catch(() => []),
+    getProducts(locale).catch(() => []),
   ]);
 
   if (!category) {
     notFound();
   }
 
-  const products = await getFilteredProducts({ categoryId: category.id }, sortBy).catch(() => []);
+  const products = await getFilteredProducts({ categoryId: category.id }, sortBy, locale).catch(
+    () => [],
+  );
 
   const seoProducts = products;
   const seoDocument = buildCategorySeoDocument({

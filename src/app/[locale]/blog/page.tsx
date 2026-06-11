@@ -39,10 +39,10 @@ export default async function BlogHubPage({
   setRequestLocale(locale);
   const t = await getTranslations("blog");
   const [allPublished, featured, mostRead, latest] = await Promise.all([
-    getPublishedArticles().catch(() => []),
-    getFeaturedArticles(6).catch(() => []),
-    getMostReadArticles(6).catch(() => []),
-    getLatestArticles(6).catch(() => []),
+    getPublishedArticles(locale).catch(() => []),
+    getFeaturedArticles(6, locale).catch(() => []),
+    getMostReadArticles(6, locale).catch(() => []),
+    getLatestArticles(6, locale).catch(() => []),
   ]);
 
   const collectionSchema = {

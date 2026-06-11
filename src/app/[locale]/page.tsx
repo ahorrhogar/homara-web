@@ -95,19 +95,22 @@ const EMPTY_COLLECTIONS = {
   featuredProducts: [] as Product[],
 };
 
-async function safeFetchHomeData() {
+async function safeFetchHomeData(locale: string) {
   try {
     const [categories, trending, collections] = await Promise.all([
-      getCategories(),
-      getTrendingCategories(),
-      getHomeCollections({
-        topProducts: 6,
-        bestDeals: 4,
-        topRatedProducts: 4,
-        bestSellers: 4,
-        favoriteProducts: 4,
-        featuredProducts: 4,
-      }),
+      getCategories(locale),
+      getTrendingCategories(locale),
+      getHomeCollections(
+        {
+          topProducts: 6,
+          bestDeals: 4,
+          topRatedProducts: 4,
+          bestSellers: 4,
+          favoriteProducts: 4,
+          featuredProducts: 4,
+        },
+        locale,
+      ),
     ]);
     return { categories, trending, collections };
   } catch {
@@ -137,7 +140,7 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
       <h1 className="sr-only">{t("srOnly")}</h1>
       <Hero />
       <Suspense fallback={<HomeSectionsSkeleton />}>
-        <HomeCatalogSections />
+        <HomeCatalogSections locale={locale} />
       </Suspense>
       <SEOContent />
     </>
@@ -153,9 +156,9 @@ function HomeSectionsSkeleton() {
   );
 }
 
-async function HomeCatalogSections() {
+async function HomeCatalogSections({ locale }: { locale: string }) {
   const t = await getTranslations("home");
-  const { categories, trending, collections } = await safeFetchHomeData();
+  const { categories, trending, collections } = await safeFetchHomeData(locale);
 
   const { topProducts, bestDeals, topRatedProducts, bestSellers, favoriteProducts, featuredProducts } = collections;
 

@@ -34,7 +34,7 @@ export async function generateMetadata({
   const { locale, slug } = await params;
   setRequestLocale(locale);
   const t = await getTranslations("productPage");
-  const product = await getProductBySlug(slug).catch(() => undefined);
+  const product = await getProductBySlug(slug, locale).catch(() => undefined);
   if (!product) {
     return { title: t("notFound"), robots: { index: false } };
   }
@@ -70,17 +70,17 @@ export default async function ProductPage({ params }: { params: Promise<{ locale
   setRequestLocale(locale);
   const t = await getTranslations("productPage");
 
-  const product = await getProductBySlug(slug).catch(() => undefined);
+  const product = await getProductBySlug(slug, locale).catch(() => undefined);
 
   if (!product) {
     notFound();
   }
 
   const [categories, offers, priceAnalysis, related] = await Promise.all([
-    getCategories().catch(() => []),
+    getCategories(locale).catch(() => []),
     getOffersForProduct(product.id).catch(() => []),
     getPriceAnalysis(product.id).catch(() => ({ label: "", type: "stable" as const })),
-    getRelatedProducts(product, { limit: 4 }).catch(() => []),
+    getRelatedProducts(product, { limit: 4, locale }).catch(() => []),
   ]);
 
   const category = categories.find((c) => c.id === product.categoryId);

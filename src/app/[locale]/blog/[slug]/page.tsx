@@ -21,10 +21,10 @@ function formatDate(value: string): string {
 export async function generateMetadata({
   params,
 }: {
-  params: Promise<{ slug: string }>;
+  params: Promise<{ locale: string; slug: string }>;
 }): Promise<Metadata> {
-  const { slug } = await params;
-  const article = await getArticleBySlug(slug).catch(() => undefined);
+  const { locale, slug } = await params;
+  const article = await getArticleBySlug(slug, locale).catch(() => undefined);
   if (!article) {
     return { title: "Artículo no encontrado", robots: { index: false } };
   }
@@ -57,10 +57,10 @@ export async function generateMetadata({
 export default async function EditorialArticlePage({
   params,
 }: {
-  params: Promise<{ slug: string }>;
+  params: Promise<{ locale: string; slug: string }>;
 }) {
-  const { slug } = await params;
-  const article = await getArticleBySlug(slug).catch(() => undefined);
+  const { locale, slug } = await params;
+  const article = await getArticleBySlug(slug, locale).catch(() => undefined);
 
   if (!article) {
     notFound();

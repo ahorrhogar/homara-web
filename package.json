@@ -19,6 +19,7 @@
     "db:reset": "dotenv -e .env.local -- prisma migrate reset --force",
     "db:studio": "dotenv -e .env.local -- prisma studio",
     "db:seed-products": "dotenv -e .env.local -- tsx scripts/seed-products.ts",
+    "db:backfill-translations": "dotenv -e .env.local -- tsx scripts/backfill-translations-es.ts",
     "db:scrape-products": "dotenv -e .env.local -- tsx scripts/scrape-products.ts"
   },
   "prisma": {

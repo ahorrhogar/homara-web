@@ -15,15 +15,17 @@ export const metadata: Metadata = {
 export const dynamic = "force-dynamic";
 
 export default async function SearchPage({
+  params,
   searchParams,
 }: {
+  params: Promise<{ locale: string }>;
   searchParams: Promise<{ q?: string }>;
 }) {
-  const { q } = await searchParams;
+  const [{ locale }, { q }] = await Promise.all([params, searchParams]);
   const t = await getTranslations("search");
   const query = (q || "").trim();
   const normalizedTerm = normalizeSearchTerm(query);
-  const results = query ? await searchProducts(query, 72).catch(() => []) : [];
+  const results = query ? await searchProducts(query, 72, locale).catch(() => []) : [];
   const topProductId = results[0]?.id ?? null;
   const listId = normalizedTerm ? `search_${normalizedTerm}` : "search";
   const extraEventParams = { search_term: query, normalized_term: normalizedTerm };
