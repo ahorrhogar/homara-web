@@ -2,6 +2,7 @@ import type { MetadataRoute } from "next";
 
 import { getPathname } from "@/i18n/navigation";
 import { routing } from "@/i18n/routing";
+import { hreflangMap } from "@/i18n/seo";
 import { db } from "@/lib/db";
 
 export const revalidate = 3600;
@@ -9,29 +10,16 @@ export const revalidate = 3600;
 const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL || "https://homara.es").replace(/\/$/, "");
 
 /**
- * hreflang map for a locale-agnostic app path. With the single `es` locale this
- * is `{ es: <url>, "x-default": <url> }` at the no-prefix URL; adding a locale
- * auto-adds its prefixed entry. Shared by every emitted sitemap row.
- */
-function languagesFor(href: string): Record<string, string> {
-  const languages: Record<string, string> = {};
-  for (const locale of routing.locales) {
-    languages[locale] = `${SITE_URL}${getPathname({ href, locale })}`;
-  }
-  languages["x-default"] = `${SITE_URL}${getPathname({ href, locale: routing.defaultLocale })}`;
-  return languages;
-}
-
-/**
  * Expands one locale-agnostic path into one sitemap entry per active locale,
- * each carrying the full hreflang alternates map. For `es`-only this yields a
- * single row at the unchanged URL (now with its hreflang links).
+ * each carrying the shared hreflang alternates map (the same map page `<link>`
+ * tags use, via `@/i18n/seo`). For `es`-only this yields a single row at the
+ * unchanged URL (now with its hreflang links).
  */
 function localizedEntries(
   href: string,
   fields: Omit<MetadataRoute.Sitemap[number], "url" | "alternates">,
 ): MetadataRoute.Sitemap {
-  const languages = languagesFor(href);
+  const languages = hreflangMap(href);
   return routing.locales.map((locale) => ({
     url: `${SITE_URL}${getPathname({ href, locale })}`,
     ...fields,

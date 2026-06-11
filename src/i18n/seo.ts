@@ -26,9 +26,25 @@ function absoluteFor(href: string, locale: string): string {
 }
 
 /**
+ * Absolute hreflang map for a locale-agnostic app path: one entry per active
+ * locale plus `x-default` (→ the default locale). The single source of truth for
+ * hreflang URLs, shared by page `<link rel="alternate">` tags (via
+ * `buildAlternates`) and the sitemap's `<xhtml:link>` alternates, so the two can
+ * never drift apart. For `es`-only this is `{ es, "x-default" }` at the no-prefix
+ * URL; adding a locale auto-adds its prefixed entry.
+ */
+export function hreflangMap(href: string): Record<string, string> {
+  const languages: Record<string, string> = {};
+  for (const activeLocale of routing.locales) {
+    languages[activeLocale] = absoluteFor(href, activeLocale);
+  }
+  languages["x-default"] = absoluteFor(href, routing.defaultLocale);
+  return languages;
+}
+
+/**
  * Builds the `alternates` metadata block for a public page: a self-referential
- * canonical for `locale` plus an hreflang `languages` map covering every active
- * locale and `x-default` (→ the default locale).
+ * canonical for `locale` plus the shared hreflang `languages` map.
  *
  * With the single `es` locale this emits the canonical at the no-prefix URL plus
  * `hreflang="es"` + `x-default` pointing at the same URL — the canonical stays
@@ -42,14 +58,8 @@ export function buildAlternates(
   href: string,
   locale: string = routing.defaultLocale,
 ): Metadata["alternates"] {
-  const languages: Record<string, string> = {};
-  for (const activeLocale of routing.locales) {
-    languages[activeLocale] = absoluteFor(href, activeLocale);
-  }
-  languages["x-default"] = absoluteFor(href, routing.defaultLocale);
-
   return {
     canonical: absoluteFor(href, locale),
-    languages,
+    languages: hreflangMap(href),
   };
 }
