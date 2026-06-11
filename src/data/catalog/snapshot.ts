@@ -48,10 +48,9 @@ interface TranslationMaps {
   categoryById: Map<string, string>;
 }
 
-const EMPTY_TRANSLATIONS: TranslationMaps = {
-  productById: new Map(),
-  categoryById: new Map(),
-};
+function emptyTranslationMaps(): TranslationMaps {
+  return { productById: new Map(), categoryById: new Map() };
+}
 
 /**
  * Reads the sidecar translation rows for `locale`. Resilient by design: if the
@@ -83,7 +82,7 @@ async function loadTranslationMaps(locale: string): Promise<TranslationMaps> {
       categoryById: new Map(categoryTranslations.map((row) => [row.categoryId, row.name])),
     };
   } catch {
-    return EMPTY_TRANSLATIONS;
+    return emptyTranslationMaps();
   }
 }
 

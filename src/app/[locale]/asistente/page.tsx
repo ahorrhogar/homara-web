@@ -58,8 +58,8 @@ export default async function AssistantPage({ params }: { params: Promise<{ loca
   };
 
   const [categories, products] = await Promise.all([
-    getCategories().catch(() => []),
-    getProducts().catch(() => []),
+    getCategories(locale).catch(() => []),
+    getProducts(locale).catch(() => []),
   ]);
 
   const styles = Array.from(

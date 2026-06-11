@@ -69,7 +69,7 @@ export default async function LocaleLayout({
   setRequestLocale(locale);
 
   // Fetched once per request via tagged unstable_cache. Header + Footer share it.
-  const categories = await safeGetCategories();
+  const categories = await safeGetCategories(locale);
 
   return (
     <NextIntlClientProvider>
@@ -89,9 +89,9 @@ export default async function LocaleLayout({
   );
 }
 
-async function safeGetCategories() {
+async function safeGetCategories(locale: string) {
   try {
-    return await getCategories();
+    return await getCategories(locale);
   } catch {
     // If the DB env is missing locally we still want the layout to render.
     return [];

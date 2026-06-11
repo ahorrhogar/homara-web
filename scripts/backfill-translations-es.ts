@@ -54,6 +54,10 @@ async function backfillCategories(): Promise<number> {
     select: { id: true, name: true, description: true },
   });
 
+  // NOTE: `description` is seeded for future use but is NOT currently rendered —
+  // category descriptions are meta-derived in buildCategories (categoryMetaBySlug),
+  // and the snapshot overlay applies only `name`. Editing this column will not
+  // change the page until that overlay is wired through. See applyCategoryTranslations.
   let count = 0;
   for (const category of categories) {
     await db.categoryTranslation.upsert({
@@ -118,11 +122,11 @@ async function backfillArticles(): Promise<number> {
 
 async function main(): Promise<void> {
   console.log(`Backfilling "${LOCALE}" translation rows from base tables…`);
-  const [products, categories, articles] = [
-    await backfillProducts(),
-    await backfillCategories(),
-    await backfillArticles(),
-  ];
+  // Sequential by design: a one-shot migration over tiny row counts, kept serial
+  // to keep DB load trivial and the failure point obvious.
+  const products = await backfillProducts();
+  const categories = await backfillCategories();
+  const articles = await backfillArticles();
   console.log(`  product_translations:           ${products}`);
   console.log(`  category_translations:          ${categories}`);
   console.log(`  editorial_article_translations: ${articles}`);

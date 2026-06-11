@@ -353,6 +353,8 @@ model CategoryTranslation {
   categoryId  String   @map("category_id") @db.Uuid
   locale      String
   name        String
+  // Reserved: not yet rendered. Category descriptions are meta-derived in
+  // buildCategories; the snapshot overlay applies only `name`.
   description String?
   createdAt   DateTime @default(now()) @map("created_at")
   updatedAt   DateTime @updatedAt @map("updated_at")
