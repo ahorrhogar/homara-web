@@ -2,6 +2,7 @@
 
 import { usePathname } from "next/navigation";
 import { ChevronRight, Home } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { TrackedLink } from "@/components/analytics/TrackedLink";
 
 interface BreadcrumbItem {
@@ -10,6 +11,7 @@ interface BreadcrumbItem {
 }
 
 const Breadcrumb = ({ items }: { items: BreadcrumbItem[] }) => {
+  const t = useTranslations("common");
   const pathname = usePathname() ?? "/";
   return (
     <nav aria-label="Breadcrumb" className="py-3">

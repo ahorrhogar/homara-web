@@ -1,1 +1,136 @@
-{}
+{
+  "common": {
+    "home": "Inicio"
+  },
+  "header": {
+    "topBar": "🇪🇸 Especialistas en hogar — Compara y ahorra en miles de productos",
+    "assistantNav": "Asistente de Compras",
+    "buyingGuides": "Guias de compra",
+    "favorites": "Mis Favoritos",
+    "priceAlerts": "Alertas de Precio",
+    "categoriesMenu": "Menú de categorías",
+    "searchAria": "Buscar",
+    "searchPlaceholder": "Buscar productos, marcas, categorias o tiendas...",
+    "searchPlaceholderMobile": "Buscar productos, marcas o tiendas...",
+    "assistant": "Asistente",
+    "viewAllIn": "Ver todo en {category} →",
+    "backToCategories": "Volver a categorías"
+  },
+  "footer": {
+    "tagline": "El comparador de precios especializado en hogar para España. Ahorra tiempo y dinero en tus compras.",
+    "categories": "Categorías",
+    "moreCategories": "Más categorías",
+    "information": "Información",
+    "aboutHomara": "Acerca de Homara",
+    "buyingGuides": "Guías de compra",
+    "legal": "Legal",
+    "privacyPolicy": "Política de privacidad",
+    "legalNotice": "Aviso legal",
+    "cookiePolicy": "Política de cookies",
+    "cookieSettings": "Configuración de cookies",
+    "copyright": "© {year} Homara. Todos los derechos reservados.",
+    "priceDisclaimer": "Los precios y disponibilidad pueden variar. Homara no vende productos directamente."
+  },
+  "cookies": {
+    "bannerTitle": "Privacidad y cookies",
+    "bannerBody": "Usamos cookies para mejorar tu experiencia, analizar el uso y ofrecer mejores recomendaciones para tu hogar.",
+    "reject": "Rechazar",
+    "configure": "Configurar",
+    "acceptAll": "Aceptar todas",
+    "settingsTitle": "Configuración de cookies",
+    "settingsDescription": "Puedes decidir qué cookies opcionales activar. Las cookies necesarias siempre están activas.",
+    "necessaryTitle": "Cookies necesarias",
+    "necessaryActiveAria": "Cookies necesarias activas",
+    "necessaryDescription": "Imprescindibles para el funcionamiento básico del sitio.",
+    "analyticsTitle": "Cookies de analítica",
+    "analyticsDescription": "Nos ayudan a entender el uso del sitio para mejorar la experiencia.",
+    "analyticsToggleAria": "Activar cookies analíticas",
+    "marketingTitle": "Cookies de marketing",
+    "marketingDescription": "Preparadas para futuras funciones personalizadas y publicitarias.",
+    "marketingToggleAria": "Activar cookies de marketing",
+    "savePreferences": "Guardar preferencias"
+  },
+  "category": {
+    "productsCount": "{count} productos",
+    "sort": {
+      "popular": "Más populares",
+      "priceAsc": "Precio: menor a mayor",
+      "priceDesc": "Precio: mayor a menor",
+      "discount": "Mayor descuento",
+      "rating": "Mejor valorados",
+      "newest": "Más recientes"
+    }
+  },
+  "product": {
+    "freeShipping": "Envío gratis",
+    "shippingCost": "+{cost} € envío",
+    "verifiedStore": "Tienda verificada",
+    "total": "Total {total} €",
+    "viewOffer": "Ver oferta",
+    "unavailable": "No disponible",
+    "specifications": "Especificaciones",
+    "readMore": "Leer más",
+    "readLess": "Leer menos",
+    "showLess": "Ver menos",
+    "showAllSpecs": "Ver todas las especificaciones ({count})"
+  },
+  "assistant": {
+    "title": "Asistente de compras",
+    "subtitle": "Cuéntanos qué necesitas y te recomendamos los mejores productos según tu presupuesto y preferencias.",
+    "budgetLabel": "Presupuesto máximo (€)",
+    "categoryLabel": "Categoría",
+    "allCategories": "Todas las categorías",
+    "styleLabel": "Estilo preferido",
+    "priorityLabel": "¿Qué priorizas?",
+    "searchButton": "Buscar recomendaciones",
+    "resultsTitle": "Top {count} recomendaciones para ti",
+    "noResultsTitle": "No encontramos resultados",
+    "noResultsBody": "No hay productos que encajen con tu presupuesto y filtros.",
+    "noResultsHint": "Prueba a aumentar el presupuesto o cambiar la categoría.",
+    "viewProduct": "Ver producto",
+    "priorities": {
+      "price": "Mejor precio",
+      "quality": "Mejor calidad",
+      "design": "Mejor diseño",
+      "balanced": "Equilibrado"
+    },
+    "tags": {
+      "bestValue": "💎 Mejor calidad-precio",
+      "cheapest": "💰 Opción económica",
+      "premium": "⭐ Opción premium",
+      "recommended": "🏆 Recomendado"
+    }
+  },
+  "blog": {
+    "breadcrumb": "Guías de compra",
+    "eyebrow": "Editorial",
+    "heading": "Guías de compra para tu hogar",
+    "intro": "Análisis editoriales, comparativas y selecciones de productos. Te ayudamos a encontrar lo que necesitas con datos concretos —medidas, materiales, consumo, garantía— y sin superlativos vacíos.",
+    "sectionRecommended": "Recomendado por el equipo",
+    "sectionMostRead": "Más leídos",
+    "sectionLatest": "Últimas guías",
+    "empty": "Aún no hay guías publicadas. Vuelve pronto."
+  },
+  "search": {
+    "label": "Buscador de productos",
+    "resultsFor": "Resultados para \"{query}\"",
+    "prompt": "Busca productos",
+    "emptyTitle": "Escribe algo en la barra de búsqueda para empezar.",
+    "emptyHint": "Puedes buscar por producto, marca, categoría o tienda.",
+    "noResults": "No encontramos resultados para \"{query}\".",
+    "noResultsHint": "Prueba con otra palabra o una marca distinta.",
+    "resultsCount": "{count} productos encontrados"
+  },
+  "editorialCard": {
+    "budgetVariable": "Presupuesto variable",
+    "budgetAverage": "Presupuesto medio {value} EUR",
+    "readMinutes": "{minutes} min",
+    "readGuide": "Leer guia",
+    "viewProductsOf": "Ver productos de {category}"
+  },
+  "home": {
+    "trendingTitle": "Tendencias actuales",
+    "slideLeft": "Deslizar a la izquierda",
+    "slideRight": "Deslizar a la derecha"
+  }
+}

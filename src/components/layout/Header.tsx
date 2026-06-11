@@ -5,6 +5,7 @@ import { Link, usePathname, useRouter } from "@/i18n/navigation";
 import { useSearchParams } from "next/navigation";
 import { Search, Menu, X, Heart, Sparkles, ChevronRight, ChevronLeft } from "lucide-react";
 import { useState, useRef, useEffect, type FormEvent } from "react";
+import { useTranslations } from "next-intl";
 import type { Category } from "@/domain/catalog/types";
 import { TrackedLink } from "@/components/analytics/TrackedLink";
 import { gaEvent } from "@/infrastructure/analytics/ga4";
@@ -18,6 +19,7 @@ interface HeaderProps {
 }
 
 const Header = ({ categories }: HeaderProps) => {
+  const t = useTranslations("header");
   const [menuOpen, setMenuOpen] = useState(false);
   const [megaMenuOpen, setMegaMenuOpen] = useState(false);
   const [activeCategoryId, setActiveCategoryId] = useState<string | null>(null);
@@ -119,15 +121,15 @@ const Header = ({ categories }: HeaderProps) => {
       {/* Top bar */}
       <div className="bg-primary">
         <div className="container mx-auto flex items-center justify-between py-1.5 px-4 text-primary-foreground text-xs">
-          <span>🇪🇸 Especialistas en hogar — Compara y ahorra en miles de productos</span>
+          <span>{t("topBar")}</span>
           <div className="hidden md:flex items-center gap-4">
-            <Link href="/asistente" className="hover:underline flex items-center gap-1"><Sparkles className="w-3 h-3" /> Asistente de Compras</Link>
+            <Link href="/asistente" className="hover:underline flex items-center gap-1"><Sparkles className="w-3 h-3" /> {t("assistantNav")}</Link>
             <span>|</span>
-            <Link href="/guias" className="hover:underline">Guias de compra</Link>
+            <Link href="/guias" className="hover:underline">{t("buyingGuides")}</Link>
             <span>|</span>
-            <a href="#" className="hover:underline">Mis Favoritos</a>
+            <a href="#" className="hover:underline">{t("favorites")}</a>
             <span>|</span>
-            <a href="#" className="hover:underline">Alertas de Precio</a>
+            <a href="#" className="hover:underline">{t("priceAlerts")}</a>
           </div>
         </div>
       </div>
@@ -139,7 +141,7 @@ const Header = ({ categories }: HeaderProps) => {
           <button
             onClick={toggleMegaMenu}
             className="p-2 rounded-lg hover:bg-secondary transition-colors"
-            aria-label="Menú de categorías"
+            aria-label={t("categoriesMenu")}
           >
             {megaMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
           </button>
@@ -159,7 +161,7 @@ const Header = ({ categories }: HeaderProps) => {
             <form className="relative" data-source="header_desktop" onSubmit={handleSearchSubmit}>
               <button
                 type="submit"
-                aria-label="Buscar"
+                aria-label={t("searchAria")}
                 className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
               >
                 <Search className="w-4 h-4" />
@@ -168,7 +170,7 @@ const Header = ({ categories }: HeaderProps) => {
                 type="text"
                 value={searchQuery}
                 onChange={e => setSearchQuery(e.target.value)}
-                placeholder="Buscar productos, marcas, categorias o tiendas..."
+                placeholder={t("searchPlaceholder")}
                 className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-border bg-secondary/50 text-sm focus:outline-none focus:ring-2 focus:ring-accent/50 focus:border-accent transition-all"
               />
             </form>
@@ -177,7 +179,7 @@ const Header = ({ categories }: HeaderProps) => {
           <div className="flex items-center gap-2 ml-auto">
             <Link href="/asistente" className="hidden lg:flex items-center gap-2 px-4 py-2 rounded-xl bg-accent text-accent-foreground font-medium text-sm hover:opacity-90 transition-opacity">
               <Sparkles className="w-4 h-4" />
-              Asistente
+              {t("assistant")}
             </Link>
             <button className="p-2 rounded-lg hover:bg-secondary transition-colors">
               <Heart className="w-5 h-5 text-muted-foreground" />
@@ -200,7 +202,7 @@ const Header = ({ categories }: HeaderProps) => {
           <form className="relative flex-1" data-source="header_mobile" onSubmit={handleSearchSubmit}>
             <button
               type="submit"
-              aria-label="Buscar"
+              aria-label={t("searchAria")}
               className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
             >
               <Search className="w-4 h-4" />
@@ -209,7 +211,7 @@ const Header = ({ categories }: HeaderProps) => {
               type="text"
               value={searchQuery}
               onChange={e => setSearchQuery(e.target.value)}
-              placeholder="Buscar productos, marcas o tiendas..."
+              placeholder={t("searchPlaceholderMobile")}
               className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-border bg-secondary/50 text-sm focus:outline-none focus:ring-2 focus:ring-accent/50 transition-all"
             />
           </form>
@@ -217,7 +219,7 @@ const Header = ({ categories }: HeaderProps) => {
           <button
             onClick={toggleMegaMenu}
             className="p-2 rounded-lg hover:bg-secondary transition-colors"
-            aria-label="Menú de categorías"
+            aria-label={t("categoriesMenu")}
           >
             {megaMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
           </button>
@@ -307,7 +309,7 @@ const Header = ({ categories }: HeaderProps) => {
                         onClick={() => setMegaMenuOpen(false)}
                         className="text-sm font-semibold text-accent hover:underline"
                       >
-                        Ver todo en {activeCategory.name} →
+                        {t("viewAllIn", { category: activeCategory.name })}
                       </Link>
                     </div>
                   </>
@@ -338,7 +340,7 @@ const Header = ({ categories }: HeaderProps) => {
                     className="mb-4 inline-flex items-center gap-1.5 text-sm font-medium text-foreground/80 hover:text-foreground transition-colors"
                   >
                     <ChevronLeft className="w-4 h-4" />
-                    Volver a categorías
+                    {t("backToCategories")}
                   </button>
 
                   <Link
@@ -371,7 +373,7 @@ const Header = ({ categories }: HeaderProps) => {
                       onClick={() => setMegaMenuOpen(false)}
                       className="text-sm font-semibold text-accent hover:underline"
                     >
-                      Ver todo en {mobileActiveCategory.name} →
+                      {t("viewAllIn", { category: mobileActiveCategory.name })}
                     </Link>
                   </div>
                 </div>
@@ -393,7 +395,7 @@ const Header = ({ categories }: HeaderProps) => {
               ))}
             </div>
             <Link href="/asistente" onClick={() => setMenuOpen(false)} className="mt-4 flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-accent text-accent-foreground font-medium text-sm">
-              <Sparkles className="w-4 h-4" /> Asistente de Compras
+              <Sparkles className="w-4 h-4" /> {t("assistantNav")}
             </Link>
           </div>
         </div>

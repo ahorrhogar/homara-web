@@ -8,6 +8,7 @@ import {
   getMostReadArticles,
   getPublishedArticles,
 } from "@/data/catalog/articles";
+import { getTranslations, setRequestLocale } from "next-intl/server";
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://homara.es";
 
@@ -29,7 +30,14 @@ export const metadata: Metadata = {
   },
 };
 
-export default async function BlogHubPage() {
+export default async function BlogHubPage({
+  params,
+}: {
+  params: Promise<{ locale: string }>;
+}) {
+  const { locale } = await params;
+  setRequestLocale(locale);
+  const t = await getTranslations("blog");
   const [allPublished, featured, mostRead, latest] = await Promise.all([
     getPublishedArticles().catch(() => []),
     getFeaturedArticles(6).catch(() => []),
@@ -60,33 +68,31 @@ export default async function BlogHubPage() {
       <JsonLd data={collectionSchema} />
 
       <main className="container mx-auto px-4">
-        <Breadcrumb items={[{ label: "Guías de compra" }]} />
+        <Breadcrumb items={[{ label: t("breadcrumb") }]} />
 
         <header className="max-w-3xl mb-10">
-          <p className="text-sm font-semibold uppercase tracking-wider text-accent">Editorial</p>
+          <p className="text-sm font-semibold uppercase tracking-wider text-accent">{t("eyebrow")}</p>
           <h1 className="font-display text-3xl md:text-4xl font-bold text-foreground mt-2">
-            Guías de compra para tu hogar
+            {t("heading")}
           </h1>
           <p className="text-muted-foreground mt-3 text-base leading-relaxed">
-            Análisis editoriales, comparativas y selecciones de productos. Te ayudamos a encontrar lo
-            que necesitas con datos concretos —medidas, materiales, consumo, garantía— y sin
-            superlativos vacíos.
+            {t("intro")}
           </p>
         </header>
 
         {featured.length > 0 ? (
-          <Section title="Recomendado por el equipo" articles={featured} listName="recomendado" />
+          <Section title={t("sectionRecommended")} articles={featured} listName="recomendado" />
         ) : null}
         {mostRead.length > 0 ? (
-          <Section title="Más leídos" articles={mostRead} listName="mas_leidos" />
+          <Section title={t("sectionMostRead")} articles={mostRead} listName="mas_leidos" />
         ) : null}
         {latest.length > 0 ? (
-          <Section title="Últimas guías" articles={latest} listName="ultimas_guias" />
+          <Section title={t("sectionLatest")} articles={latest} listName="ultimas_guias" />
         ) : null}
 
         {allPublished.length === 0 ? (
           <div className="rounded-2xl border border-border bg-card p-8 text-center text-muted-foreground">
-            Aún no hay guías publicadas. Vuelve pronto.
+            {t("empty")}
           </div>
         ) : null}
       </main>

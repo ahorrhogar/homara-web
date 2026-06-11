@@ -2,16 +2,17 @@
 
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import { ArrowUpDown } from "lucide-react";
+import { useTranslations } from "next-intl";
 import type { ProductSortBy } from "@/domain/catalog/types";
 import { gaEvent } from "@/infrastructure/analytics/ga4";
 
-const SORT_OPTIONS: Array<{ value: ProductSortBy; label: string }> = [
-  { value: "popular", label: "Más populares" },
-  { value: "price-asc", label: "Precio: menor a mayor" },
-  { value: "price-desc", label: "Precio: mayor a menor" },
-  { value: "discount", label: "Mayor descuento" },
-  { value: "rating", label: "Mejor valorados" },
-  { value: "newest", label: "Más recientes" },
+const SORT_OPTIONS: Array<{ value: ProductSortBy; key: string }> = [
+  { value: "popular", key: "popular" },
+  { value: "price-asc", key: "priceAsc" },
+  { value: "price-desc", key: "priceDesc" },
+  { value: "discount", key: "discount" },
+  { value: "rating", key: "rating" },
+  { value: "newest", key: "newest" },
 ];
 
 interface CategoryToolbarProps {
@@ -20,6 +21,8 @@ interface CategoryToolbarProps {
 }
 
 export function CategoryToolbar({ totalProducts, defaultSort = "popular" }: CategoryToolbarProps) {
+  const t = useTranslations("category");
+  const tSort = useTranslations("category.sort");
   const router = useRouter();
   const searchParams = useSearchParams();
   const pathname = usePathname();
@@ -46,7 +49,7 @@ export function CategoryToolbar({ totalProducts, defaultSort = "popular" }: Cate
 
   return (
     <div className="flex items-center justify-between gap-4 mb-6 pb-4 border-b border-border">
-      <span className="text-sm text-muted-foreground">{totalProducts} productos</span>
+      <span className="text-sm text-muted-foreground">{t("productsCount", { count: String(totalProducts) })}</span>
 
       <div className="flex items-center gap-2">
         <ArrowUpDown className="w-4 h-4 text-muted-foreground" />
@@ -57,7 +60,7 @@ export function CategoryToolbar({ totalProducts, defaultSort = "popular" }: Cate
         >
           {SORT_OPTIONS.map((option) => (
             <option key={option.value} value={option.value}>
-              {option.label}
+              {tSort(option.key)}
             </option>
           ))}
         </select>
