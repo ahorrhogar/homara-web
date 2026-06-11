@@ -1,0 +1,13 @@
+{
+  "name": "@amzn/creatorsapi-nodejs-sdk",
+  "version": "1.2.0",
+  "description": "CreatorsAPI 1.2.0 NodeJS SDK (vendored prebuilt dist — official Apache-2.0 SDK from afiliados.amazon.es/creatorsapi/docs/en-us/get-started/using-sdk)",
+  "license": "Apache-2.0",
+  "main": "dist/index.js",
+  "files": [
+    "dist"
+  ],
+  "dependencies": {
+    "superagent": "^5.3.0"
+  }
+}

@@ -22,6 +22,7 @@ const NAV_ITEMS = [
   { href: "/admin/merchants", label: "Tiendas" },
   { href: "/admin/articles", label: "Artículos" },
   { href: "/admin/imports", label: "Importaciones" },
+  { href: "/admin/amazon", label: "Amazon" },
   { href: "/admin/analytics", label: "Analytics" },
   { href: "/admin/audit", label: "Auditoría" },
   { href: "/admin/settings", label: "Ajustes" },
