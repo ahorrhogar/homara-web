@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
+import { setRequestLocale, getTranslations } from "next-intl/server";
 import { CategoryView } from "@/components/category/CategoryView";
 import { JsonLd } from "@/components/seo/JsonLd";
 import { getCategories, getCategoryBySlug, findSubcategoryBySlug } from "@/data/catalog/categories";
@@ -18,13 +19,15 @@ function parseSort(value: string | string[] | undefined): ProductSortBy {
 export async function generateMetadata({
   params,
 }: {
-  params: Promise<{ slug: string; subSlug: string }>;
+  params: Promise<{ locale: string; slug: string; subSlug: string }>;
 }): Promise<Metadata> {
-  const { slug, subSlug } = await params;
+  const { locale, slug, subSlug } = await params;
+  setRequestLocale(locale);
+  const t = await getTranslations("category");
   const category = await getCategoryBySlug(slug).catch(() => undefined);
   const subcategory = category ? findSubcategoryBySlug(category, subSlug) : undefined;
   if (!category || !subcategory) {
-    return { title: "Categoría no encontrada", robots: { index: false } };
+    return { title: t("notFound"), robots: { index: false } };
   }
 
   const description = `Compara ${subcategory.name.toLowerCase()} dentro de ${category.name}: precios reales, datos editoriales y enlaces a tiendas con stock.`;
@@ -54,10 +57,11 @@ export default async function SubcategoryPage({
   params,
   searchParams,
 }: {
-  params: Promise<{ slug: string; subSlug: string }>;
+  params: Promise<{ locale: string; slug: string; subSlug: string }>;
   searchParams: Promise<{ orden?: string }>;
 }) {
-  const [{ slug, subSlug }, { orden }] = await Promise.all([params, searchParams]);
+  const [{ locale, slug, subSlug }, { orden }] = await Promise.all([params, searchParams]);
+  setRequestLocale(locale);
   const sortBy = parseSort(orden);
 
   const [category, allCategories, allProducts] = await Promise.all([

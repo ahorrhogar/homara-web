@@ -52,6 +52,9 @@
   },
   "category": {
     "productsCount": "{count} productos",
+    "emptyTitle": "No se encontraron productos",
+    "emptySubtitle": "Vuelve pronto: actualizamos el catálogo a diario.",
+    "notFound": "Categoría no encontrada",
     "sort": {
       "popular": "Más populares",
       "priceAsc": "Precio: menor a mayor",
@@ -73,6 +76,28 @@
     "readLess": "Leer menos",
     "showLess": "Ver menos",
     "showAllSpecs": "Ver todas las especificaciones ({count})"
+  },
+  "productPage": {
+    "notFound": "Producto no encontrado",
+    "bestPriceFrom": "Mejor precio desde",
+    "reviews": "({count} opiniones)",
+    "saves": "Ahorras {amount} €",
+    "offersCount": "{count} ofertas disponibles",
+    "allOffersTitle": "Todas las ofertas ({count})",
+    "faqTitle": "Preguntas frecuentes",
+    "relatedTitle": "Productos relacionados",
+    "relatedSubtitle": "Otros productos que podrían interesarte",
+    "faqDimensionsQ": "¿Qué medidas tiene el {name}?",
+    "faqDimensionsA": "Según las especificaciones del fabricante, sus dimensiones son {dimensions}.",
+    "faqMaterialQ": "¿De qué material está fabricado?",
+    "faqMaterialA": "Está fabricado con {material}.",
+    "faqPowerQ": "¿Cuál es su potencia o consumo?",
+    "faqPowerA": "El fabricante indica un valor de {power}.",
+    "faqWarrantyQ": "¿Qué garantía incluye?",
+    "faqWarrantyA": "La garantía declarada por el fabricante es de {warranty}.",
+    "faqBestPriceQ": "¿Dónde puedo comprar el {name} al mejor precio?",
+    "faqBestPriceA": "Comparamos {count} ofertas activas para este producto en distintas tiendas. La página muestra el precio más bajo y enlaza a la tienda con stock.",
+    "faqBestPriceNoOffersA": "Actualmente no hay ofertas activas verificadas para este producto. Consulta las páginas de {brand} en las tiendas oficiales."
   },
   "assistant": {
     "title": "Asistente de compras",
@@ -100,6 +125,28 @@
       "premium": "⭐ Opción premium",
       "recommended": "🏆 Recomendado"
     }
+  },
+  "asistente": {
+    "breadcrumb": "Asistente de compras",
+    "faqTitle": "Preguntas frecuentes",
+    "faq": [
+      {
+        "question": "¿Cómo funciona el asistente de compras?",
+        "answer": "Selecciona la categoría, indica tu presupuesto y tus prioridades (estilo, espacio, uso). Cruzamos esos datos con el catálogo y te devolvemos una lista corta de productos con explicación de por qué encajan."
+      },
+      {
+        "question": "¿Tengo que registrarme para usar el asistente?",
+        "answer": "No. Es gratuito y no requiere registro ni email. Las respuestas se generan al instante."
+      },
+      {
+        "question": "¿Cómo elegís los productos recomendados?",
+        "answer": "Filtramos el catálogo por categoría, presupuesto y estilo y aplicamos puntuaciones editoriales según rating, número de opiniones y datos del fabricante. La recomendación final se ordena por encaje editorial, no por afiliación."
+      },
+      {
+        "question": "¿Guardáis los datos que introduzco?",
+        "answer": "No guardamos los datos del formulario. La recomendación se calcula en el momento y desaparece al cerrar la página."
+      }
+    ]
   },
   "blog": {
     "breadcrumb": "Guías de compra",
@@ -131,6 +178,90 @@
   "home": {
     "trendingTitle": "Tendencias actuales",
     "slideLeft": "Deslizar a la izquierda",
-    "slideRight": "Deslizar a la derecha"
+    "slideRight": "Deslizar a la derecha",
+    "srOnly": "Comparador editorial de productos para hogar y jardín",
+    "topProductsTitle": "Top productos",
+    "topProductsSchemaName": "Top productos para hogar y jardín",
+    "fromPrice": "desde ",
+    "howItWorksTitle": "¿Cómo funciona Homara?",
+    "faqTitle": "Preguntas frecuentes",
+    "assistantCta": "¿No sabes qué elegir?",
+    "assistantCtaBody": "Nuestro asistente inteligente te recomienda los mejores productos según tu presupuesto, estilo y necesidades.",
+    "assistantCtaButton": "Probar el Asistente",
+    "sections": {
+      "deals": {
+        "title": "🔥 Supergangas",
+        "subtitle": "Los mayores descuentos del momento"
+      },
+      "topRated": {
+        "title": "⭐ Mejor valorados",
+        "subtitle": "Los productos con mejores opiniones de nuestros usuarios"
+      },
+      "bestSellers": {
+        "title": "🏆 Los más vendidos",
+        "subtitle": "Productos con mayor traccion de usuarios"
+      },
+      "favorites": {
+        "title": "❤️ Favoritos de usuarios",
+        "subtitle": "Los productos mas guardados y recomendados"
+      },
+      "featured": {
+        "title": "💎 Productos destacados",
+        "subtitle": "Seleccionados por el equipo editorial"
+      }
+    },
+    "promos": {
+      "gangas": {
+        "title": "Las mejores gangas, a un clic",
+        "subtitle": "Muebles, decoración, electrodomésticos y mucho más con los mayores descuentos.",
+        "cta": "¡Que no se te escapen!"
+      },
+      "cocina": {
+        "title": "Renueva tu cocina",
+        "subtitle": "Encuentra los mejores precios en electrodomésticos y utensilios de cocina.",
+        "cta": "Explorar cocina"
+      },
+      "jardin": {
+        "title": "Tu jardín, tu refugio",
+        "subtitle": "Barbacoas, muebles de exterior y todo lo que necesitas para disfrutar al aire libre.",
+        "cta": "Explorar jardín"
+      }
+    },
+    "howItWorks": [
+      {
+        "title": "Busca tu producto",
+        "desc": "Explora miles de productos organizados por categoría."
+      },
+      {
+        "title": "Compara precios",
+        "desc": "Ve todas las ofertas de diferentes tiendas de un vistazo."
+      },
+      {
+        "title": "Compra al mejor precio",
+        "desc": "Elige la mejor oferta y compra en la tienda oficial."
+      }
+    ],
+    "faq": [
+      {
+        "question": "¿Homara es una tienda?",
+        "answer": "No. Homara es un comparador editorial: analizamos productos, mostramos precios actualizados de varias tiendas y enlazamos a la que ofrece la mejor opción. La compra siempre se realiza en la tienda final."
+      },
+      {
+        "question": "¿Cómo elegís los productos que recomendáis?",
+        "answer": "Seleccionamos productos con datos verificables (medidas, materiales, consumo, garantía), comparamos contra alternativas y descartamos los que no cumplen. No publicamos recomendaciones sin datos concretos."
+      },
+      {
+        "question": "¿Los precios que muestra Homara son los reales?",
+        "answer": "Tomamos los precios de las APIs oficiales de las tiendas. Pueden variar en cualquier momento; antes de comprar, confirma siempre el precio en la página de la tienda."
+      },
+      {
+        "question": "¿Cómo gana dinero Homara?",
+        "answer": "Cuando un usuario compra a través de los enlaces a tiendas, recibimos una comisión de afiliación. Esta comisión no encarece el producto y no influye en nuestra valoración editorial."
+      },
+      {
+        "question": "¿Puedo pedir recomendaciones personalizadas?",
+        "answer": "Sí. El asistente de Homara te recomienda productos según tu presupuesto, estilo y necesidades. Es gratuito y no requiere registro."
+      }
+    ]
   }
 }

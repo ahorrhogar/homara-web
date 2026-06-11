@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
+import { setRequestLocale, getTranslations } from "next-intl/server";
 import { CategoryView } from "@/components/category/CategoryView";
 import { JsonLd } from "@/components/seo/JsonLd";
 import { getCategories, getCategoryBySlug } from "@/data/catalog/categories";
@@ -19,12 +20,14 @@ function parseSort(value: string | string[] | undefined): ProductSortBy {
 export async function generateMetadata({
   params,
 }: {
-  params: Promise<{ slug: string }>;
+  params: Promise<{ locale: string; slug: string }>;
 }): Promise<Metadata> {
-  const { slug } = await params;
+  const { locale, slug } = await params;
+  setRequestLocale(locale);
+  const t = await getTranslations("category");
   const category = await getCategoryBySlug(slug).catch(() => undefined);
   if (!category) {
-    return { title: "Categoría no encontrada", robots: { index: false } };
+    return { title: t("notFound"), robots: { index: false } };
   }
 
   const description = (
@@ -58,10 +61,11 @@ export default async function CategoryPage({
   params,
   searchParams,
 }: {
-  params: Promise<{ slug: string }>;
+  params: Promise<{ locale: string; slug: string }>;
   searchParams: Promise<{ orden?: string }>;
 }) {
-  const [{ slug }, { orden }] = await Promise.all([params, searchParams]);
+  const [{ locale, slug }, { orden }] = await Promise.all([params, searchParams]);
+  setRequestLocale(locale);
   const sortBy = parseSort(orden);
 
   const [category, allCategories, allProducts] = await Promise.all([

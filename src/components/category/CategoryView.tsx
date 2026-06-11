@@ -1,3 +1,4 @@
+import { getTranslations } from "next-intl/server";
 import { Link } from "@/i18n/navigation";
 import Breadcrumb from "@/components/layout/Breadcrumb";
 import ProductCard from "@/components/product/ProductCard";
@@ -13,7 +14,8 @@ interface CategoryViewProps {
   seoDocument: CategorySeoDocument | null;
 }
 
-export function CategoryView({ category, subcategory, products, seoDocument }: CategoryViewProps) {
+export async function CategoryView({ category, subcategory, products, seoDocument }: CategoryViewProps) {
+  const t = await getTranslations("category");
   const breadcrumbs = [
     { label: category.name, href: subcategory ? `/categoria/${category.slug}` : undefined },
     ...(subcategory ? [{ label: subcategory.name }] : []),
@@ -49,8 +51,8 @@ export function CategoryView({ category, subcategory, products, seoDocument }: C
 
       {products.length === 0 ? (
         <div className="text-center py-16">
-          <p className="text-muted-foreground text-lg mb-2">No se encontraron productos</p>
-          <p className="text-sm text-muted-foreground">Vuelve pronto: actualizamos el catálogo a diario.</p>
+          <p className="text-muted-foreground text-lg mb-2">{t("emptyTitle")}</p>
+          <p className="text-sm text-muted-foreground">{t("emptySubtitle")}</p>
         </div>
       ) : (
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6">

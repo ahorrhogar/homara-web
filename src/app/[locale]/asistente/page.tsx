@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { setRequestLocale, getTranslations } from "next-intl/server";
 import Breadcrumb from "@/components/layout/Breadcrumb";
 import { AssistantForm } from "@/components/assistant/AssistantForm";
 import { JsonLd } from "@/components/seo/JsonLd";
@@ -28,38 +29,6 @@ export const metadata: Metadata = {
 
 export const revalidate = 600;
 
-const ASSISTANT_FAQ = [
-  {
-    question: "¿Cómo funciona el asistente de compras?",
-    answer:
-      "Selecciona la categoría, indica tu presupuesto y tus prioridades (estilo, espacio, uso). Cruzamos esos datos con el catálogo y te devolvemos una lista corta de productos con explicación de por qué encajan.",
-  },
-  {
-    question: "¿Tengo que registrarme para usar el asistente?",
-    answer: "No. Es gratuito y no requiere registro ni email. Las respuestas se generan al instante.",
-  },
-  {
-    question: "¿Cómo elegís los productos recomendados?",
-    answer:
-      "Filtramos el catálogo por categoría, presupuesto y estilo y aplicamos puntuaciones editoriales según rating, número de opiniones y datos del fabricante. La recomendación final se ordena por encaje editorial, no por afiliación.",
-  },
-  {
-    question: "¿Guardáis los datos que introduzco?",
-    answer:
-      "No guardamos los datos del formulario. La recomendación se calcula en el momento y desaparece al cerrar la página.",
-  },
-];
-
-const ASSISTANT_FAQ_SCHEMA = {
-  "@context": "https://schema.org",
-  "@type": "FAQPage",
-  mainEntity: ASSISTANT_FAQ.map((item) => ({
-    "@type": "Question",
-    name: item.question,
-    acceptedAnswer: { "@type": "Answer", text: item.answer },
-  })),
-};
-
 const ASSISTANT_APP_SCHEMA = {
   "@context": "https://schema.org",
   "@type": "WebApplication",
@@ -72,7 +41,22 @@ const ASSISTANT_APP_SCHEMA = {
   publisher: { "@type": "Organization", name: "Homara", url: SITE_URL },
 };
 
-export default async function AssistantPage() {
+export default async function AssistantPage({ params }: { params: Promise<{ locale: string }> }) {
+  const { locale } = await params;
+  setRequestLocale(locale);
+  const t = await getTranslations("asistente");
+
+  const faqRaw = t.raw("faq") as Array<{ question: string; answer: string }>;
+  const faqSchema = {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    mainEntity: faqRaw.map((item) => ({
+      "@type": "Question",
+      name: item.question,
+      acceptedAnswer: { "@type": "Answer", text: item.answer },
+    })),
+  };
+
   const [categories, products] = await Promise.all([
     getCategories().catch(() => []),
     getProducts().catch(() => []),
@@ -85,18 +69,18 @@ export default async function AssistantPage() {
   return (
     <>
       <JsonLd data={ASSISTANT_APP_SCHEMA} />
-      <JsonLd data={ASSISTANT_FAQ_SCHEMA} />
+      <JsonLd data={faqSchema} />
 
       <main className="container mx-auto px-4">
-        <Breadcrumb items={[{ label: "Asistente de compras" }]} />
+        <Breadcrumb items={[{ label: t("breadcrumb") }]} />
         <AssistantForm categories={categories} styles={styles} products={products} />
 
         <section className="max-w-3xl mx-auto mt-12 mb-8">
           <h2 className="font-display text-xl md:text-2xl font-bold text-foreground mb-4">
-            Preguntas frecuentes
+            {t("faqTitle")}
           </h2>
           <dl className="divide-y divide-border rounded-2xl border border-border bg-card">
-            {ASSISTANT_FAQ.map((item) => (
+            {faqRaw.map((item) => (
               <div key={item.question} className="p-4">
                 <dt className="font-semibold text-foreground text-sm mb-1">{item.question}</dt>
                 <dd className="text-sm text-muted-foreground leading-relaxed">{item.answer}</dd>
