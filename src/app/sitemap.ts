@@ -1,10 +1,31 @@
 import type { MetadataRoute } from "next";
 
+import { getPathname } from "@/i18n/navigation";
+import { routing } from "@/i18n/routing";
+import { hreflangMap } from "@/i18n/seo";
 import { db } from "@/lib/db";
 
 export const revalidate = 3600;
 
 const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL || "https://homara.es").replace(/\/$/, "");
+
+/**
+ * Expands one locale-agnostic path into one sitemap entry per active locale,
+ * each carrying the shared hreflang alternates map (the same map page `<link>`
+ * tags use, via `@/i18n/seo`). For `es`-only this yields a single row at the
+ * unchanged URL (now with its hreflang links).
+ */
+function localizedEntries(
+  href: string,
+  fields: Omit<MetadataRoute.Sitemap[number], "url" | "alternates">,
+): MetadataRoute.Sitemap {
+  const languages = hreflangMap(href);
+  return routing.locales.map((locale) => ({
+    url: `${SITE_URL}${getPathname({ href, locale })}`,
+    ...fields,
+    alternates: { languages },
+  }));
+}
 
 const STATIC_ROUTES: Array<{
   path: string;
@@ -41,19 +62,21 @@ const HARDCODED_BLOG_GUIDES: Array<{ slug: string; lastModified: string }> = [
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const generatedAt = new Date();
 
-  const staticEntries: MetadataRoute.Sitemap = STATIC_ROUTES.map((route) => ({
-    url: `${SITE_URL}${route.path}`,
-    lastModified: generatedAt,
-    changeFrequency: route.changeFrequency,
-    priority: route.priority,
-  }));
+  const staticEntries: MetadataRoute.Sitemap = STATIC_ROUTES.flatMap((route) =>
+    localizedEntries(route.path, {
+      lastModified: generatedAt,
+      changeFrequency: route.changeFrequency,
+      priority: route.priority,
+    }),
+  );
 
-  const blogGuideEntries: MetadataRoute.Sitemap = HARDCODED_BLOG_GUIDES.map((guide) => ({
-    url: `${SITE_URL}/blog/${guide.slug}`,
-    lastModified: new Date(guide.lastModified),
-    changeFrequency: "monthly",
-    priority: 0.7,
-  }));
+  const blogGuideEntries: MetadataRoute.Sitemap = HARDCODED_BLOG_GUIDES.flatMap((guide) =>
+    localizedEntries(`/blog/${guide.slug}`, {
+      lastModified: new Date(guide.lastModified),
+      changeFrequency: "monthly",
+      priority: 0.7,
+    }),
+  );
 
   const dynamicEntries = await fetchDynamicEntries();
   const deduped = new Map<string, MetadataRoute.Sitemap[number]>();
@@ -88,23 +111,25 @@ async function fetchDynamicEntries(): Promise<MetadataRoute.Sitemap> {
       const parentSlug = row.parent?.slug;
       const path =
         row.parentId && parentSlug ? `/categoria/${parentSlug}/${row.slug}` : `/categoria/${row.slug}`;
-      entries.push({
-        url: `${SITE_URL}${path}`,
-        changeFrequency: "weekly",
-        priority: row.parentId ? 0.7 : 0.8,
-      });
+      entries.push(
+        ...localizedEntries(path, {
+          changeFrequency: "weekly",
+          priority: row.parentId ? 0.7 : 0.8,
+        }),
+      );
     }
 
     for (const row of articles) {
       const articlePath = row.path || (row.slug ? `/blog/${row.slug}` : "");
       if (!articlePath) continue;
       const lastModified = row.updatedAt || row.publishedAt;
-      entries.push({
-        url: `${SITE_URL}${articlePath}`,
-        lastModified: lastModified || undefined,
-        changeFrequency: "weekly",
-        priority: 0.6,
-      });
+      entries.push(
+        ...localizedEntries(articlePath, {
+          lastModified: lastModified || undefined,
+          changeFrequency: "weekly",
+          priority: 0.6,
+        }),
+      );
     }
 
     return entries;

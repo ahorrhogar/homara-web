@@ -4,7 +4,7 @@ import { useEffect, useRef } from "react";
 import { gaEvent } from "@/infrastructure/analytics/ga4";
 import { setLastInteraction } from "@/infrastructure/analytics/last-interaction";
 import { getAnalyticsSessionId } from "@/services/analyticsSession";
-import { recordSearchTerm } from "@/app/buscar/_actions/track";
+import { recordSearchTerm } from "@/app/[locale]/buscar/_actions/track";
 
 interface Props {
   query: string;

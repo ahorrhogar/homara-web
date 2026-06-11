@@ -1,7 +1,7 @@
 import "server-only";
 
 import { buildSearchTokens, normalizeSearchValue } from "@/data/catalog/_helpers";
-import { getCatalogSnapshot, type CatalogSnapshot } from "@/data/catalog/snapshot";
+import { DEFAULT_LOCALE, getCatalogSnapshot, type CatalogSnapshot } from "@/data/catalog/snapshot";
 import type { Product } from "@/domain/catalog/types";
 import { logger } from "@/infrastructure/logging/logger";
 import { db } from "@/lib/db";
@@ -135,12 +135,16 @@ async function findRemoteCandidateIds(tokens: string[], limit: number): Promise<
   return rows.map((row) => row.id);
 }
 
-export async function searchProducts(query: string, limit = 40): Promise<Product[]> {
+export async function searchProducts(
+  query: string,
+  limit = 40,
+  locale: string = DEFAULT_LOCALE,
+): Promise<Product[]> {
   const cappedLimit = Math.max(1, Math.min(limit, 200));
   const tokens = buildSearchTokens(query);
   if (!tokens.length) return [];
 
-  const snapshot = await getCatalogSnapshot();
+  const snapshot = await getCatalogSnapshot(locale);
   const localMatches = searchProductsInSnapshot(snapshot, tokens, cappedLimit);
 
   try {

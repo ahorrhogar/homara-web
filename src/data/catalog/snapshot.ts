@@ -17,7 +17,10 @@ import {
   type ProductRow,
 } from "@/data/catalog/_helpers";
 import type { Category, Merchant, Offer, PriceHistory, Product } from "@/domain/catalog/types";
+import { routing } from "@/i18n/routing";
 import { db } from "@/lib/db";
+
+export const DEFAULT_LOCALE = routing.defaultLocale;
 
 export const CATALOG_CACHE_TAG = "catalog";
 export const CATEGORIES_CACHE_TAG = "categories";
@@ -34,7 +37,95 @@ export interface CatalogSnapshot {
   priceHistoryByProductId: Record<string, PriceHistory[]>;
 }
 
-async function loadCatalogSnapshot(): Promise<CatalogSnapshot> {
+interface ProductTranslationOverlay {
+  name: string;
+  description: string;
+  longDescription: string | null;
+}
+
+interface TranslationMaps {
+  productById: Map<string, ProductTranslationOverlay>;
+  categoryById: Map<string, string>;
+}
+
+function emptyTranslationMaps(): TranslationMaps {
+  return { productById: new Map(), categoryById: new Map() };
+}
+
+/**
+ * Reads the sidecar translation rows for `locale`. Resilient by design: if the
+ * tables don't exist yet (pre-migration) or the query fails, returns empty maps
+ * so every product/category keeps its canonical base value. When `locale` is the
+ * default and rows are backfilled to equal the base, the overlay is a no-op and
+ * output stays byte-identical.
+ */
+async function loadTranslationMaps(locale: string): Promise<TranslationMaps> {
+  try {
+    const [productTranslations, categoryTranslations] = await Promise.all([
+      db.productTranslation.findMany({
+        where: { locale },
+        select: { productId: true, name: true, description: true, longDescription: true },
+      }),
+      db.categoryTranslation.findMany({
+        where: { locale },
+        select: { categoryId: true, name: true },
+      }),
+    ]);
+
+    return {
+      productById: new Map(
+        productTranslations.map((row) => [
+          row.productId,
+          { name: row.name, description: row.description, longDescription: row.longDescription },
+        ]),
+      ),
+      categoryById: new Map(categoryTranslations.map((row) => [row.categoryId, row.name])),
+    };
+  } catch {
+    return emptyTranslationMaps();
+  }
+}
+
+/**
+ * Overlays translated display fields onto already-built products. `slug` is never
+ * touched — it is derived from the base name so URLs stay stable across locales.
+ */
+function applyProductTranslations(
+  products: Product[],
+  byId: Map<string, ProductTranslationOverlay>,
+): Product[] {
+  if (byId.size === 0) return products;
+  return products.map((product) => {
+    const tr = byId.get(product.id);
+    if (!tr) return product;
+    return {
+      ...product,
+      name: tr.name || product.name,
+      description: tr.description || product.description,
+      longDescription: tr.longDescription ?? product.longDescription,
+    };
+  });
+}
+
+/**
+ * Overlays translated category + subcategory names. Category `description` stays
+ * meta-derived (see `categoryMetaBySlug`) and `slug` stays base-derived, so only
+ * the display name changes per locale.
+ */
+function applyCategoryTranslations(categories: Category[], byId: Map<string, string>): Category[] {
+  if (byId.size === 0) return categories;
+  return categories.map((category) => ({
+    ...category,
+    name: byId.get(category.id) || category.name,
+    subcategories: category.subcategories.map((subcategory) => ({
+      ...subcategory,
+      name: byId.get(subcategory.id) || subcategory.name,
+    })),
+  }));
+}
+
+async function loadCatalogSnapshot(locale: string): Promise<CatalogSnapshot> {
+  const translationsPromise = loadTranslationMaps(locale);
   const [brands, categories, products, images, merchants, offers, prices] = await Promise.all([
     db.brand.findMany({ select: { id: true, name: true } }),
     db.category.findMany({
@@ -133,11 +224,18 @@ async function loadCatalogSnapshot(): Promise<CatalogSnapshot> {
     created_at: p.createdAt.toISOString(),
   }));
 
-  const builtProducts = buildProducts(productRows, brandRows, categoryRows, imageRows, offerRows);
+  const translations = await translationsPromise;
+  const builtProducts = applyProductTranslations(
+    buildProducts(productRows, brandRows, categoryRows, imageRows, offerRows),
+    translations.productById,
+  );
   const builtMerchants = buildMerchants(merchantRows, offerRows);
   const offersMap = buildOffersByProductId(offerRows, builtMerchants);
   const priceHistoryMap = buildPriceHistoryMap(priceHistoryRows);
-  const builtCategories = buildCategories(categoryRows, builtProducts);
+  const builtCategories = applyCategoryTranslations(
+    buildCategories(categoryRows, builtProducts),
+    translations.categoryById,
+  );
 
   const offersByProductId: Record<string, Offer[]> = {};
   offersMap.forEach((value, key) => {
@@ -158,13 +256,18 @@ async function loadCatalogSnapshot(): Promise<CatalogSnapshot> {
   };
 }
 
-/**
- * Server-only cached read of the entire catalog. Mutations on /admin/* call
- * `revalidateTag(CATALOG_CACHE_TAG)` to invalidate. Ranking signals are stored
- * separately under RANKING_SIGNALS_CACHE_TAG so click-tracking can refresh
- * independently.
- */
-export const getCatalogSnapshot = unstable_cache(loadCatalogSnapshot, ["catalog:snapshot:v4"], {
+const cachedCatalogSnapshot = unstable_cache(loadCatalogSnapshot, ["catalog:snapshot:v5"], {
   tags: [CATALOG_CACHE_TAG],
   revalidate: 180,
 });
+
+/**
+ * Server-only cached read of the entire catalog for a locale. The `locale`
+ * argument is part of the cache key, so `es` and a future `en` never share a
+ * payload. Defaults to the routing default locale so untouched call sites keep
+ * serving Spanish. Mutations on /admin/* call `revalidateTag(CATALOG_CACHE_TAG)`,
+ * which invalidates every locale at once.
+ */
+export function getCatalogSnapshot(locale: string = DEFAULT_LOCALE): Promise<CatalogSnapshot> {
+  return cachedCatalogSnapshot(locale);
+}

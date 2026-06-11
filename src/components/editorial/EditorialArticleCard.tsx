@@ -2,6 +2,7 @@
 
 import { CalendarDays, ArrowUpRight, Clock3, Tag } from "lucide-react";
 import Image from "next/image";
+import { useTranslations } from "next-intl";
 import { Badge } from "@/components/ui/badge";
 import type { EditorialArticle } from "@/domain/editorial/types";
 import { TrackedLink } from "@/components/analytics/TrackedLink";
@@ -29,19 +30,18 @@ function formatArticleDate(value: string): string {
   }).format(new Date(value));
 }
 
-function formatBudget(value: number | undefined): string {
-  if (typeof value !== "number") {
-    return "Presupuesto variable";
-  }
-  return `Presupuesto medio ${value.toLocaleString("es-ES")} EUR`;
-}
-
 const EditorialArticleCard = ({
   article,
   compact = false,
   listName,
   index,
 }: EditorialArticleCardProps) => {
+  const t = useTranslations("editorialCard");
+  const budgetLabel =
+    typeof article.averageBudget === "number"
+      ? t("budgetAverage", { value: article.averageBudget.toLocaleString("es-ES") })
+      : t("budgetVariable");
+
   const sharedPayload = {
     list_name: listName,
     index,
@@ -90,7 +90,7 @@ const EditorialArticleCard = ({
         <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-2 text-xs text-muted-foreground">
           <span className="inline-flex items-center gap-1">
             <Clock3 className="h-3.5 w-3.5" />
-            {article.readMinutes} min
+            {t("readMinutes", { minutes: article.readMinutes })}
           </span>
           <span className="inline-flex items-center gap-1">
             <CalendarDays className="h-3.5 w-3.5" />
@@ -98,7 +98,7 @@ const EditorialArticleCard = ({
           </span>
           <span className="inline-flex items-center gap-1">
             <Tag className="h-3.5 w-3.5" />
-            {formatBudget(article.averageBudget)}
+            {budgetLabel}
           </span>
         </div>
 
@@ -120,7 +120,7 @@ const EditorialArticleCard = ({
             payload={{ ...sharedPayload, target: "article" }}
             className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground transition-opacity hover:opacity-90"
           >
-            Leer guia
+            {t("readGuide")}
             <ArrowUpRight className="h-4 w-4" />
           </TrackedLink>
 
@@ -130,7 +130,7 @@ const EditorialArticleCard = ({
             payload={{ ...sharedPayload, target: "category" }}
             className="inline-flex items-center rounded-lg border border-border px-3 py-2 text-xs font-semibold text-foreground hover:bg-secondary"
           >
-            Ver productos de {article.categoryName}
+            {t("viewProductsOf", { category: article.categoryName })}
           </TrackedLink>
         </div>
       </div>

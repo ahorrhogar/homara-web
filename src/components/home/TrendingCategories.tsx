@@ -1,9 +1,10 @@
 "use client";
 
 import Image from "next/image";
-import Link from "next/link";
+import { Link } from "@/i18n/navigation";
 import { useEffect, useRef, useState } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
+import { useTranslations } from "next-intl";
 import type { Category, TrendingCategory } from "@/domain/catalog/types";
 import { PRODUCT_IMAGE_FALLBACK } from "@/lib/productImage";
 
@@ -13,6 +14,7 @@ interface TrendingCategoriesProps {
 }
 
 const TrendingCategories = ({ categories, trending }: TrendingCategoriesProps) => {
+  const t = useTranslations("home");
   const scrollRef = useRef<HTMLDivElement>(null);
   const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(false);
@@ -40,7 +42,7 @@ const TrendingCategories = ({ categories, trending }: TrendingCategoriesProps) =
     <section className="py-8">
       <div className="container mx-auto px-4">
         <div className="mb-5">
-          <h2 className="font-display text-lg md:text-xl font-bold text-foreground">Tendencias actuales</h2>
+          <h2 className="font-display text-lg md:text-xl font-bold text-foreground">{t("trendingTitle")}</h2>
         </div>
         <div className="relative">
           {canScrollLeft ? (
@@ -48,7 +50,7 @@ const TrendingCategories = ({ categories, trending }: TrendingCategoriesProps) =
               type="button"
               onClick={() => scroll("left")}
               className="absolute left-1 top-[42px] z-10 h-12 w-12 -translate-y-1/2 rounded-r-md bg-muted/90 text-foreground shadow-md transition-colors hover:bg-muted"
-              aria-label="Deslizar a la izquierda"
+              aria-label={t("slideLeft")}
             >
               <ChevronLeft className="mx-auto h-5 w-5" />
             </button>
@@ -59,7 +61,7 @@ const TrendingCategories = ({ categories, trending }: TrendingCategoriesProps) =
               type="button"
               onClick={() => scroll("right")}
               className="absolute right-1 top-[42px] z-10 h-12 w-12 -translate-y-1/2 rounded-l-md bg-muted/90 text-foreground shadow-md transition-colors hover:bg-muted"
-              aria-label="Deslizar a la derecha"
+              aria-label={t("slideRight")}
             >
               <ChevronRight className="mx-auto h-5 w-5" />
             </button>

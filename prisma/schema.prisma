@@ -112,9 +112,10 @@ model Category {
   createdAt   DateTime @default(now()) @map("created_at")
   updatedAt   DateTime @updatedAt @map("updated_at")
 
-  parent   Category?  @relation("CategoryParent", fields: [parentId], references: [id], onDelete: SetNull)
-  children Category[] @relation("CategoryParent")
-  products Product[]
+  parent       Category?             @relation("CategoryParent", fields: [parentId], references: [id], onDelete: SetNull)
+  children     Category[]            @relation("CategoryParent")
+  products     Product[]
+  translations CategoryTranslation[]
 
   @@index([parentId])
   @@index([sortOrder])
@@ -132,12 +133,13 @@ model Product {
   isActive    Boolean  @default(true) @map("is_active")
   createdAt   DateTime @default(now()) @map("created_at")
 
-  brand    Brand          @relation(fields: [brandId], references: [id], onDelete: Restrict)
-  category Category       @relation(fields: [categoryId], references: [id], onDelete: Restrict)
-  images   ProductImage[]
-  offers   Offer[]
-  prices   PriceHistory[]
-  clicks   Click[]
+  brand        Brand                @relation(fields: [brandId], references: [id], onDelete: Restrict)
+  category     Category             @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+  images       ProductImage[]
+  offers       Offer[]
+  prices       PriceHistory[]
+  clicks       Click[]
+  translations ProductTranslation[]
 
   @@index([brandId])
   @@index([categoryId])
@@ -313,11 +315,75 @@ model EditorialArticle {
   createdAt            DateTime  @default(now()) @map("created_at")
   updatedAt            DateTime  @updatedAt @map("updated_at")
 
-  views ArticleViewEvent[]
+  views        ArticleViewEvent[]
+  translations EditorialArticleTranslation[]
 
   @@index([status, publishedAt(sort: Desc)])
   @@index([isFeatured, publishedAt(sort: Desc)])
   @@map("editorial_articles")
+}
+
+// ─────────────────────────────────────────────────────────────────
+// i18n sidecar translation tables (Phase 4).
+// Base rows above stay canonical (slugs, specs, offers, prices NEVER
+// translated). A `<locale>` row overlays display text only; readers fall
+// back to the base row when no translation exists. `es` is backfilled to
+// equal the base values, so the default-locale output is byte-identical.
+// ─────────────────────────────────────────────────────────────────
+
+model ProductTranslation {
+  id              String   @id @default(uuid()) @db.Uuid
+  productId       String   @map("product_id") @db.Uuid
+  locale          String
+  name            String
+  description     String
+  longDescription String?  @map("long_description")
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@unique([productId, locale])
+  @@index([locale])
+  @@map("product_translations")
+}
+
+model CategoryTranslation {
+  id          String   @id @default(uuid()) @db.Uuid
+  categoryId  String   @map("category_id") @db.Uuid
+  locale      String
+  name        String
+  // Reserved: not yet rendered. Category descriptions are meta-derived in
+  // buildCategories; the snapshot overlay applies only `name`.
+  description String?
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  category Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+
+  @@unique([categoryId, locale])
+  @@index([locale])
+  @@map("category_translations")
+}
+
+model EditorialArticleTranslation {
+  id            String   @id @default(uuid()) @db.Uuid
+  articleId     String   @map("article_id") @db.Uuid
+  locale        String
+  title         String
+  excerpt       String
+  coverImageAlt String?  @map("cover_image_alt")
+  categoryName  String   @map("category_name")
+  sections      Json     @default("[]")
+  tags          String[]
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  article EditorialArticle @relation(fields: [articleId], references: [id], onDelete: Cascade)
+
+  @@unique([articleId, locale])
+  @@index([locale])
+  @@map("editorial_article_translations")
 }
 
 // ─────────────────────────────────────────────────────────────────

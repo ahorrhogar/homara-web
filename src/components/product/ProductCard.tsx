@@ -2,7 +2,7 @@
 
 import { useEffect, useRef } from "react";
 import Image from "next/image";
-import Link from "next/link";
+import { Link } from "@/i18n/navigation";
 import { Product } from "@/domain/catalog/types";
 import { computeDiscountPercent } from "@/domain/catalog/product-logic";
 import { Star, ArrowRight, Tag, TrendingDown, Sparkles } from "lucide-react";

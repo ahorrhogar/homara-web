@@ -1,5 +1,5 @@
 import Image from "next/image";
-import Link from "next/link";
+import { Link } from "@/i18n/navigation";
 import { ArrowRight, Sparkles, TrendingDown } from "lucide-react";
 
 const HERO_MASCOT_IMAGE = "/homara-mascot.webp";
