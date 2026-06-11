@@ -1,51 +1,53 @@
 import type { Metadata } from "next";
 import { Link } from "@/i18n/navigation";
 import { ArrowRight, BadgeEuro, ExternalLink, Sparkles, Star, Zap } from "lucide-react";
+import { getTranslations, setRequestLocale } from "next-intl/server";
 import Breadcrumb from "@/components/layout/Breadcrumb";
 import { JsonLd } from "@/components/seo/JsonLd";
 import { buildBlogGuideSchemas } from "@/components/seo/blog-guide-schemas";
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://homara.es";
 const PATH = "/blog/mejores-piscinas-desmontables-baratas-amazon-2026";
-const TITLE = "Las mejores piscinas desmontables baratas en Amazon (2026)";
-const DESCRIPTION = "Selección editorial de piscinas desmontables baratas y completas en Amazon 2026: capacidades, pros, contras y recomendación Homara.";
 
 const PUBLISHED_AT = "2026-04-30";
 const UPDATED_AT = "2026-04-30";
-const CATEGORY = "Jardín";
-const KEYWORDS = ["piscina desmontable", "piscina barata Amazon", "piscina familia", "piscina Bestway", "piscina Intex"];
 
-export const metadata: Metadata = {
-  title: TITLE,
-  description: DESCRIPTION,
-  keywords: KEYWORDS,
-  alternates: { canonical: PATH },
-  openGraph: {
-    type: "article",
-    title: TITLE,
-    description: DESCRIPTION,
-    url: `${SITE_URL}${PATH}`,
-    publishedTime: PUBLISHED_AT,
-    modifiedTime: UPDATED_AT,
-    authors: ["Equipo editorial Homara"],
-    section: CATEGORY,
-  },
-  twitter: { card: "summary_large_image", title: TITLE, description: DESCRIPTION },
-};
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ locale: string }>;
+}): Promise<Metadata> {
+  const { locale } = await params;
+  setRequestLocale(locale);
+  const t = await getTranslations("guides.mejores-piscinas-desmontables-baratas-amazon-2026");
+  const title = t("title");
+  const description = t("description");
+
+  return {
+    title,
+    description,
+    keywords: t.raw("keywords") as string[],
+    alternates: { canonical: PATH },
+    openGraph: {
+      type: "article",
+      title,
+      description,
+      url: `${SITE_URL}${PATH}`,
+      publishedTime: PUBLISHED_AT,
+      modifiedTime: UPDATED_AT,
+      authors: ["Equipo editorial Homara"],
+      section: t("category"),
+    },
+    twitter: { card: "summary_large_image", title, description },
+  };
+}
 
 type PoolProduct = {
   rank: number;
   name: string;
   brand: string;
-  structure: string;
-  size: string;
   rating: string;
   priceSeen: string;
-  bestFor: string;
-  notes: string[];
-  pros: string[];
-  cons: string[];
-  miniReview: string;
   affiliateUrl: string;
   imageUrl: string;
 };
@@ -55,27 +57,8 @@ const affiliateProducts: PoolProduct[] = [
     rank: 1,
     name: "Intex 28272NP Small Frame – Detachable Swimming Pool, 300 x 200 x 75 cm, 3.834 Litres, Blue",
     brand: "Intex",
-    structure: "Small Frame (tubular metálica)",
-    size: "300 x 200 x 75 cm",
     rating: "4,5/5 (48.084 valoraciones)",
     priceSeen: "99,00 EUR",
-    bestFor: "Patios medianos y familias de 4-6 personas",
-    notes: [
-      "Dimensiones 300 x 200 x 75 cm",
-      "Capacidad 3.834 L",
-      "Montaje aproximado 30 minutos",
-    ],
-    pros: [
-      "Estructura de acero con recubrimiento anticorrosión",
-      "Lona Super-Tough de triple capa",
-      "Válvula de drenaje con conexión a manguera",
-    ],
-    cons: [
-      "No incluye depuradora (solo conexión de 32 mm)",
-      "Requiere espacio rectangular de 3 x 2 m",
-    ],
-    miniReview:
-      "Una de las Intex más equilibradas si tienes patio medio y quieres una piscina sólida sin irte a tamaños XXL.",
     affiliateUrl: "https://amzn.to/4u4lMEf",
     imageUrl: "https://m.media-amazon.com/images/I/61Yj7vQtbAL._AC_SX569_.jpg",
   },
@@ -83,27 +66,8 @@ const affiliateProducts: PoolProduct[] = [
     rank: 2,
     name: "BESTWAY 56406 – Steel Pro MAX Tubular Detachable Swimming Pool, 305 x 76 cm, Multicoloured",
     brand: "Bestway",
-    structure: "Steel Pro MAX (tubular)",
-    size: "305 x 76 cm",
     rating: "4,4/5 (2.555 valoraciones)",
     priceSeen: "89,99 EUR",
-    bestFor: "Familias que quieren tamaño estándar con precio contenido",
-    notes: [
-      "Estructura Steel Pro MAX tubular",
-      "Dimensiones 305 x 76 cm",
-      "Marca Bestway",
-    ],
-    pros: [
-      "Buen tamaño familiar",
-      "Estructura tubular estable",
-      "Precio competitivo para 305 cm",
-    ],
-    cons: [
-      "Pocos datos técnicos visibles en ficha",
-      "Capacidad no visible",
-    ],
-    miniReview:
-      "Si quieres 305 cm con precio razonable y estructura tubular, esta Bestway cumple sin complicarte.",
     affiliateUrl: "https://amzn.to/4cvKozO",
     imageUrl: "https://m.media-amazon.com/images/I/81i97asQzML._AC_SX569_.jpg",
   },
@@ -111,27 +75,8 @@ const affiliateProducts: PoolProduct[] = [
     rank: 3,
     name: "Intex ¡¡¡28212-POOL Metal Frame 366X76CM 6503L C/DEPURATOR",
     brand: "Intex",
-    structure: "Metal Frame",
-    size: "366 x 76 cm",
     rating: "4,3/5 (5.169 valoraciones)",
     priceSeen: "114,99 EUR",
-    bestFor: "Familias que quieren más capacidad con depuradora",
-    notes: [
-      "Dimensiones 366 x 76 cm",
-      "Capacidad 6.503 L",
-      "Incluye depuradora de cartucho (tipo A) 2.006 L/h",
-    ],
-    pros: [
-      "Gran capacidad para uso familiar",
-      "Incluye depuradora",
-      "Estructura metálica resistente",
-    ],
-    cons: [
-      "Necesita más espacio",
-      "Precio más alto que modelos básicos",
-    ],
-    miniReview:
-      "Si tu prioridad es espacio y mantenimiento más cómodo, esta Intex con depuradora es una apuesta segura.",
     affiliateUrl: "https://amzn.to/4cZY4TQ",
     imageUrl: "https://m.media-amazon.com/images/I/51m14kNojZL._AC_SX569_.jpg",
   },
@@ -139,27 +84,8 @@ const affiliateProducts: PoolProduct[] = [
     rank: 4,
     name: "Bestway Fast Set Self-Standing Detachable Pool, 244 x 66 cm",
     brand: "Bestway",
-    structure: "Autoportante (Fast Set)",
-    size: "244 x 66 cm",
     rating: "3,9/5 (4.037 valoraciones)",
     priceSeen: "41,99 EUR",
-    bestFor: "Montaje rápido y presupuestos muy ajustados",
-    notes: [
-      "Montaje rápido con aro hinchable",
-      "Válvula de drenaje con conexión a manguera",
-      "Lona Tritech de triple capa",
-    ],
-    pros: [
-      "Precio muy bajo",
-      "Montaje rápido",
-      "Fácil de desmontar y guardar",
-    ],
-    cons: [
-      "Menor estabilidad que estructuras metálicas",
-      "Tamaño más limitado",
-    ],
-    miniReview:
-      "La opción de entrada para refrescarse rápido sin montar una estructura completa. Ideal para uso ocasional.",
     affiliateUrl: "https://amzn.to/4u4hBZ1",
     imageUrl: "https://m.media-amazon.com/images/I/51-glVV9EwL._AC_SX569_.jpg",
   },
@@ -167,68 +93,55 @@ const affiliateProducts: PoolProduct[] = [
     rank: 5,
     name: "Intex 26700NP – Round Prisma Frame Raised Pool 305 x 76 cm",
     brand: "Intex",
-    structure: "Prism Frame",
-    size: "305 x 76 cm",
     rating: "4,1/5 (1.186 valoraciones)",
     priceSeen: "89,95 EUR",
-    bestFor: "Quien busca estructura robusta con 305 cm",
-    notes: [
-      "Dimensiones 305 x 76 cm",
-      "Capacidad 4.485 L",
-      "Lona PVC-poliéster de triple capa",
-    ],
-    pros: [
-      "Equilibrio entre tamaño y precio",
-      "Estructura metálica sólida",
-      "Acabado interior efecto gresite",
-    ],
-    cons: [
-      "No incluye depuradora",
-      "Necesita espacio circular",
-    ],
-    miniReview:
-      "Si quieres una piscina redonda de 305 cm con estructura seria y buen precio, esta Intex es una apuesta muy equilibrada.",
     affiliateUrl: "https://amzn.to/498sukr",
     imageUrl: "https://m.media-amazon.com/images/I/61o2sQfnLvL._AC_SX425_.jpg",
   },
 ];
 
-const faqs = [
-  {
-    q: "Cuál es la mejor piscina desmontable barata para un patio pequeño?",
-    a: "Los formatos Small Frame o autoportantes suelen ser más fáciles de montar y ocupan menos espacio. Son ideales para patios pequeños o uso ocasional.",
-  },
-  {
-    q: "Qué estructura es más estable: Metal Frame o autoportante?",
-    a: "Las estructuras Metal Frame y Prism Frame suelen ofrecer más estabilidad que las autoportantes. Si la vas a usar mucho, compensa.",
-  },
-  {
-    q: "Cómo elegir el tamaño correcto?",
-    a: "Mide el espacio disponible y piensa en cuántas personas van a usarla. Un diámetro de 300 cm ya es cómodo para familia, pero exige más espacio.",
-  },
-  {
-    q: "Es mejor Intex o Bestway?",
-    a: "Ambas son marcas conocidas en piscinas desmontables. Intex suele destacar en estructuras metálicas y Bestway en opciones de entrada económicas.",
-  },
-  {
-    q: "Los precios se mantienen todo el verano?",
-    a: "No siempre. En Amazon los precios cambian por stock y promociones, por eso recomendamos revisar el enlace antes de decidir.",
-  },
-];
+export default async function GuidePage({
+  params,
+}: {
+  params: Promise<{ locale: string }>;
+}) {
+  const { locale } = await params;
+  setRequestLocale(locale);
+  const t = await getTranslations("guides.mejores-piscinas-desmontables-baratas-amazon-2026");
 
-export default function GuidePage() {
+  const title = t("title");
+  const description = t("description");
+  const category = t("category");
+  const keywords = t.raw("keywords") as string[];
+
+  const faqs = t.raw("faq") as Array<{ q: string; a: string }>;
+  const productProse = t.raw("products") as Array<{
+    structure: string;
+    size: string;
+    bestFor: string;
+    notes: string[];
+    pros: string[];
+    cons: string[];
+    miniReview: string;
+  }>;
+
+  const products = affiliateProducts.map((product, index) => ({
+    ...product,
+    ...productProse[index],
+  }));
+
   const { article, breadcrumb, faqPage, itemList } = buildBlogGuideSchemas({
     path: PATH,
-    title: TITLE,
-    description: DESCRIPTION,
+    title,
+    description,
     publishedAt: PUBLISHED_AT,
     updatedAt: UPDATED_AT,
-    category: CATEGORY,
-    keywords: KEYWORDS,
+    category,
+    keywords,
     image: affiliateProducts[0]?.imageUrl,
     rankedItems: affiliateProducts.map((p) => ({ name: p.name })),
     faqs: faqs.map((f) => ({ question: f.q, answer: f.a })),
-    articleBody: affiliateProducts.map((p) => `${p.name}: ${p.miniReview}`).join(" "),
+    articleBody: products.map((p) => `${p.name}: ${p.miniReview}`).join(" "),
   });
 
   return (
@@ -240,7 +153,7 @@ export default function GuidePage() {
 
       <main className="container mx-auto px-4 pb-16">
         <div className="py-2">
-          <Breadcrumb items={[{ label: "Blog", href: "/blog" }, { label: TITLE }]} />
+          <Breadcrumb items={[{ label: "Blog", href: "/blog" }, { label: title }]} />
         </div>
 
         <article className="pb-16">
@@ -251,52 +164,50 @@ export default function GuidePage() {
             <div className="relative max-w-4xl">
               <p className="mb-3 inline-flex items-center gap-2 rounded-full border border-accent/30 bg-background/70 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-accent">
                 <Sparkles className="h-3.5 w-3.5" />
-                Guia de compra Homara 2026
+                {t("badge")}
               </p>
 
               <h1 className="font-display text-3xl font-bold leading-tight text-foreground md:text-5xl">
-                Las mejores piscinas desmontables baratas en Amazon para sobrevivir al calor este verano 2026
+                {t("h1")}
               </h1>
 
               <p className="mt-4 max-w-3xl text-base leading-relaxed text-muted-foreground md:text-lg">
-                Si buscas piscinas desmontables baratas en Amazon, esta comparativa editorial resume lo esencial: qué modelo encaja con tu patio,
-                cuál es más estable y cuál se monta más rápido.
+                {t("intro")}
               </p>
 
               <div className="mt-6 flex flex-wrap gap-2 text-xs">
-                <span className="rounded-full bg-card px-3 py-1 font-medium text-foreground">Actualizado: abril 2026</span>
-                <span className="rounded-full bg-card px-3 py-1 font-medium text-foreground">Intención: compra</span>
-                <span className="rounded-full bg-card px-3 py-1 font-medium text-foreground">Rango: 41,99 EUR - 114,99 EUR</span>
+                <span className="rounded-full bg-card px-3 py-1 font-medium text-foreground">{t("metaUpdated")}</span>
+                <span className="rounded-full bg-card px-3 py-1 font-medium text-foreground">{t("metaIntent")}</span>
+                <span className="rounded-full bg-card px-3 py-1 font-medium text-foreground">{t("metaRange")}</span>
               </div>
             </div>
           </header>
 
           <section className="mt-6 rounded-2xl border border-deal/30 bg-deal/5 p-4 text-sm text-muted-foreground">
             <p>
-              Transparencia: este contenido incluye enlaces de afiliado. Si compras desde ellos, Homara puede recibir una comisión sin coste extra para ti.
-              Precios y disponibilidad pueden cambiar según stock y promociones.
+              {t("disclosure")}
             </p>
           </section>
 
           <section className="mt-12">
-            <h2 className="font-display text-2xl font-bold text-foreground md:text-3xl">Resumen rápido: top piscinas desmontables baratas</h2>
-            <p className="mt-2 text-sm text-muted-foreground">Tabla visual para comparar estructura, tamaño y mejor uso de un vistazo.</p>
+            <h2 className="font-display text-2xl font-bold text-foreground md:text-3xl">{t("summaryTitle")}</h2>
+            <p className="mt-2 text-sm text-muted-foreground">{t("summaryIntro")}</p>
 
             <div className="mt-5 overflow-x-auto rounded-2xl border border-border bg-card">
               <table className="w-full min-w-[1040px] text-sm">
                 <thead>
                   <tr className="border-b border-border bg-secondary/50 text-left">
-                    <th className="px-4 py-3 font-semibold text-foreground">Foto</th>
-                    <th className="px-4 py-3 font-semibold text-foreground">Modelo</th>
-                    <th className="px-4 py-3 font-semibold text-foreground">Estructura</th>
-                    <th className="px-4 py-3 font-semibold text-foreground">Tamaño</th>
-                    <th className="px-4 py-3 font-semibold text-foreground">Ideal para</th>
-                    <th className="px-4 py-3 font-semibold text-foreground">Precio visto</th>
-                    <th className="px-4 py-3 font-semibold text-foreground">CTA</th>
+                    <th className="px-4 py-3 font-semibold text-foreground">{t("colFoto")}</th>
+                    <th className="px-4 py-3 font-semibold text-foreground">{t("colModelo")}</th>
+                    <th className="px-4 py-3 font-semibold text-foreground">{t("colEstructura")}</th>
+                    <th className="px-4 py-3 font-semibold text-foreground">{t("colTamano")}</th>
+                    <th className="px-4 py-3 font-semibold text-foreground">{t("colIdealPara")}</th>
+                    <th className="px-4 py-3 font-semibold text-foreground">{t("colPrecioVisto")}</th>
+                    <th className="px-4 py-3 font-semibold text-foreground">{t("colCta")}</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {affiliateProducts.map((product) => (
+                  {products.map((product) => (
                     <tr key={product.rank} className="border-b border-border last:border-b-0">
                       <td className="px-4 py-3">
                         <div className="h-14 w-14 overflow-hidden rounded-lg border border-border bg-background">
@@ -328,7 +239,7 @@ export default function GuidePage() {
                           rel="sponsored nofollow noopener noreferrer"
                           className="inline-flex items-center gap-1 rounded-lg border border-accent/40 bg-accent/10 px-3 py-1.5 text-xs font-semibold text-accent hover:bg-accent/20"
                         >
-                          Ver en Amazon <ExternalLink className="h-3.5 w-3.5" />
+                          {t("ctaVerEnAmazon")} <ExternalLink className="h-3.5 w-3.5" />
                         </a>
                       </td>
                     </tr>
@@ -339,21 +250,21 @@ export default function GuidePage() {
           </section>
 
           <section className="mt-12">
-            <h2 className="font-display text-2xl font-bold text-foreground md:text-3xl">Comparativa rápida: estructura, tamaño y mejor uso</h2>
+            <h2 className="font-display text-2xl font-bold text-foreground md:text-3xl">{t("compareTitle")}</h2>
             <p className="mt-2 text-sm text-muted-foreground">
-              Las fichas de Amazon no muestran siempre datos completos, así que nos centramos en lo seguro: tipo de estructura, tamaño visible y para quién encaja.
+              {t("compareIntro")}
             </p>
 
             <div className="mt-6 grid gap-4 md:grid-cols-2">
-              {affiliateProducts.map((product) => (
+              {products.map((product) => (
                 <div key={product.rank} className="rounded-2xl border border-border bg-card p-4">
-                  <p className="text-xs font-semibold uppercase tracking-wide text-accent">Top {product.rank}</p>
+                  <p className="text-xs font-semibold uppercase tracking-wide text-accent">{t("topLabel", { rank: product.rank })}</p>
                   <h3 className="mt-1 font-display text-lg font-bold text-foreground">{product.name}</h3>
                   <div className="mt-3 space-y-1 text-sm text-muted-foreground">
-                    <p><span className="font-semibold text-foreground">Estructura:</span> {product.structure}</p>
-                    <p><span className="font-semibold text-foreground">Tamaño:</span> {product.size}</p>
-                    <p><span className="font-semibold text-foreground">Mejor para:</span> {product.bestFor}</p>
-                    <p><span className="font-semibold text-foreground">Precio:</span> {product.priceSeen}</p>
+                    <p><span className="font-semibold text-foreground">{t("labelEstructura")}</span> {product.structure}</p>
+                    <p><span className="font-semibold text-foreground">{t("labelTamano")}</span> {product.size}</p>
+                    <p><span className="font-semibold text-foreground">{t("labelMejorPara")}</span> {product.bestFor}</p>
+                    <p><span className="font-semibold text-foreground">{t("labelPrecio")}</span> {product.priceSeen}</p>
                   </div>
                 </div>
               ))}
@@ -361,24 +272,24 @@ export default function GuidePage() {
           </section>
 
           <section className="mt-12">
-            <h2 className="font-display text-2xl font-bold text-foreground md:text-3xl">Las 5 mejores piscinas desmontables baratas de 2026</h2>
+            <h2 className="font-display text-2xl font-bold text-foreground md:text-3xl">{t("topListTitle")}</h2>
             <p className="mt-2 text-sm text-muted-foreground">
-              Selección editorial con enfoque práctico: qué aporta cada modelo y para qué tipo de patio es más recomendable.
+              {t("topListIntro")}
             </p>
 
             <div className="mt-6 space-y-6">
-              {affiliateProducts.map((product) => (
+              {products.map((product) => (
                 <section key={product.rank} className="rounded-2xl border border-border bg-card p-5 md:p-6">
                   <div className="flex flex-wrap items-start justify-between gap-3">
                     <div>
-                      <p className="text-xs font-semibold uppercase tracking-wide text-accent">Top {product.rank}</p>
+                      <p className="text-xs font-semibold uppercase tracking-wide text-accent">{t("topLabel", { rank: product.rank })}</p>
                       <h3 className="mt-1 font-display text-xl font-bold text-foreground md:text-2xl">{product.name}</h3>
-                      <p className="mt-1 text-sm text-muted-foreground">Mejor para: {product.bestFor}</p>
+                      <p className="mt-1 text-sm text-muted-foreground">{t("mejorParaPrefix")} {product.bestFor}</p>
                     </div>
 
                     <div className="rounded-xl border border-border bg-secondary/40 px-4 py-3 text-right text-sm">
                       <p className="font-semibold text-foreground">{product.priceSeen}</p>
-                      <p className="text-xs text-muted-foreground">Precio visto</p>
+                      <p className="text-xs text-muted-foreground">{t("precioVistoLabel")}</p>
                     </div>
                   </div>
 
@@ -400,26 +311,26 @@ export default function GuidePage() {
                     <div>
                       <div className="grid gap-3 text-sm md:grid-cols-2 lg:grid-cols-4">
                         <div className="rounded-lg bg-secondary/50 p-3">
-                          <p className="text-xs text-muted-foreground">Estructura</p>
+                          <p className="text-xs text-muted-foreground">{t("statEstructura")}</p>
                           <p className="font-semibold text-foreground">{product.structure}</p>
                         </div>
                         <div className="rounded-lg bg-secondary/50 p-3">
-                          <p className="text-xs text-muted-foreground">Tamaño</p>
+                          <p className="text-xs text-muted-foreground">{t("statTamano")}</p>
                           <p className="font-semibold text-foreground">{product.size}</p>
                         </div>
                         <div className="rounded-lg bg-secondary/50 p-3">
-                          <p className="text-xs text-muted-foreground">Valoraciones</p>
+                          <p className="text-xs text-muted-foreground">{t("statValoraciones")}</p>
                           <p className="font-semibold text-foreground">{product.rating}</p>
                         </div>
                         <div className="rounded-lg bg-secondary/50 p-3">
-                          <p className="text-xs text-muted-foreground">Precio visto</p>
+                          <p className="text-xs text-muted-foreground">{t("statPrecioVisto")}</p>
                           <p className="font-semibold text-foreground">{product.priceSeen}</p>
                         </div>
                       </div>
 
                       <div className="mt-4 grid gap-4 md:grid-cols-3">
                         <div className="rounded-lg border border-border bg-background p-3">
-                          <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Por que destaca</p>
+                          <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">{t("porQueDestaca")}</p>
                           <ul className="space-y-1.5 text-sm text-foreground">
                             {product.notes.map((note) => (
                               <li key={note} className="flex items-start gap-2">
@@ -431,7 +342,7 @@ export default function GuidePage() {
                         </div>
 
                         <div className="rounded-lg border border-border bg-background p-3">
-                          <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Pros</p>
+                          <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">{t("prosLabel")}</p>
                           <ul className="space-y-1.5 text-sm text-foreground">
                             {product.pros.map((pro) => (
                               <li key={pro} className="flex items-start gap-2">
@@ -443,7 +354,7 @@ export default function GuidePage() {
                         </div>
 
                         <div className="rounded-lg border border-border bg-background p-3">
-                          <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Contras</p>
+                          <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">{t("consLabel")}</p>
                           <ul className="space-y-1.5 text-sm text-foreground">
                             {product.cons.map((con) => (
                               <li key={con} className="flex items-start gap-2">
@@ -456,7 +367,7 @@ export default function GuidePage() {
                       </div>
 
                       <div className="mt-4 rounded-lg border border-accent/30 bg-accent/5 p-3">
-                        <p className="text-xs font-semibold uppercase tracking-wide text-accent">Mini review Homara</p>
+                        <p className="text-xs font-semibold uppercase tracking-wide text-accent">{t("miniReviewLabel")}</p>
                         <p className="mt-1 text-sm leading-relaxed text-foreground">{product.miniReview}</p>
                       </div>
 
@@ -467,13 +378,13 @@ export default function GuidePage() {
                           rel="sponsored nofollow noopener noreferrer"
                           className="inline-flex items-center gap-2 rounded-xl bg-accent px-4 py-2.5 text-sm font-semibold text-accent-foreground hover:opacity-90"
                         >
-                          Ver oferta en Amazon <ExternalLink className="h-4 w-4" />
+                          {t("ctaVerOferta")} <ExternalLink className="h-4 w-4" />
                         </a>
                         <Link
                           href={`/buscar?q=${encodeURIComponent(`${product.brand} piscina desmontable`)}`}
                           className="inline-flex items-center gap-2 rounded-xl border border-border px-4 py-2.5 text-sm font-semibold text-foreground hover:bg-secondary"
                         >
-                          Comparar alternativas en Homara <ArrowRight className="h-4 w-4" />
+                          {t("ctaCompararAlternativas")} <ArrowRight className="h-4 w-4" />
                         </Link>
                       </div>
                     </div>
@@ -484,29 +395,29 @@ export default function GuidePage() {
           </section>
 
           <section className="mt-12 rounded-2xl border border-border bg-card p-5 md:p-6">
-            <h2 className="font-display text-2xl font-bold text-foreground">Qué tener en cuenta antes de comprar una piscina desmontable barata</h2>
+            <h2 className="font-display text-2xl font-bold text-foreground">{t("buyingTitle")}</h2>
             <div className="mt-4 grid gap-4 md:grid-cols-2">
               <div className="rounded-lg bg-secondary/40 p-4">
-                <h3 className="font-semibold text-foreground">1) Espacio real en el patio</h3>
-                <p className="mt-1 text-sm text-muted-foreground">Mide largo y ancho disponibles. Asegúrate de dejar margen para acceder y mover agua sin problemas.</p>
+                <h3 className="font-semibold text-foreground">{t("buying1Title")}</h3>
+                <p className="mt-1 text-sm text-muted-foreground">{t("buying1Body")}</p>
               </div>
               <div className="rounded-lg bg-secondary/40 p-4">
-                <h3 className="font-semibold text-foreground">2) Tipo de estructura</h3>
-                <p className="mt-1 text-sm text-muted-foreground">Autoportante = montaje rápido. Metal/Prism Frame = más estabilidad si vas a usarla a diario.</p>
+                <h3 className="font-semibold text-foreground">{t("buying2Title")}</h3>
+                <p className="mt-1 text-sm text-muted-foreground">{t("buying2Body")}</p>
               </div>
               <div className="rounded-lg bg-secondary/40 p-4">
-                <h3 className="font-semibold text-foreground">3) Tiempo de montaje</h3>
-                <p className="mt-1 text-sm text-muted-foreground">Si quieres algo rápido, prioriza estructuras simples. Si buscas estabilidad, acepta un montaje más largo.</p>
+                <h3 className="font-semibold text-foreground">{t("buying3Title")}</h3>
+                <p className="mt-1 text-sm text-muted-foreground">{t("buying3Body")}</p>
               </div>
               <div className="rounded-lg bg-secondary/40 p-4">
-                <h3 className="font-semibold text-foreground">4) Mantenimiento y vaciado</h3>
-                <p className="mt-1 text-sm text-muted-foreground">Un buen drenaje facilita el vaciado. Revisa siempre si el modelo lo incluye.</p>
+                <h3 className="font-semibold text-foreground">{t("buying4Title")}</h3>
+                <p className="mt-1 text-sm text-muted-foreground">{t("buying4Body")}</p>
               </div>
             </div>
           </section>
 
           <section className="mt-12">
-            <h2 className="font-display text-2xl font-bold text-foreground">Preguntas frecuentes</h2>
+            <h2 className="font-display text-2xl font-bold text-foreground">{t("faqTitle")}</h2>
             <div className="mt-4 space-y-3">
               {faqs.map((item) => (
                 <details key={item.q} className="group rounded-xl border border-border bg-card p-4">
@@ -523,39 +434,38 @@ export default function GuidePage() {
           </section>
 
           <section className="mt-12 rounded-2xl border border-accent/20 bg-gradient-to-br from-card via-card to-accent/10 p-6">
-            <h2 className="font-display text-2xl font-bold text-foreground">Recomendación editorial Homara</h2>
+            <h2 className="font-display text-2xl font-bold text-foreground">{t("recoTitle")}</h2>
             <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
-              Si quieres decidir rápido: Small Frame para empezar con poco presupuesto, Metal Frame para estabilidad y uso frecuente,
-              y Prism Frame si necesitas más espacio y una sensación más robusta.
+              {t("recoBody")}
             </p>
 
             <div className="mt-5 grid gap-3 md:grid-cols-2 lg:grid-cols-3">
-              <a href="https://amzn.to/4u4lMEf" target="_blank" rel="sponsored nofollow noopener noreferrer" className="rounded-lg border border-border bg-background p-3 text-sm font-semibold text-foreground hover:bg-secondary">Intex Small Frame</a>
-              <a href="https://amzn.to/4cZY4TQ" target="_blank" rel="sponsored nofollow noopener noreferrer" className="rounded-lg border border-border bg-background p-3 text-sm font-semibold text-foreground hover:bg-secondary">Intex Metal Frame</a>
-              <a href="https://amzn.to/498sukr" target="_blank" rel="sponsored nofollow noopener noreferrer" className="rounded-lg border border-border bg-background p-3 text-sm font-semibold text-foreground hover:bg-secondary">Intex Prism Frame 305x76</a>
+              <a href="https://amzn.to/4u4lMEf" target="_blank" rel="sponsored nofollow noopener noreferrer" className="rounded-lg border border-border bg-background p-3 text-sm font-semibold text-foreground hover:bg-secondary">{t("recoLinkSmallFrame")}</a>
+              <a href="https://amzn.to/4cZY4TQ" target="_blank" rel="sponsored nofollow noopener noreferrer" className="rounded-lg border border-border bg-background p-3 text-sm font-semibold text-foreground hover:bg-secondary">{t("recoLinkMetalFrame")}</a>
+              <a href="https://amzn.to/498sukr" target="_blank" rel="sponsored nofollow noopener noreferrer" className="rounded-lg border border-border bg-background p-3 text-sm font-semibold text-foreground hover:bg-secondary">{t("recoLinkPrismFrame")}</a>
             </div>
           </section>
 
           <section className="mt-12 rounded-2xl border border-border bg-card p-5 md:p-6">
-            <h2 className="font-display text-2xl font-bold text-foreground">Sigue comparando en Homara</h2>
-            <p className="mt-2 text-sm text-muted-foreground">Enlaces útiles para seguir comparando productos de verano en Homara.</p>
+            <h2 className="font-display text-2xl font-bold text-foreground">{t("keepBrowsingTitle")}</h2>
+            <p className="mt-2 text-sm text-muted-foreground">{t("keepBrowsingIntro")}</p>
 
             <div className="mt-4 grid gap-3 md:grid-cols-2">
-              <Link href="/categoria/jardin-y-exterior" className="rounded-lg border border-border bg-background p-3 text-sm font-medium text-foreground hover:bg-secondary">Ver categoria Jardin y Exterior</Link>
-              <Link href="/categoria/jardin-y-exterior/mobiliario-de-exterior" className="rounded-lg border border-border bg-background p-3 text-sm font-medium text-foreground hover:bg-secondary">Ver mobiliario de exterior</Link>
-              <Link href="/categoria/jardin-y-exterior/mesas-de-exterior" className="rounded-lg border border-border bg-background p-3 text-sm font-medium text-foreground hover:bg-secondary">Ver mesas de exterior</Link>
-              <Link href="/buscar?q=piscina%20desmontable" className="rounded-lg border border-border bg-background p-3 text-sm font-medium text-foreground hover:bg-secondary">Buscar piscinas desmontables</Link>
-              <Link href="/buscar?q=intex" className="rounded-lg border border-border bg-background p-3 text-sm font-medium text-foreground hover:bg-secondary">Comparar modelos Intex</Link>
-              <Link href="/buscar?q=bestway" className="rounded-lg border border-border bg-background p-3 text-sm font-medium text-foreground hover:bg-secondary">Comparar modelos Bestway</Link>
-              <Link href="/asistente" className="rounded-lg border border-accent/40 bg-accent/10 p-3 text-sm font-semibold text-accent hover:bg-accent/20">Pedir recomendación al Asistente de Compras</Link>
+              <Link href="/categoria/jardin-y-exterior" className="rounded-lg border border-border bg-background p-3 text-sm font-medium text-foreground hover:bg-secondary">{t("linkJardin")}</Link>
+              <Link href="/categoria/jardin-y-exterior/mobiliario-de-exterior" className="rounded-lg border border-border bg-background p-3 text-sm font-medium text-foreground hover:bg-secondary">{t("linkMobiliario")}</Link>
+              <Link href="/categoria/jardin-y-exterior/mesas-de-exterior" className="rounded-lg border border-border bg-background p-3 text-sm font-medium text-foreground hover:bg-secondary">{t("linkMesas")}</Link>
+              <Link href="/buscar?q=piscina%20desmontable" className="rounded-lg border border-border bg-background p-3 text-sm font-medium text-foreground hover:bg-secondary">{t("linkBuscarPiscinas")}</Link>
+              <Link href="/buscar?q=intex" className="rounded-lg border border-border bg-background p-3 text-sm font-medium text-foreground hover:bg-secondary">{t("linkIntex")}</Link>
+              <Link href="/buscar?q=bestway" className="rounded-lg border border-border bg-background p-3 text-sm font-medium text-foreground hover:bg-secondary">{t("linkBestway")}</Link>
+              <Link href="/asistente" className="rounded-lg border border-accent/40 bg-accent/10 p-3 text-sm font-semibold text-accent hover:bg-accent/20">{t("linkAsistente")}</Link>
             </div>
 
             <div className="mt-6 rounded-lg border border-dashed border-border p-4 text-sm text-muted-foreground">
-              Contenidos sugeridos para enlazado interno cuando estén publicados:
+              {t("suggestedIntro")}
               <ul className="mt-2 space-y-1 text-foreground">
-                <li>Guía de mantenimiento básico para piscinas desmontables.</li>
-                <li>Cómo preparar el patio antes de instalar una piscina.</li>
-                <li>Los mejores accesorios para piscinas desmontables en verano.</li>
+                <li>{t("suggested1")}</li>
+                <li>{t("suggested2")}</li>
+                <li>{t("suggested3")}</li>
               </ul>
             </div>
           </section>

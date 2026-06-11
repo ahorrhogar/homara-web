@@ -1,37 +1,46 @@
 import type { Metadata } from "next";
 import { Link } from "@/i18n/navigation";
 import { ArrowRight, BadgeEuro, ChefHat, ExternalLink, Sparkles, Star, Zap } from "lucide-react";
+import { getTranslations, setRequestLocale } from "next-intl/server";
 import Breadcrumb from "@/components/layout/Breadcrumb";
 import { JsonLd } from "@/components/seo/JsonLd";
 import { buildBlogGuideSchemas } from "@/components/seo/blog-guide-schemas";
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://homara.es";
 const PATH = "/blog/mejores-ventiladores-de-pie-para-este-verano-2026";
-const TITLE = "Los mejores ventiladores de pie para este verano de 2026";
-const DESCRIPTION = "Comparativa de los mejores ventiladores de pie para verano 2026: 7 modelos, especificaciones, pros, contras y recomendación editorial de Homara.";
 
 const PUBLISHED_AT = "2026-04-22";
 const UPDATED_AT = "2026-04-22";
-const CATEGORY = "Electrodomésticos";
-const KEYWORDS = ["ventilador de pie", "mejor ventilador 2026", "ventilador silencioso", "ventilador habitación", "ventilador altura regulable"];
 
-export const metadata: Metadata = {
-  title: TITLE,
-  description: DESCRIPTION,
-  keywords: KEYWORDS,
-  alternates: { canonical: PATH },
-  openGraph: {
-    type: "article",
-    title: TITLE,
-    description: DESCRIPTION,
-    url: `${SITE_URL}${PATH}`,
-    publishedTime: PUBLISHED_AT,
-    modifiedTime: UPDATED_AT,
-    authors: ["Equipo editorial Homara"],
-    section: CATEGORY,
-  },
-  twitter: { card: "summary_large_image", title: TITLE, description: DESCRIPTION },
-};
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ locale: string }>;
+}): Promise<Metadata> {
+  const { locale } = await params;
+  setRequestLocale(locale);
+  const t = await getTranslations("guides.mejores-ventiladores-de-pie-para-este-verano-2026");
+  const title = t("title");
+  const description = t("description");
+
+  return {
+    title,
+    description,
+    keywords: t.raw("keywords") as string[],
+    alternates: { canonical: PATH },
+    openGraph: {
+      type: "article",
+      title,
+      description,
+      url: `${SITE_URL}${PATH}`,
+      publishedTime: PUBLISHED_AT,
+      modifiedTime: UPDATED_AT,
+      authors: ["Equipo editorial Homara"],
+      section: t("category"),
+    },
+    twitter: { card: "summary_large_image", title, description },
+  };
+}
 
 type FanProduct = {
   rank: number;
@@ -42,11 +51,6 @@ type FanProduct = {
   keySpecs: string;
   rating: string;
   priceSeen: string;
-  bestFor: string;
-  notes: string[];
-  pros: string[];
-  cons: string[];
-  miniReview: string;
   affiliateUrl: string;
   imageUrl: string;
 };
@@ -61,23 +65,6 @@ const fanProducts: FanProduct[] = [
     keySpecs: "40 cm, 5 aspas",
     rating: "4,3/5 (14.909 valoraciones)",
     priceSeen: "20,65 EUR",
-    bestFor: "presupuesto muy ajustado y uso diario sencillo",
-    notes: [
-      "uno de los precios mas bajos de la comparativa",
-      "gran volumen historico de valoraciones",
-      "formato clasico facil de montar",
-    ],
-    pros: [
-      "precio de entrada muy competitivo",
-      "producto muy probado por usuarios",
-      "ideal para habitaciones pequenas y medianas",
-    ],
-    cons: [
-      "sin extras de mando o temporizador avanzado",
-      "menos refinado en ruido que modelos premium",
-    ],
-    miniReview:
-      "Si quieres gastar poco y acertar con una opcion conocida, este Orbegozo es un punto de partida muy dificil de batir.",
     affiliateUrl: "https://amzn.to/4mEnAS3",
     imageUrl: "https://m.media-amazon.com/images/I/61n+-Yq1j7L._AC_SX425_.jpg",
   },
@@ -90,23 +77,6 @@ const fanProducts: FanProduct[] = [
     keySpecs: "50 W, 76 cm, temporizador",
     rating: "4,3/5 (4.259 valoraciones)",
     priceSeen: "37,90 EUR",
-    bestFor: "quien prioriza diseno vertical y poco espacio",
-    notes: [
-      "huella estrecha para pisos pequenos",
-      "buen equilibrio entre precio y prestaciones",
-      "incluye modo noche en su gama",
-    ],
-    pros: [
-      "ocupa poco en el salon o dormitorio",
-      "estetica mas limpia que un ventilador de aspas",
-      "buen precio para ser torre",
-    ],
-    cons: [
-      "caudal mas direccional que un pie grande",
-      "menos facil de limpiar que una rejilla abierta",
-    ],
-    miniReview:
-      "Muy buena compra si quieres una opcion de torre asequible que no robe espacio y mantenga buen rendimiento en verano.",
     affiliateUrl: "https://amzn.to/4erjkmy",
     imageUrl: "https://m.media-amazon.com/images/I/51TVMEm0DqL._AC_SX425_.jpg",
   },
@@ -119,23 +89,6 @@ const fanProducts: FanProduct[] = [
     keySpecs: "motor DC, mando a distancia",
     rating: "4,6/5 (313 valoraciones)",
     priceSeen: "31,40 EUR",
-    bestFor: "quien quiere control fino de velocidad",
-    notes: [
-      "12 niveles para ajustar mejor el flujo",
-      "motor DC mas eficiente que AC basico",
-      "incluye mando remoto",
-    ],
-    pros: [
-      "muy buena nota media en su segmento",
-      "control de potencia mas preciso",
-      "precio competitivo para un DC",
-    ],
-    cons: [
-      "menos valoraciones que modelos super consolidados",
-      "diseno funcional sin extras esteticos",
-    ],
-    miniReview:
-      "Para dormir mejor o ajustar caudal al milimetro, este modelo destaca por su control de velocidades y eficiencia.",
     affiliateUrl: "https://amzn.to/4cngH2s",
     imageUrl: "https://m.media-amazon.com/images/I/61kV75O1C9L._AC_SX425_.jpg",
   },
@@ -148,23 +101,6 @@ const fanProducts: FanProduct[] = [
     keySpecs: "40 cm, oscilacion automatica",
     rating: "4,2/5 (3.891 valoraciones)",
     priceSeen: "28,08 EUR",
-    bestFor: "compra equilibrada por menos de 30 EUR",
-    notes: [
-      "modelo muy conocido en ventas estacionales",
-      "precio medio-bajo y facil reposicion",
-      "configuracion clasica sin curva de aprendizaje",
-    ],
-    pros: [
-      "equilibrio entre coste y confianza",
-      "suficiente para uso cotidiano en hogar",
-      "recambio y soporte de marca conocida",
-    ],
-    cons: [
-      "sin funciones smart o timer largo",
-      "acabado mas basico que gamas superiores",
-    ],
-    miniReview:
-      "Si el objetivo es comprar bien sin subir presupuesto, este Orbegozo suele ser una opcion segura y estable.",
     affiliateUrl: "https://amzn.to/4cPz3KW",
     imageUrl: "https://m.media-amazon.com/images/I/713Cf0YK-2L._AC_SX425_.jpg",
   },
@@ -177,23 +113,6 @@ const fanProducts: FanProduct[] = [
     keySpecs: "20 dB, motor DC, 90 grados",
     rating: "4,6/5 (3.422 valoraciones)",
     priceSeen: "76,49 EUR",
-    bestFor: "dormitorio y usuarios sensibles al ruido",
-    notes: [
-      "enfoque claro en bajo ruido",
-      "motor DC con mayor rango de ajuste",
-      "perfil premium dentro de ventiladores de pie",
-    ],
-    pros: [
-      "muy buena nota y volumen de resenas",
-      "bajo ruido para uso nocturno",
-      "caudal fuerte con consumo contenido",
-    ],
-    cons: [
-      "precio por encima del promedio de la lista",
-      "menos orientado a compra low cost",
-    ],
-    miniReview:
-      "Uno de los mejores candidatos para quien quiere invertir una vez y ganar confort real en noches de calor.",
     affiliateUrl: "https://amzn.to/4sZQAoV",
     imageUrl: "https://m.media-amazon.com/images/I/71TVVOPK1JL._AC_SY550_.jpg",
   },
@@ -206,23 +125,6 @@ const fanProducts: FanProduct[] = [
     keySpecs: "20 dB, 7,6 m/s, 8h timer",
     rating: "4,5/5 (43.629 valoraciones)",
     priceSeen: "89,99 EUR",
-    bestFor: "quien quiere torre premium con prueba social alta",
-    notes: [
-      "es el producto con mas valoraciones de la comparativa",
-      "foco en silencio y control remoto",
-      "rendimiento fuerte para formato torre",
-    ],
-    pros: [
-      "altisima confianza por volumen de usuarios",
-      "muy buena nota media",
-      "excelente para dormitorio moderno",
-    ],
-    cons: [
-      "precio alto frente a torres de entrada",
-      "menos recomendable si solo buscas coste minimo",
-    ],
-    miniReview:
-      "Cuando buscas una torre de gama alta con historial contrastado, este Dreo es de las apuestas mas solidas.",
     affiliateUrl: "https://amzn.to/484czU2",
     imageUrl: "https://m.media-amazon.com/images/I/71G7qy9UDpL._AC_SY550_.jpg",
   },
@@ -235,23 +137,6 @@ const fanProducts: FanProduct[] = [
     keySpecs: "120 W, 20 pulgadas, metal",
     rating: "4,4/5 (452 valoraciones)",
     priceSeen: "52,90 EUR",
-    bestFor: "garaje, gimnasio o estancias muy calurosas",
-    notes: [
-      "caudal potente con enfoque industrial",
-      "aspas metalicas de gran diametro",
-      "angulo de inclinacion ajustable",
-    ],
-    pros: [
-      "mueve mucho aire por euro invertido",
-      "ideal para espacios amplios",
-      "construccion robusta",
-    ],
-    cons: [
-      "mas ruido que modelos de dormitorio",
-      "estetica menos domestica",
-    ],
-    miniReview:
-      "Si tu prioridad es potencia bruta antes que silencio, este Cecotec industrial ofrece mucho rendimiento por precio.",
     affiliateUrl: "https://amzn.to/4sCdodR",
     imageUrl: "https://m.media-amazon.com/images/I/61HxmO64y4L._AC_SX425_.jpg",
   },
@@ -264,23 +149,6 @@ const fanProducts: FanProduct[] = [
     keySpecs: "40 W, 40 cm, altura regulable",
     rating: "3,9/5 (4.982 valoraciones)",
     priceSeen: "29,90 EUR",
-    bestFor: "uso basico diario en presupuesto contenido",
-    notes: [
-      "referencia popular de gama economica",
-      "ajuste de altura y oscilacion",
-      "buen encaje para segundo ventilador de casa",
-    ],
-    pros: [
-      "precio accesible",
-      "facil de encontrar y reemplazar",
-      "suficiente para calor moderado",
-    ],
-    cons: [
-      "nota media inferior a otras alternativas",
-      "ruido percibido variable segun usuario",
-    ],
-    miniReview:
-      "Compra practica cuando buscas resolver calor sin gastar mucho, aunque hay opciones mas silenciosas en escalon superior.",
     affiliateUrl: "https://amzn.to/4cV5SFt",
     imageUrl: "https://m.media-amazon.com/images/I/51YFqHbQJnL._AC_SX425_.jpg",
   },
@@ -293,23 +161,6 @@ const fanProducts: FanProduct[] = [
     keySpecs: "60 W, 10 aspas, timer 15 h",
     rating: "4,6/5 (994 valoraciones)",
     priceSeen: "57,90 EUR",
-    bestFor: "quien quiere mas control sin irse a gama muy alta",
-    notes: [
-      "incluye mando a distancia y temporizador largo",
-      "10 aspas para flujo mas uniforme",
-      "muy buena nota media en su rango",
-    ],
-    pros: [
-      "gran balance entre prestaciones y precio",
-      "ideal para uso diario y nocturno",
-      "configuracion completa",
-    ],
-    cons: [
-      "mas caro que ventiladores basicos de 3 velocidades",
-      "ocupa algo mas que modelos compactos",
-    ],
-    miniReview:
-      "De los mejores puntos medios de la lista: potente, configurable y con funciones utiles para verano intenso.",
     affiliateUrl: "https://amzn.to/4vCEVie",
     imageUrl: "https://m.media-amazon.com/images/I/51ociv32PYS._AC_SX425_.jpg",
   },
@@ -322,64 +173,52 @@ const fanProducts: FanProduct[] = [
     keySpecs: "70 W, aspas metalicas 40 cm",
     rating: "4,5/5 (158 valoraciones)",
     priceSeen: "38,50 EUR",
-    bestFor: "espacios amplios que necesitan impacto rapido",
-    notes: [
-      "diseno industrial con gran caudal",
-      "asa para moverlo entre estancias",
-      "precio atractivo para potencia de suelo",
-    ],
-    pros: [
-      "caudal potente para salon grande o taller",
-      "construccion metalica robusta",
-      "muy buena nota media",
-    ],
-    cons: [
-      "menos indicado para uso nocturno silencioso",
-      "sin mando ni programacion avanzada",
-    ],
-    miniReview:
-      "Cierra el top como opcion de alto impacto en flujo de aire para quien quiere potencia sin subir demasiado el gasto.",
     affiliateUrl: "https://amzn.to/4myFl50",
     imageUrl: "https://m.media-amazon.com/images/I/91hmr+6PBqL._AC_SX425_.jpg",
   },
 ];
 
-const faqs = [
-  {
-    q: "Que ventilador de pie conviene mas para dormir?",
-    a: "Si eres sensible al ruido, prioriza motor DC y modo noche. En esta comparativa, los modelos Dreo y el Amazon Basics DC destacan por control fino y mejor comportamiento nocturno.",
-  },
-  {
-    q: "Ventilador de torre o ventilador de pie clasico?",
-    a: "La torre ocupa menos espacio y suele quedar mejor en decoracion. El de pie clasico o industrial suele mover mas aire por euro en estancias grandes.",
-  },
-  {
-    q: "Cuanta potencia necesito en verano?",
-    a: "Para dormitorio estandar, 40-60 W bien gestionados suelen bastar. Para salon grande o uso industrial, conviene subir a 70-120 W y mayor diametro de aspas.",
-  },
-  {
-    q: "Que mirar antes de comprar con enlace de afiliado?",
-    a: "Valida precio final, cupon activo, stock y politica de devolucion. La recomendacion se basa en datos vistos en abril de 2026, pero Amazon puede cambiar precios en horas.",
-  },
-  {
-    q: "Merece pagar mas por un modelo premium?",
-    a: "Si lo usas muchas horas al dia, si. Suele mejorar ruido, control de velocidades y sensacion de confort real, sobre todo por la noche.",
-  },
-];
+export default async function GuidePage({
+  params,
+}: {
+  params: Promise<{ locale: string }>;
+}) {
+  const { locale } = await params;
+  setRequestLocale(locale);
+  const t = await getTranslations("guides.mejores-ventiladores-de-pie-para-este-verano-2026");
 
-export default function GuidePage() {
+  const title = t("title");
+  const description = t("description");
+  const category = t("category");
+  const keywords = t.raw("keywords") as string[];
+
+  const productProse = t.raw("products") as Array<{
+    bestFor: string;
+    notes: string[];
+    pros: string[];
+    cons: string[];
+    miniReview: string;
+  }>;
+
+  const faqs = t.raw("faq") as Array<{ q: string; a: string }>;
+
+  const products = fanProducts.map((product, index) => ({
+    ...product,
+    ...productProse[index],
+  }));
+
   const { article, breadcrumb, faqPage, itemList } = buildBlogGuideSchemas({
     path: PATH,
-    title: TITLE,
-    description: DESCRIPTION,
+    title,
+    description,
     publishedAt: PUBLISHED_AT,
     updatedAt: UPDATED_AT,
-    category: CATEGORY,
-    keywords: KEYWORDS,
+    category,
+    keywords,
     image: fanProducts[0]?.imageUrl,
     rankedItems: fanProducts.map((p) => ({ name: p.name })),
     faqs: faqs.map((f) => ({ question: f.q, answer: f.a })),
-    articleBody: fanProducts.map((p) => `${p.name}: ${p.miniReview}`).join(" "),
+    articleBody: products.map((p) => `${p.name}: ${p.miniReview}`).join(" "),
   });
 
   return (
@@ -391,7 +230,7 @@ export default function GuidePage() {
 
       <main className="container mx-auto px-4 pb-16">
         <div className="py-2">
-          <Breadcrumb items={[{ label: "Blog", href: "/blog" }, { label: TITLE }]} />
+          <Breadcrumb items={[{ label: "Blog", href: "/blog" }, { label: title }]} />
         </div>
 
         <article className="pb-16">
@@ -402,54 +241,51 @@ export default function GuidePage() {
             <div className="relative max-w-4xl">
               <p className="mb-3 inline-flex items-center gap-2 rounded-full border border-accent/30 bg-background/70 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-accent">
                 <Sparkles className="h-3.5 w-3.5" />
-                Guia de compra Homara 2026
+                {t("badge")}
               </p>
 
               <h1 className="font-display text-3xl font-bold leading-tight text-foreground md:text-5xl">
-                Los mejores ventiladores de pie para este verano: top 10 Amazon 2026
+                {t("h1")}
               </h1>
 
               <p className="mt-4 max-w-3xl text-base leading-relaxed text-muted-foreground md:text-lg">
-                Hemos cruzado precio visible, valoraciones reales, formato y utilidad en casa para construir una lista
-                que te ayude a decidir rapido. Si quieres compra inteligente para olas de calor, empieza por la tabla
-                comparativa y baja despues al ranking completo.
+                {t("intro")}
               </p>
 
               <div className="mt-6 flex flex-wrap gap-2 text-xs">
-                <span className="rounded-full bg-card px-3 py-1 font-medium text-foreground">Actualizado: abril 2026</span>
-                <span className="rounded-full bg-card px-3 py-1 font-medium text-foreground">Intencion: comparativa</span>
-                <span className="rounded-full bg-card px-3 py-1 font-medium text-foreground">Top: 10 ventiladores</span>
+                <span className="rounded-full bg-card px-3 py-1 font-medium text-foreground">{t("metaUpdated")}</span>
+                <span className="rounded-full bg-card px-3 py-1 font-medium text-foreground">{t("metaIntent")}</span>
+                <span className="rounded-full bg-card px-3 py-1 font-medium text-foreground">{t("metaTop")}</span>
               </div>
             </div>
           </header>
 
           <section className="mt-6 rounded-2xl border border-deal/30 bg-deal/5 p-4 text-sm text-muted-foreground">
             <p>
-              Transparencia: este contenido incluye enlaces de afiliado. Si compras desde ellos, Homara puede recibir una
-              comision sin coste extra para ti. Precios y valoraciones pueden cambiar segun stock, cupones y promociones.
+              {t("disclosure")}
             </p>
           </section>
 
           <section className="mt-12">
-            <h2 className="font-display text-2xl font-bold text-foreground md:text-3xl">Resumen rapido: comparativa de ventiladores</h2>
-            <p className="mt-2 text-sm text-muted-foreground">Tabla visual para comparar tipo, velocidades, rating y precio visto de un vistazo.</p>
+            <h2 className="font-display text-2xl font-bold text-foreground md:text-3xl">{t("summaryTitle")}</h2>
+            <p className="mt-2 text-sm text-muted-foreground">{t("summaryIntro")}</p>
 
             <div className="mt-5 overflow-x-auto rounded-2xl border border-border bg-card">
               <table className="w-full min-w-[1080px] text-sm">
                 <thead>
                   <tr className="border-b border-border bg-secondary/50 text-left">
-                    <th className="px-4 py-3 font-semibold text-foreground">Foto</th>
-                    <th className="px-4 py-3 font-semibold text-foreground">Modelo</th>
-                    <th className="px-4 py-3 font-semibold text-foreground">Tipo</th>
-                    <th className="px-4 py-3 font-semibold text-foreground">Velocidades</th>
-                    <th className="px-4 py-3 font-semibold text-foreground">Especificaciones</th>
-                    <th className="px-4 py-3 font-semibold text-foreground">Rating</th>
-                    <th className="px-4 py-3 font-semibold text-foreground">Precio visto</th>
-                    <th className="px-4 py-3 font-semibold text-foreground">CTA</th>
+                    <th className="px-4 py-3 font-semibold text-foreground">{t("colFoto")}</th>
+                    <th className="px-4 py-3 font-semibold text-foreground">{t("colModelo")}</th>
+                    <th className="px-4 py-3 font-semibold text-foreground">{t("colTipo")}</th>
+                    <th className="px-4 py-3 font-semibold text-foreground">{t("colVelocidades")}</th>
+                    <th className="px-4 py-3 font-semibold text-foreground">{t("colEspecificaciones")}</th>
+                    <th className="px-4 py-3 font-semibold text-foreground">{t("colRating")}</th>
+                    <th className="px-4 py-3 font-semibold text-foreground">{t("colPrecioVisto")}</th>
+                    <th className="px-4 py-3 font-semibold text-foreground">{t("colCta")}</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {fanProducts.map((product) => (
+                  {products.map((product) => (
                     <tr key={product.rank} className="border-b border-border last:border-b-0">
                       <td className="px-4 py-3">
                         <div className="h-14 w-14 overflow-hidden rounded-lg border border-border bg-background">
@@ -482,7 +318,7 @@ export default function GuidePage() {
                           rel="sponsored nofollow noopener noreferrer"
                           className="inline-flex items-center gap-1 rounded-lg border border-accent/40 bg-accent/10 px-3 py-1.5 text-xs font-semibold text-accent hover:bg-accent/20"
                         >
-                          Ver en Amazon <ExternalLink className="h-3.5 w-3.5" />
+                          {t("ctaVerEnAmazon")} <ExternalLink className="h-3.5 w-3.5" />
                         </a>
                       </td>
                     </tr>
@@ -493,22 +329,22 @@ export default function GuidePage() {
           </section>
 
           <section className="mt-12">
-            <h2 className="font-display text-2xl font-bold text-foreground md:text-3xl">Los 10 mejores ventiladores de pie para este verano</h2>
-            <p className="mt-2 text-sm text-muted-foreground">Seleccion orientada a conversion: para quien encaja cada modelo y por que puede compensar la compra.</p>
+            <h2 className="font-display text-2xl font-bold text-foreground md:text-3xl">{t("rankingTitle")}</h2>
+            <p className="mt-2 text-sm text-muted-foreground">{t("rankingIntro")}</p>
 
             <div className="mt-6 space-y-6">
-              {fanProducts.map((product) => (
+              {products.map((product) => (
                 <section key={product.rank} className="rounded-2xl border border-border bg-card p-5 md:p-6">
                   <div className="flex flex-wrap items-start justify-between gap-3">
                     <div>
-                      <p className="text-xs font-semibold uppercase tracking-wide text-accent">Top {product.rank}</p>
+                      <p className="text-xs font-semibold uppercase tracking-wide text-accent">{t("topLabel", { rank: product.rank })}</p>
                       <h3 className="mt-1 font-display text-xl font-bold text-foreground md:text-2xl">{product.name}</h3>
-                      <p className="mt-1 text-sm text-muted-foreground">Mejor para: {product.bestFor}</p>
+                      <p className="mt-1 text-sm text-muted-foreground">{t("bestForLabel", { bestFor: product.bestFor })}</p>
                     </div>
 
                     <div className="rounded-xl border border-border bg-secondary/40 px-4 py-3 text-right text-sm">
                       <p className="font-semibold text-foreground">{product.priceSeen}</p>
-                      <p className="text-xs text-muted-foreground">Precio visto</p>
+                      <p className="text-xs text-muted-foreground">{t("precioVistoLabel")}</p>
                     </div>
                   </div>
 
@@ -530,26 +366,26 @@ export default function GuidePage() {
                     <div>
                       <div className="grid gap-3 text-sm md:grid-cols-2 lg:grid-cols-4">
                         <div className="rounded-lg bg-secondary/50 p-3">
-                          <p className="text-xs text-muted-foreground">Tipo</p>
+                          <p className="text-xs text-muted-foreground">{t("colTipo")}</p>
                           <p className="font-semibold text-foreground">{product.fanType}</p>
                         </div>
                         <div className="rounded-lg bg-secondary/50 p-3">
-                          <p className="text-xs text-muted-foreground">Velocidades</p>
+                          <p className="text-xs text-muted-foreground">{t("colVelocidades")}</p>
                           <p className="font-semibold text-foreground">{product.speedModes}</p>
                         </div>
                         <div className="rounded-lg bg-secondary/50 p-3">
-                          <p className="text-xs text-muted-foreground">Especificaciones</p>
+                          <p className="text-xs text-muted-foreground">{t("colEspecificaciones")}</p>
                           <p className="font-semibold text-foreground">{product.keySpecs}</p>
                         </div>
                         <div className="rounded-lg bg-secondary/50 p-3">
-                          <p className="text-xs text-muted-foreground">Rating</p>
+                          <p className="text-xs text-muted-foreground">{t("colRating")}</p>
                           <p className="font-semibold text-foreground">{product.rating}</p>
                         </div>
                       </div>
 
                       <div className="mt-4 grid gap-4 md:grid-cols-3">
                         <div className="rounded-lg border border-border bg-background p-3">
-                          <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Por que destaca</p>
+                          <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">{t("porQueDestaca")}</p>
                           <ul className="space-y-1.5 text-sm text-foreground">
                             {product.notes.map((note) => (
                               <li key={note} className="flex items-start gap-2">
@@ -561,7 +397,7 @@ export default function GuidePage() {
                         </div>
 
                         <div className="rounded-lg border border-border bg-background p-3">
-                          <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Pros</p>
+                          <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">{t("prosLabel")}</p>
                           <ul className="space-y-1.5 text-sm text-foreground">
                             {product.pros.map((pro) => (
                               <li key={pro} className="flex items-start gap-2">
@@ -573,7 +409,7 @@ export default function GuidePage() {
                         </div>
 
                         <div className="rounded-lg border border-border bg-background p-3">
-                          <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Contras</p>
+                          <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">{t("consLabel")}</p>
                           <ul className="space-y-1.5 text-sm text-foreground">
                             {product.cons.map((con) => (
                               <li key={con} className="flex items-start gap-2">
@@ -586,7 +422,7 @@ export default function GuidePage() {
                       </div>
 
                       <div className="mt-4 rounded-lg border border-accent/30 bg-accent/5 p-3">
-                        <p className="text-xs font-semibold uppercase tracking-wide text-accent">Mini review Homara</p>
+                        <p className="text-xs font-semibold uppercase tracking-wide text-accent">{t("miniReviewLabel")}</p>
                         <p className="mt-1 text-sm leading-relaxed text-foreground">{product.miniReview}</p>
                       </div>
 
@@ -597,13 +433,13 @@ export default function GuidePage() {
                           rel="sponsored nofollow noopener noreferrer"
                           className="inline-flex items-center gap-2 rounded-xl bg-accent px-4 py-2.5 text-sm font-semibold text-accent-foreground hover:opacity-90"
                         >
-                          Ver oferta en Amazon <ExternalLink className="h-4 w-4" />
+                          {t("ctaVerOferta")} <ExternalLink className="h-4 w-4" />
                         </a>
                         <Link
                           href={`/buscar?q=${encodeURIComponent(`${product.brand} ventilador`)}`}
                           className="inline-flex items-center gap-2 rounded-xl border border-border px-4 py-2.5 text-sm font-semibold text-foreground hover:bg-secondary"
                         >
-                          Comparar alternativas en Homara <ArrowRight className="h-4 w-4" />
+                          {t("ctaCompararAlternativas")} <ArrowRight className="h-4 w-4" />
                         </Link>
                       </div>
                     </div>
@@ -614,29 +450,29 @@ export default function GuidePage() {
           </section>
 
           <section className="mt-12 rounded-2xl border border-border bg-card p-5 md:p-6">
-            <h2 className="font-display text-2xl font-bold text-foreground">Como elegir ventilador de pie sin equivocarte</h2>
+            <h2 className="font-display text-2xl font-bold text-foreground">{t("howToTitle")}</h2>
             <div className="mt-4 grid gap-4 md:grid-cols-2">
               <div className="rounded-lg bg-secondary/40 p-4">
-                <h3 className="font-semibold text-foreground">1) Prioriza silencio o potencia</h3>
-                <p className="mt-1 text-sm text-muted-foreground">Dormitorio: busca bajo ruido y mas niveles de velocidad. Salon grande: sube potencia y diametro.</p>
+                <h3 className="font-semibold text-foreground">{t("howToStep1Title")}</h3>
+                <p className="mt-1 text-sm text-muted-foreground">{t("howToStep1Body")}</p>
               </div>
               <div className="rounded-lg bg-secondary/40 p-4">
-                <h3 className="font-semibold text-foreground">2) Revisa el tipo de ventilador</h3>
-                <p className="mt-1 text-sm text-muted-foreground">Torre para espacio y estetica. Pie clasico para versatilidad. Industrial para gran caudal.</p>
+                <h3 className="font-semibold text-foreground">{t("howToStep2Title")}</h3>
+                <p className="mt-1 text-sm text-muted-foreground">{t("howToStep2Body")}</p>
               </div>
               <div className="rounded-lg bg-secondary/40 p-4">
-                <h3 className="font-semibold text-foreground">3) Mira funciones que realmente usaras</h3>
-                <p className="mt-1 text-sm text-muted-foreground">Mando, timer, modo noche y oscilacion marcan diferencia real cuando lo usas muchas horas.</p>
+                <h3 className="font-semibold text-foreground">{t("howToStep3Title")}</h3>
+                <p className="mt-1 text-sm text-muted-foreground">{t("howToStep3Body")}</p>
               </div>
               <div className="rounded-lg bg-secondary/40 p-4">
-                <h3 className="font-semibold text-foreground">4) Comprueba coste total antes de pagar</h3>
-                <p className="mt-1 text-sm text-muted-foreground">Valida precio final, envio, cupon activo y devolucion. Ese dato decide la compra inteligente.</p>
+                <h3 className="font-semibold text-foreground">{t("howToStep4Title")}</h3>
+                <p className="mt-1 text-sm text-muted-foreground">{t("howToStep4Body")}</p>
               </div>
             </div>
           </section>
 
           <section className="mt-12">
-            <h2 className="font-display text-2xl font-bold text-foreground">Preguntas frecuentes</h2>
+            <h2 className="font-display text-2xl font-bold text-foreground">{t("faqTitle")}</h2>
             <div className="mt-4 space-y-3">
               {faqs.map((item) => (
                 <details key={item.q} className="group rounded-xl border border-border bg-card p-4">
@@ -653,10 +489,9 @@ export default function GuidePage() {
           </section>
 
           <section className="mt-12 rounded-2xl border border-accent/20 bg-gradient-to-br from-card via-card to-accent/10 p-6">
-            <h2 className="font-display text-2xl font-bold text-foreground">Recomendacion editorial Homara</h2>
+            <h2 className="font-display text-2xl font-bold text-foreground">{t("editorialTitle")}</h2>
             <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
-              Si quieres resolver rapido: Orbegozo SF 0147 para minimo coste, Amazon Basics DC para control de velocidades,
-              Dreo Quiet [Upgraded] para dormitorio exigente y Cecotec 1020 para equilibrio de funciones sin disparar presupuesto.
+              {t("editorialBody")}
             </p>
 
             <div className="mt-5 grid gap-3 md:grid-cols-2 lg:grid-cols-4">
@@ -668,24 +503,24 @@ export default function GuidePage() {
           </section>
 
           <section className="mt-12 rounded-2xl border border-border bg-card p-5 md:p-6">
-            <h2 className="font-display text-2xl font-bold text-foreground">Sigue comparando en Homara</h2>
-            <p className="mt-2 text-sm text-muted-foreground">Enlaces internos para continuar tu decision con contexto de uso real.</p>
+            <h2 className="font-display text-2xl font-bold text-foreground">{t("keepComparingTitle")}</h2>
+            <p className="mt-2 text-sm text-muted-foreground">{t("keepComparingIntro")}</p>
 
             <div className="mt-4 grid gap-3 md:grid-cols-2">
-              <Link href="/buscar?q=ventilador%20de%20pie" className="rounded-lg border border-border bg-background p-3 text-sm font-medium text-foreground hover:bg-secondary">Buscar ventiladores de pie</Link>
-              <Link href="/buscar?q=ventilador%20torre" className="rounded-lg border border-border bg-background p-3 text-sm font-medium text-foreground hover:bg-secondary">Comparar ventiladores de torre</Link>
-              <Link href="/buscar?q=ventilador%20silencioso" className="rounded-lg border border-border bg-background p-3 text-sm font-medium text-foreground hover:bg-secondary">Ver ventiladores silenciosos</Link>
-              <Link href="/buscar?q=ventilador%20industrial" className="rounded-lg border border-border bg-background p-3 text-sm font-medium text-foreground hover:bg-secondary">Ver ventiladores industriales</Link>
-              <Link href="/blog" className="rounded-lg border border-border bg-background p-3 text-sm font-medium text-foreground hover:bg-secondary">Ver mas guias de compra</Link>
-              <Link href="/asistente" className="rounded-lg border border-accent/40 bg-accent/10 p-3 text-sm font-semibold text-accent hover:bg-accent/20">Pedir recomendacion al Asistente de Compras</Link>
+              <Link href="/buscar?q=ventilador%20de%20pie" className="rounded-lg border border-border bg-background p-3 text-sm font-medium text-foreground hover:bg-secondary">{t("linkBuscarPie")}</Link>
+              <Link href="/buscar?q=ventilador%20torre" className="rounded-lg border border-border bg-background p-3 text-sm font-medium text-foreground hover:bg-secondary">{t("linkBuscarTorre")}</Link>
+              <Link href="/buscar?q=ventilador%20silencioso" className="rounded-lg border border-border bg-background p-3 text-sm font-medium text-foreground hover:bg-secondary">{t("linkBuscarSilencioso")}</Link>
+              <Link href="/buscar?q=ventilador%20industrial" className="rounded-lg border border-border bg-background p-3 text-sm font-medium text-foreground hover:bg-secondary">{t("linkBuscarIndustrial")}</Link>
+              <Link href="/blog" className="rounded-lg border border-border bg-background p-3 text-sm font-medium text-foreground hover:bg-secondary">{t("linkMasGuias")}</Link>
+              <Link href="/asistente" className="rounded-lg border border-accent/40 bg-accent/10 p-3 text-sm font-semibold text-accent hover:bg-accent/20">{t("linkAsistente")}</Link>
             </div>
 
             <div className="mt-6 rounded-lg border border-dashed border-border p-4 text-sm text-muted-foreground">
-              Contenidos sugeridos para enlazado interno cuando esten publicados:
+              {t("suggestedIntro")}
               <ul className="mt-2 space-y-1 text-foreground">
-                <li>Como refrescar una habitacion sin aire acondicionado.</li>
-                <li>Ventilador de pie vs torre: diferencias reales en consumo y ruido.</li>
-                <li>Guia de mantenimiento para alargar la vida util del ventilador.</li>
+                {(t.raw("suggestedItems") as string[]).map((item) => (
+                  <li key={item}>{item}</li>
+                ))}
               </ul>
             </div>
           </section>
