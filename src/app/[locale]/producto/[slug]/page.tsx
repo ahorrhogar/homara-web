@@ -248,6 +248,22 @@ export default async function ProductPage({ params }: { params: Promise<{ locale
       };
     });
 
+  // Amazon TOS: prices from the Creators API may be shown only with the time
+  // they were retrieved and a "subject to change" notice. Surface the freshest
+  // Amazon offer's check time as a single disclaimer near the offers.
+  const amazonPriceTimestamps = sortedOffers
+    .filter((o) => /(^|\.)amazon\./i.test(extractDomainFromAffiliateUrl(o.url) || ""))
+    .map((o) => o.lastUpdated)
+    .filter((d): d is string => Boolean(d))
+    .sort();
+  const amazonPriceLabel =
+    amazonPriceTimestamps.length > 0
+      ? new Intl.DateTimeFormat(locale === "en" ? "en-GB" : "es-ES", {
+          dateStyle: "long",
+          timeStyle: "short",
+        }).format(new Date(amazonPriceTimestamps[amazonPriceTimestamps.length - 1]))
+      : undefined;
+
   return (
     <>
       <JsonLd data={productSchema} />
@@ -360,6 +376,11 @@ export default async function ProductPage({ params }: { params: Promise<{ locale
                   />
                 ))}
               </div>
+              {amazonPriceLabel ? (
+                <p className="mt-4 text-xs text-muted-foreground">
+                  {t("amazonPriceDisclaimer", { date: amazonPriceLabel })}
+                </p>
+              ) : null}
             </section>
           </OfferComparator>
         ) : null}
