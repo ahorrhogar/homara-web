@@ -1,11 +1,19 @@
 import type { Metadata } from "next";
 import Breadcrumb from "@/components/layout/Breadcrumb";
+import { buildAlternates } from "@/i18n/seo";
 
-export const metadata: Metadata = {
-  title: "Aviso legal y condiciones de uso",
-  description: "Aviso legal y condiciones generales de uso de Homara, conforme a la LSSI-CE.",
-  alternates: { canonical: "/aviso-legal" },
-};
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ locale: string }>;
+}): Promise<Metadata> {
+  const { locale } = await params;
+  return {
+    title: "Aviso legal y condiciones de uso",
+    description: "Aviso legal y condiciones generales de uso de Homara, conforme a la LSSI-CE.",
+    alternates: buildAlternates("/aviso-legal", locale),
+  };
+}
 
 export default function LegalNoticePage() {
   return (

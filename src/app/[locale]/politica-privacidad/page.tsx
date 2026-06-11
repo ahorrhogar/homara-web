@@ -1,11 +1,19 @@
 import type { Metadata } from "next";
 import Breadcrumb from "@/components/layout/Breadcrumb";
+import { buildAlternates } from "@/i18n/seo";
 
-export const metadata: Metadata = {
-  title: "Política de privacidad",
-  description: "Política de privacidad y protección de datos de Homara, conforme al RGPD y la LOPD-GDD.",
-  alternates: { canonical: "/politica-privacidad" },
-};
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ locale: string }>;
+}): Promise<Metadata> {
+  const { locale } = await params;
+  return {
+    title: "Política de privacidad",
+    description: "Política de privacidad y protección de datos de Homara, conforme al RGPD y la LOPD-GDD.",
+    alternates: buildAlternates("/politica-privacidad", locale),
+  };
+}
 
 export default function PrivacyPolicyPage() {
   return (

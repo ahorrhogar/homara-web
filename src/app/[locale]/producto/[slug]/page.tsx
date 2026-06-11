@@ -23,6 +23,7 @@ import {
   extractDomainFromAffiliateUrl,
   isAffiliateUrlAllowed,
 } from "@/infrastructure/security/affiliateUrl";
+import { buildAlternates, toOpenGraphLocale } from "@/i18n/seo";
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://homara.es";
 
@@ -48,8 +49,9 @@ export async function generateMetadata({
   return {
     title: `${product.name} — Precios, ofertas y opiniones`,
     description,
-    alternates: { canonical: `/producto/${product.slug}` },
+    alternates: buildAlternates(`/producto/${product.slug}`, locale),
     openGraph: {
+      locale: toOpenGraphLocale(locale),
       title: product.name,
       description,
       url: `${SITE_URL}/producto/${product.slug}`,

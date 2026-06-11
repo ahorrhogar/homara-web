@@ -7,6 +7,7 @@ import { getCategories, getCategoryBySlug } from "@/data/catalog/categories";
 import { getFilteredProducts, getProducts } from "@/data/catalog/products";
 import { buildCategorySeoDocument } from "@/domain/catalog/category-seo";
 import type { ProductSortBy } from "@/domain/catalog/types";
+import { buildAlternates, toOpenGraphLocale } from "@/i18n/seo";
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://homara.es";
 
@@ -40,8 +41,9 @@ export async function generateMetadata({
   return {
     title: `${category.name} — Comparativa y precios`,
     description,
-    alternates: { canonical: `/categoria/${category.slug}` },
+    alternates: buildAlternates(`/categoria/${category.slug}`, locale),
     openGraph: {
+      locale: toOpenGraphLocale(locale),
       title: `${category.name} — Homara`,
       description,
       url: `${SITE_URL}/categoria/${category.slug}`,

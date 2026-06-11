@@ -4,6 +4,7 @@ import { ArrowRight, ExternalLink, Flame, Sparkles, Star, ThumbsUp } from "lucid
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import Breadcrumb from "@/components/layout/Breadcrumb";
 import { JsonLd } from "@/components/seo/JsonLd";
+import { buildAlternates, toOpenGraphLocale } from "@/i18n/seo";
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://homara.es";
 const REVIEW_PATH = "/blog/review-cosori-5-7l-freidora-aire-calidad-precio-menos-100-euros";
@@ -27,9 +28,10 @@ export async function generateMetadata({
     title,
     description,
     keywords: t.raw("keywords") as string[],
-    alternates: { canonical: REVIEW_PATH },
+    alternates: buildAlternates(REVIEW_PATH, locale),
     openGraph: {
       type: "article",
+      locale: toOpenGraphLocale(locale),
       title,
       description,
       url: `${SITE_URL}${REVIEW_PATH}`,

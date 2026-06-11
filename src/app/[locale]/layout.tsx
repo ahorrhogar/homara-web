@@ -31,24 +31,27 @@ const ORGANIZATION_SCHEMA = {
     "Comparador editorial independiente de productos para hogar y jardín. Reseñas con datos concretos, comparativas y rankings.",
   foundingDate: "2025",
   areaServed: { "@type": "Place", name: "Hispanohablantes" },
-  knowsLanguage: ["es"],
+  // Grows automatically as locales are added; today just `["es"]`.
+  knowsLanguage: [...routing.locales],
   sameAs: ["https://twitter.com/homara_es"],
 };
 
-const WEBSITE_SCHEMA = {
-  "@context": "https://schema.org",
-  "@type": "WebSite",
-  "@id": `${SITE_URL}/#website`,
-  url: SITE_URL,
-  name: "Homara",
-  inLanguage: "es",
-  publisher: { "@id": `${SITE_URL}/#organization` },
-  potentialAction: {
-    "@type": "SearchAction",
-    target: { "@type": "EntryPoint", urlTemplate: `${SITE_URL}/buscar?q={search_term_string}` },
-    "query-input": "required name=search_term_string",
-  },
-};
+function buildWebsiteSchema(locale: string) {
+  return {
+    "@context": "https://schema.org",
+    "@type": "WebSite",
+    "@id": `${SITE_URL}/#website`,
+    url: SITE_URL,
+    name: "Homara",
+    inLanguage: locale,
+    publisher: { "@id": `${SITE_URL}/#organization` },
+    potentialAction: {
+      "@type": "SearchAction",
+      target: { "@type": "EntryPoint", urlTemplate: `${SITE_URL}/buscar?q={search_term_string}` },
+      "query-input": "required name=search_term_string",
+    },
+  };
+}
 
 export function generateStaticParams() {
   return routing.locales.map((locale) => ({ locale }));
@@ -74,7 +77,7 @@ export default async function LocaleLayout({
   return (
     <NextIntlClientProvider>
       <JsonLd data={ORGANIZATION_SCHEMA} />
-      <JsonLd data={WEBSITE_SCHEMA} />
+      <JsonLd data={buildWebsiteSchema(locale)} />
       <div className="min-h-screen flex flex-col">
         <Suspense fallback={<HeaderFallback />}>
           <Header categories={categories} />

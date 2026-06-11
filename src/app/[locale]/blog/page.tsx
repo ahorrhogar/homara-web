@@ -9,26 +9,35 @@ import {
   getPublishedArticles,
 } from "@/data/catalog/articles";
 import { getTranslations, setRequestLocale } from "next-intl/server";
+import { buildAlternates, toOpenGraphLocale } from "@/i18n/seo";
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://homara.es";
 
-export const metadata: Metadata = {
-  title: "Blog: guías de compra y comparativas",
-  description:
-    "Comparativas, rankings y guías de compra editoriales para hogar y jardín. Datos concretos, pros y contras y precios reales.",
-  alternates: { canonical: "/blog" },
-  openGraph: {
-    type: "website",
-    title: "Blog Homara — Guías y comparativas",
-    description: "Comparativas y guías de compra editoriales para hogar y jardín.",
-    url: `${SITE_URL}/blog`,
-  },
-  twitter: {
-    card: "summary_large_image",
-    title: "Blog Homara — Guías y comparativas",
-    description: "Comparativas y guías de compra editoriales.",
-  },
-};
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ locale: string }>;
+}): Promise<Metadata> {
+  const { locale } = await params;
+  return {
+    title: "Blog: guías de compra y comparativas",
+    description:
+      "Comparativas, rankings y guías de compra editoriales para hogar y jardín. Datos concretos, pros y contras y precios reales.",
+    alternates: buildAlternates("/blog", locale),
+    openGraph: {
+      type: "website",
+      locale: toOpenGraphLocale(locale),
+      title: "Blog Homara — Guías y comparativas",
+      description: "Comparativas y guías de compra editoriales para hogar y jardín.",
+      url: `${SITE_URL}/blog`,
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: "Blog Homara — Guías y comparativas",
+      description: "Comparativas y guías de compra editoriales.",
+    },
+  };
+}
 
 export default async function BlogHubPage({
   params,

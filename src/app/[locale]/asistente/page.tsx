@@ -5,46 +5,55 @@ import { AssistantForm } from "@/components/assistant/AssistantForm";
 import { JsonLd } from "@/components/seo/JsonLd";
 import { getCategories } from "@/data/catalog/categories";
 import { getProducts } from "@/data/catalog/products";
+import { buildAlternates, toOpenGraphLocale } from "@/i18n/seo";
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://homara.es";
 
-export const metadata: Metadata = {
-  title: "Asistente de compras: recomendaciones para tu hogar",
-  description:
-    "Cuéntanos qué necesitas y el asistente de Homara te recomienda productos para tu hogar y jardín según presupuesto, estilo y prioridades. Gratis y sin registro.",
-  alternates: { canonical: "/asistente" },
-  openGraph: {
-    type: "website",
-    title: "Asistente de compras Homara",
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ locale: string }>;
+}): Promise<Metadata> {
+  const { locale } = await params;
+  return {
+    title: "Asistente de compras: recomendaciones para tu hogar",
     description:
-      "Recomendaciones editoriales según tu presupuesto, estilo y prioridades. Gratis y sin registro.",
-    url: `${SITE_URL}/asistente`,
-  },
-  twitter: {
-    card: "summary_large_image",
-    title: "Asistente de compras Homara",
-    description: "Recomendaciones editoriales para hogar y jardín.",
-  },
-};
+      "Cuéntanos qué necesitas y el asistente de Homara te recomienda productos para tu hogar y jardín según presupuesto, estilo y prioridades. Gratis y sin registro.",
+    alternates: buildAlternates("/asistente", locale),
+    openGraph: {
+      type: "website",
+      locale: toOpenGraphLocale(locale),
+      title: "Asistente de compras Homara",
+      description:
+        "Recomendaciones editoriales según tu presupuesto, estilo y prioridades. Gratis y sin registro.",
+      url: `${SITE_URL}/asistente`,
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: "Asistente de compras Homara",
+      description: "Recomendaciones editoriales para hogar y jardín.",
+    },
+  };
+}
 
 export const revalidate = 600;
-
-const ASSISTANT_APP_SCHEMA = {
-  "@context": "https://schema.org",
-  "@type": "WebApplication",
-  name: "Asistente de compras Homara",
-  applicationCategory: "ShoppingApplication",
-  operatingSystem: "Any",
-  url: `${SITE_URL}/asistente`,
-  offers: { "@type": "Offer", price: 0, priceCurrency: "EUR" },
-  inLanguage: "es",
-  publisher: { "@type": "Organization", name: "Homara", url: SITE_URL },
-};
 
 export default async function AssistantPage({ params }: { params: Promise<{ locale: string }> }) {
   const { locale } = await params;
   setRequestLocale(locale);
   const t = await getTranslations("asistente");
+
+  const ASSISTANT_APP_SCHEMA = {
+    "@context": "https://schema.org",
+    "@type": "WebApplication",
+    name: "Asistente de compras Homara",
+    applicationCategory: "ShoppingApplication",
+    operatingSystem: "Any",
+    url: `${SITE_URL}/asistente`,
+    offers: { "@type": "Offer", price: 0, priceCurrency: "EUR" },
+    inLanguage: locale,
+    publisher: { "@type": "Organization", name: "Homara", url: SITE_URL },
+  };
 
   const faqRaw = t.raw("faq") as Array<{ question: string; answer: string }>;
   const faqSchema = {

@@ -5,6 +5,7 @@ import { getTranslations, setRequestLocale } from "next-intl/server";
 import Breadcrumb from "@/components/layout/Breadcrumb";
 import { JsonLd } from "@/components/seo/JsonLd";
 import { buildBlogGuideSchemas } from "@/components/seo/blog-guide-schemas";
+import { buildAlternates, toOpenGraphLocale } from "@/i18n/seo";
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://homara.es";
 const PATH = "/blog/mejores-cafeteras-superautomaticas-amantes-del-cafe-2026";
@@ -29,9 +30,10 @@ export async function generateMetadata({
     title,
     description,
     keywords: t.raw("keywords") as string[],
-    alternates: { canonical: PATH },
+    alternates: buildAlternates(PATH, locale),
     openGraph: {
       type: "article",
+      locale: toOpenGraphLocale(locale),
       title,
       description,
       url: `${SITE_URL}${PATH}`,
@@ -135,6 +137,7 @@ export default async function GuidePage({
 
   const { article, breadcrumb, faqPage, itemList } = buildBlogGuideSchemas({
     path: PATH,
+    locale,
     title,
     description,
     publishedAt: PUBLISHED_AT,

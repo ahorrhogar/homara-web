@@ -23,6 +23,8 @@ export interface BlogGuideSchemaInput {
   faqs?: GuideFaq[];
   /** Plain-text condensed body for AI passage indexing. */
   articleBody?: string;
+  /** Content language tag for `Article.inLanguage`. Defaults to `es`. */
+  locale?: string;
 }
 
 /**
@@ -40,7 +42,7 @@ export function buildBlogGuideSchemas(input: BlogGuideSchemaInput) {
     "@type": "Article",
     headline: input.title,
     description: input.description,
-    inLanguage: "es",
+    inLanguage: input.locale ?? "es",
     articleSection: input.category,
     keywords: input.keywords?.length ? input.keywords.join(", ") : undefined,
     datePublished: input.publishedAt,

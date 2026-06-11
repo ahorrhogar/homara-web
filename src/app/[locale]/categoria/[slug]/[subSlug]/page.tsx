@@ -7,6 +7,7 @@ import { getCategories, getCategoryBySlug, findSubcategoryBySlug } from "@/data/
 import { getFilteredProducts, getProducts } from "@/data/catalog/products";
 import { buildCategorySeoDocument } from "@/domain/catalog/category-seo";
 import type { ProductSortBy } from "@/domain/catalog/types";
+import { buildAlternates, toOpenGraphLocale } from "@/i18n/seo";
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://homara.es";
 const VALID_SORTS: ProductSortBy[] = ["popular", "price-asc", "price-desc", "discount", "rating", "newest"];
@@ -36,8 +37,9 @@ export async function generateMetadata({
   return {
     title: `${subcategory.name} — ${category.name}`,
     description,
-    alternates: { canonical: `/categoria/${category.slug}/${subcategory.slug}` },
+    alternates: buildAlternates(`/categoria/${category.slug}/${subcategory.slug}`, locale),
     openGraph: {
+      locale: toOpenGraphLocale(locale),
       title: `${subcategory.name} — ${category.name}`,
       description,
       url: `${SITE_URL}/categoria/${category.slug}/${subcategory.slug}`,

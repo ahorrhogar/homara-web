@@ -15,24 +15,33 @@ import { JsonLd } from "@/components/seo/JsonLd";
 import { getCategories, getTrendingCategories } from "@/data/catalog/categories";
 import { getHomeCollections } from "@/data/catalog/products";
 import { computeDiscountPercent } from "@/domain/catalog/product-logic";
+import { buildAlternates, toOpenGraphLocale } from "@/i18n/seo";
 import { PRODUCT_IMAGE_FALLBACK } from "@/lib/productImage";
 import type { Category, Product } from "@/domain/catalog/types";
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://homara.es";
 
-export const metadata: Metadata = {
-  title: "Comparador de hogar y jardín en español",
-  description:
-    "Compara productos para tu hogar y jardín con criterio editorial: precios reales, datos concretos y recomendaciones razonadas. Cocina, terraza, muebles y más.",
-  alternates: { canonical: "/" },
-  openGraph: {
-    type: "website",
-    url: "/",
-    title: "Homara — Comparador editorial de hogar y jardín",
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ locale: string }>;
+}): Promise<Metadata> {
+  const { locale } = await params;
+  return {
+    title: "Comparador de hogar y jardín en español",
     description:
-      "Reseñas y comparativas con datos concretos. Encuentra el producto correcto sin ahogarte en pestañas.",
-  },
-};
+      "Compara productos para tu hogar y jardín con criterio editorial: precios reales, datos concretos y recomendaciones razonadas. Cocina, terraza, muebles y más.",
+    alternates: buildAlternates("/", locale),
+    openGraph: {
+      type: "website",
+      locale: toOpenGraphLocale(locale),
+      url: "/",
+      title: "Homara — Comparador editorial de hogar y jardín",
+      description:
+        "Reseñas y comparativas con datos concretos. Encuentra el producto correcto sin ahogarte en pestañas.",
+    },
+  };
+}
 
 function normalize(value: string): string {
   return String(value || "")

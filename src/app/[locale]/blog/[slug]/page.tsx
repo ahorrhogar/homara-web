@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { JsonLd } from "@/components/seo/JsonLd";
 import { getArticleBySlug } from "@/data/catalog/articles";
+import { buildAlternates, toOpenGraphLocale } from "@/i18n/seo";
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://homara.es";
 
@@ -33,8 +34,9 @@ export async function generateMetadata({
     title: article.title,
     description: article.excerpt,
     keywords: article.tags?.length ? article.tags : undefined,
-    alternates: { canonical: article.path },
+    alternates: buildAlternates(article.path, locale),
     openGraph: {
+      locale: toOpenGraphLocale(locale),
       title: article.title,
       description: article.excerpt,
       type: "article",
@@ -76,7 +78,7 @@ export default async function EditorialArticlePage({
     description: article.excerpt,
     articleBody,
     wordCount,
-    inLanguage: "es",
+    inLanguage: locale,
     keywords: article.tags?.length ? article.tags.join(", ") : undefined,
     articleSection: article.categoryName,
     datePublished: article.publishedAt,

@@ -1,11 +1,19 @@
 import type { Metadata } from "next";
 import Breadcrumb from "@/components/layout/Breadcrumb";
+import { buildAlternates } from "@/i18n/seo";
 
-export const metadata: Metadata = {
-  title: "Política de cookies",
-  description: "Política de cookies de Homara: tipos de cookies que utilizamos, base jurídica y cómo gestionarlas.",
-  alternates: { canonical: "/cookies" },
-};
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ locale: string }>;
+}): Promise<Metadata> {
+  const { locale } = await params;
+  return {
+    title: "Política de cookies",
+    description: "Política de cookies de Homara: tipos de cookies que utilizamos, base jurídica y cómo gestionarlas.",
+    alternates: buildAlternates("/cookies", locale),
+  };
+}
 
 export default function CookiesPolicyPage() {
   return (
