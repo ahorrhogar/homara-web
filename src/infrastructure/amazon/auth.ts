@@ -146,6 +146,24 @@ export async function getAccessToken(): Promise<string> {
   return minted.access_token;
 }
 
+/**
+ * Drops the cached token (memory + best-effort Redis) so the next
+ * getAccessToken() re-mints. Called by the client on a 401 to recover from a
+ * token that lapsed before its cached TTL.
+ */
+export async function invalidateToken(): Promise<void> {
+  memoryToken = null;
+  if (!REDIS_URL || !REDIS_TOKEN) return;
+  try {
+    await fetch(`${REDIS_URL}/del/${encodeURIComponent(TOKEN_CACHE_KEY)}`, {
+      headers: { Authorization: `Bearer ${REDIS_TOKEN}` },
+      cache: "no-store",
+    });
+  } catch {
+    // best-effort
+  }
+}
+
 /** True when the credential version expects a `Version` suffix on the header. */
 export function needsVersionHeaderSuffix(): boolean {
   return !isV3();

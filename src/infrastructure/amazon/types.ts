@@ -207,6 +207,11 @@ export interface GetItemsResponse {
   errors?: AmazonApiError[] | null;
 }
 
+export interface GetVariationsResponse {
+  variationsResult?: { items?: AmazonItem[] | null } | null;
+  errors?: AmazonApiError[] | null;
+}
+
 export interface SearchItemsResponse {
   searchResult?: {
     items?: AmazonItem[] | null;

@@ -5,6 +5,7 @@ import { FULL_RESOURCES } from "./resources";
 import type {
   AmazonItem,
   GetItemsResponse,
+  GetVariationsResponse,
   SearchItemsParams,
   SearchItemsResponse,
 } from "./types";
@@ -57,11 +58,11 @@ export async function getVariations(
   asin: string,
   resources: readonly string[] = FULL_RESOURCES,
 ): Promise<{ items: AmazonItem[] }> {
-  const res = await callCreatorsApi<GetItemsResponse>(GET_VARIATIONS_PATH, {
+  const res = await callCreatorsApi<GetVariationsResponse>(GET_VARIATIONS_PATH, {
     asin,
     resources,
   });
-  return { items: res.itemsResult?.items ?? [] };
+  return { items: res.variationsResult?.items ?? [] };
 }
 
 function stripUndefined<T extends Record<string, unknown>>(obj: T): Partial<T> {

@@ -1,6 +1,11 @@
 import "server-only";
 
-import { credentialVersion, getAccessToken, needsVersionHeaderSuffix } from "./auth";
+import {
+  credentialVersion,
+  getAccessToken,
+  invalidateToken,
+  needsVersionHeaderSuffix,
+} from "./auth";
 
 /**
  * Low-level transport for the Amazon Creators API.
@@ -18,10 +23,9 @@ export const PARTNER_TAG = process.env.AMAZON_PARTNER_TAG ?? "ahorrhogar-21";
 export const MARKETPLACE = process.env.AMAZON_MARKETPLACE ?? "www.amazon.es";
 
 /** Account allocation. Free tier starts at 1 TPS; override via env once scaled. */
-const MIN_REQUEST_INTERVAL_MS = Math.max(
-  Math.round(1000 / Number(process.env.AMAZON_TPS ?? 1)),
-  100,
-);
+const CONFIGURED_TPS = Number(process.env.AMAZON_TPS ?? 1);
+const TPS = Number.isFinite(CONFIGURED_TPS) && CONFIGURED_TPS > 0 ? CONFIGURED_TPS : 1;
+const MIN_REQUEST_INTERVAL_MS = Math.max(Math.round(1000 / TPS), 100);
 const MAX_RETRIES = 4;
 
 class AmazonApiError extends Error {
@@ -82,6 +86,7 @@ export async function callCreatorsApi<T>(
   };
 
   let attempt = 0;
+  let authRetried = false;
   // eslint-disable-next-line no-constant-condition
   while (true) {
     await nextSlot();
@@ -110,6 +115,14 @@ export async function callCreatorsApi<T>(
 
     if (res.ok) {
       return (await res.json()) as T;
+    }
+
+    // A 401 means the (possibly cached) token lapsed — drop it and retry once
+    // with a freshly minted token before giving up.
+    if (res.status === 401 && !authRetried) {
+      await invalidateToken();
+      authRetried = true;
+      continue;
     }
 
     const retriable = res.status === 429 || res.status >= 500;
