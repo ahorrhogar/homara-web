@@ -1,4 +1,4 @@
-import Link from "next/link";
+import { Link } from "@/i18n/navigation";
 import Breadcrumb from "@/components/layout/Breadcrumb";
 import ProductCard from "@/components/product/ProductCard";
 import CategorySeoBlock from "@/components/editorial/CategorySeoBlock";

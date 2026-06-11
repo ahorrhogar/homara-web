@@ -1,8 +1,8 @@
 "use client";
 
 import Image from "next/image";
-import Link from "next/link";
-import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { Link, usePathname, useRouter } from "@/i18n/navigation";
+import { useSearchParams } from "next/navigation";
 import { Search, Menu, X, Heart, Sparkles, ChevronRight, ChevronLeft } from "lucide-react";
 import { useState, useRef, useEffect, type FormEvent } from "react";
 import type { Category } from "@/domain/catalog/types";

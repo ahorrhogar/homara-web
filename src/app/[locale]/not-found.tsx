@@ -1,11 +1,6 @@
-import Link from "next/link";
 import type { Metadata } from "next";
+import { Link } from "@/i18n/navigation";
 
-// Root-level 404 boundary. Rendered for requests that resolve outside the
-// `[locale]` segment (e.g. an unknown locale, where the locale layout calls
-// notFound()). It has no locale context, so copy is plain Spanish and it links
-// with `next/link`. Localized 404s for paths *inside* a valid locale are handled
-// by `src/app/[locale]/not-found.tsx`.
 export const metadata: Metadata = {
   title: "Página no encontrada",
   robots: { index: false, follow: false },
