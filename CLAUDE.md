@@ -42,6 +42,8 @@ Package manager: **npm** only (the `bun.lock*` files were removed during migrati
 - `FIRECRAWL_API_KEY` — only needed for `scripts/scrape-products.ts` (one-shot SEO product scrape pipeline). Not required by the app.
 - Auth secrets and SMTP config live in `.env.local`; see `src/lib/auth.ts` for the full Better Auth configuration.
 - `SUPERADMIN_EMAILS` — comma-separated emails granted admin-panel access. Authority is config, not DB state: `isSuperadmin(email)` in `src/lib/auth`'s sibling `src/lib/superadmin.ts` is the single source of truth, checked in `requireAdmin()`, the `(panel)` layout, and the login/signup pre-flight. There is no `role` column or DB-persisted admin flag.
+- `AMAZON_CREATOR_API_CREDENTIAL_ID` / `AMAZON_CREATOR_API_CREDENTIAL_SECRET` / `AMAZON_CREATOR_API_VERSION` — Amazon Creators API credentials (issued in Associates Central; needs an Associate account with ≥10 qualifying sales in the last 30 days). Version selects the auth flow (`v3.2` = Login with Amazon EU, `v2.2` = Cognito EU). `AMAZON_PARTNER_TAG` (default `ahorrhogar-21`) and `AMAZON_MARKETPLACE` (default `www.amazon.es`) are appended to every request; optional `AMAZON_TPS` (default 1) is the throttle rate.
+- `CRON_SECRET` — bearer token guarding `/api/cron/amazon-sync`; Vercel Cron sends it as `Authorization: Bearer <CRON_SECRET>`.
 
 The legacy `VITE_*`, `SUPABASE_*`, and `VITE_USE_REDIRECT_API` variables have all been removed — every offer link now flows through `/api/redirect?offerId=…&track=1`, and the DB is reached via Prisma (`src/lib/db.ts`).
 
@@ -75,6 +77,13 @@ Click tracking on /api/redirect: src/data/catalog/tracking.ts → Prisma click i
 - **`src/lib/auth.ts`** — Better Auth configuration (email/password). Server actions and route handlers call `auth.api.*` for sign-in/sign-up; sessions are managed via Better Auth cookies. Admin access is gated by `isSuperadmin(email)` (`src/lib/superadmin.ts`) against `SUPERADMIN_EMAILS` — not a DB role.
 - **`src/admin/`** — admin panel. Auth is enforced **server-side**: the edge gate `src/proxy.ts` only checks for a session cookie, then the `(panel)` layout (Node runtime) validates the session and runs `isSuperadmin(session.user.email)`, redirecting to `/admin/login` or `/admin/denegado` before any RSC renders. The login form is a client component posting to a server action at `src/admin/_actions/auth.ts`. The browser-side admin services in `src/admin/services/*` invoke `src/admin/_actions/cache.ts` after mutations to push `revalidateTag()` through the public-site cache pipeline.
 - **`src/app/api/redirect/route.ts`** — affiliate redirect endpoint. Validates the `offerId` UUID, runs `isAffiliateUrlAllowed`, optionally records a click via `trackClick` from `@/data/catalog/tracking`, and 302s to the merchant URL.
+- **Amazon Creators API integration** — sources products from Amazon and keeps prices fresh:
+  - `vendor/creatorsapi-nodejs-sdk/` — the official Apache-2.0 SDK, vendored as a prebuilt `dist` (`file:` dependency; Amazon ships it as a ZIP, not on npm). Upgrade per its README.
+  - `src/infrastructure/amazon/` (server-only) — `client.ts` wraps the SDK (singleton, TPS throttle, 429/5xx backoff, 401 token-refresh); `operations.ts` exposes typed `getItems`/`searchItems`/`getVariations`; `resources.ts` has `FULL_RESOURCES` vs cheap `PRICE_RESOURCES`.
+  - `src/domain/catalog/amazon-mapping.ts` — pure item→catalog mapper (specs/attributes/offer). The API returns **no ratings/reviews**, so `specs.rating` stays manual.
+  - `src/admin/services/adminAmazonService.ts` + `/admin/amazon` — super-admin search/queue/approve dashboard. New products land in `amazon_scrape_candidates` and require human approval (brand + category); price/stock updates auto-apply.
+  - `src/data/catalog/amazon-sync.ts` + `/api/cron/amazon-sync` — hourly cron refreshing Amazon `Offer` rows (price/stock/deal), bounded per run, re-checking ~50min out (under Amazon's 1h offer-cache TTL). Schedules in `vercel.json` (sub-daily crons need Vercel Pro). Amazon offers carry `externalSource="amazon"`, `externalId=ASIN`, unique on `(merchantId, externalId)`.
+  - **TOS**: never alter the vended `detailPageURL`; the product page shows a "precio a fecha de…" disclaimer (`productPage.amazonPriceDisclaimer`) from `Offer.lastUpdated`.
 - **`src/app/sitemap.ts`** — generates `/sitemap.xml` from a static route list plus a Prisma read of active categories and published `editorial_articles`. Cached for 1 hour.
 - **`src/app/robots.ts`** — generates `/robots.txt`. Disallows `/api/` and `/admin/`.
 
