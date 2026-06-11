@@ -345,6 +345,14 @@ export async function approveCandidate(input: ApproveCandidateInput): Promise<{ 
     // keep the stored snapshot; the cron will refresh the price after import
   }
 
+  // Don't publish a priceless product — it would surface as "0,00 €" on the
+  // public site. The admin can re-approve once it's back in stock.
+  if (normalized.offer.price == null) {
+    throw new Error(
+      "El producto no tiene precio disponible en Amazon ahora mismo (sin oferta destacada); no se puede publicar.",
+    );
+  }
+
   const brandId = input.brandId ?? (await ensureBrand(input.brandName ?? normalized.brandName ?? "Genérico"));
   const merchantId = await ensureAmazonMerchant();
   const name = (input.name ?? normalized.name).trim();
