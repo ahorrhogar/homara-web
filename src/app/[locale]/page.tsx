@@ -350,7 +350,7 @@ async function HomeCatalogSections() {
             {t("howItWorksTitle")}
           </h2>
           <div className="grid md:grid-cols-3 gap-6 max-w-3xl mx-auto mb-10">
-            {howItWorksTexts.map((step, i) => (
+            {howItWorksTexts.slice(0, HOW_IT_WORKS_ICONS.length).map((step, i) => (
               <div key={step.title} className="text-center">
                 <div className="w-14 h-14 rounded-xl bg-accent/10 text-accent flex items-center justify-center mx-auto mb-3">
                   {HOW_IT_WORKS_ICONS[i]}

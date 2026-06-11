@@ -182,7 +182,7 @@ export default async function ProductPage({ params }: { params: Promise<{ locale
   const productFaq: Array<{ question: string; answer: string }> = [];
   const specs = product.specs ?? [];
   const lookupSpec = (key: string) =>
-    specs.find((s) => s.name?.toLowerCase().includes(key))?.value;
+    specs.find((s) => s.label?.toLowerCase().includes(key))?.value;
 
   const dimensions = lookupSpec("dimens") || lookupSpec("medid") || lookupSpec("tamaño");
   const material = lookupSpec("material");
