@@ -4,7 +4,7 @@ import { logger } from "@/infrastructure/logging/logger";
 /**
  * Background Amazon price/availability sync.
  *
- * Triggered by Vercel Cron (hourly) — see vercel.json. Secured by a bearer
+ * Triggered by Vercel Cron (daily at 03:30) — see vercel.json. Secured by a bearer
  * token so it can't be invoked publicly. `?full=1` does the daily heavier pass
  * (pulls image/spec resources too); `?limit=N` bounds offers per invocation.
  */
