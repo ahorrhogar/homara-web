@@ -6,6 +6,7 @@ import { redirect } from "next/navigation";
 
 import { signOutAdminAction } from "@/admin/_actions/auth";
 import { auth } from "@/lib/auth";
+import { isSuperadmin } from "@/lib/superadmin";
 
 export const metadata: Metadata = {
   title: { default: "Admin · Homara", template: "%s · Admin · Homara" },
@@ -21,6 +22,7 @@ const NAV_ITEMS = [
   { href: "/admin/merchants", label: "Tiendas" },
   { href: "/admin/articles", label: "Artículos" },
   { href: "/admin/imports", label: "Importaciones" },
+  { href: "/admin/amazon", label: "Amazon" },
   { href: "/admin/analytics", label: "Analytics" },
   { href: "/admin/audit", label: "Auditoría" },
   { href: "/admin/settings", label: "Ajustes" },
@@ -29,7 +31,7 @@ const NAV_ITEMS = [
 export default async function AdminPanelLayout({ children }: { children: ReactNode }) {
   const session = await auth.api.getSession({ headers: await headers() });
   if (!session?.user) redirect("/admin/login");
-  if ((session.user as { role?: string }).role !== "admin") redirect("/admin/denegado");
+  if (!isSuperadmin(session.user.email)) redirect("/admin/denegado");
   const email = session.user.email ?? "";
 
   return (

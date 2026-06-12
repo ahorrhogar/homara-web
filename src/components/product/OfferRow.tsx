@@ -4,6 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { Truck, ShieldCheck, ExternalLink } from "lucide-react";
+import { useTranslations } from "next-intl";
 import type { Offer, Product } from "@/domain/catalog/types";
 import { gaEvent } from "@/infrastructure/analytics/ga4";
 import {
@@ -30,6 +31,7 @@ interface Props {
 }
 
 export function OfferRow({ offer, product, index, isSafe }: Props) {
+  const t = useTranslations("product");
   const rowRef = useRef<HTMLDivElement>(null);
   const eidRef = useRef<string | null>(null);
   const impressionFired = useRef(false);
@@ -128,12 +130,12 @@ export function OfferRow({ offer, product, index, isSafe }: Props) {
             <span className="inline-flex items-center gap-1">
               <Truck className="w-3 h-3" />
               {offer.freeShipping
-                ? "Envío gratis"
-                : `+${offer.shippingCost.toFixed(2).replace(".", ",")} € envío`}
+                ? t("freeShipping")
+                : t("shippingCost", { cost: offer.shippingCost.toFixed(2).replace(".", ",") })}
             </span>
             {offer.merchant.trusted ? (
               <span className="inline-flex items-center gap-1">
-                <ShieldCheck className="w-3 h-3" /> Tienda verificada
+                <ShieldCheck className="w-3 h-3" /> {t("verifiedStore")}
               </span>
             ) : null}
           </p>
@@ -146,7 +148,7 @@ export function OfferRow({ offer, product, index, isSafe }: Props) {
             {offer.price.toFixed(2).replace(".", ",")} €
           </p>
           <p className="text-xs text-muted-foreground">
-            Total {total.toFixed(2).replace(".", ",")} €
+            {t("total", { total: total.toFixed(2).replace(".", ",") })}
           </p>
         </div>
         {isSafe ? (
@@ -157,10 +159,10 @@ export function OfferRow({ offer, product, index, isSafe }: Props) {
             onClick={handleClick}
             className="inline-flex items-center gap-1.5 rounded-xl bg-accent px-4 py-2 text-sm font-semibold text-accent-foreground hover:opacity-90 transition-opacity"
           >
-            Ver oferta <ExternalLink className="w-3.5 h-3.5" />
+            {t("viewOffer")} <ExternalLink className="w-3.5 h-3.5" />
           </Link>
         ) : (
-          <span className="text-xs text-muted-foreground italic">No disponible</span>
+          <span className="text-xs text-muted-foreground italic">{t("unavailable")}</span>
         )}
       </div>
     </div>

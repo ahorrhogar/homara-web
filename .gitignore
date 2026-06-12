@@ -21,6 +21,9 @@ next-env.d.ts.bak
 # Build artifacts
 dist
 dist-ssr
+# …but the vendored official Amazon SDK ships as a prebuilt dist we DO track.
+!vendor/creatorsapi-nodejs-sdk/dist
+!vendor/creatorsapi-nodejs-sdk/dist/**
 
 # Firecrawl scrape cache (regeneratable via scripts/scrape-products.ts)
 scripts/data/scraped/

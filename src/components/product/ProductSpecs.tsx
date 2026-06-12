@@ -2,11 +2,13 @@
 
 import { useState } from "react";
 import { ChevronDown, ChevronUp } from "lucide-react";
+import { useTranslations } from "next-intl";
 import type { ProductSpec } from "@/domain/catalog/types";
 
 const SPEC_VALUE_PREVIEW_LENGTH = 160;
 
 function SpecValue({ value }: { value: string }) {
+  const t = useTranslations("product");
   const [expanded, setExpanded] = useState(false);
   const normalized = value.trim();
   const shouldTruncate = normalized.length > SPEC_VALUE_PREVIEW_LENGTH;
@@ -24,7 +26,7 @@ function SpecValue({ value }: { value: string }) {
           aria-expanded={expanded}
           className="mt-1 block w-full text-right text-xs font-medium text-accent hover:underline"
         >
-          {expanded ? "Leer menos" : "Leer más"}
+          {expanded ? t("readLess") : t("readMore")}
         </button>
       ) : null}
     </div>
@@ -32,12 +34,13 @@ function SpecValue({ value }: { value: string }) {
 }
 
 export function ProductSpecs({ specs }: { specs: ProductSpec[] }) {
+  const t = useTranslations("product");
   const [showAll, setShowAll] = useState(false);
   const visible = showAll ? specs : specs.slice(0, 4);
 
   return (
     <div className="rounded-xl border border-border bg-card p-4">
-      <h3 className="font-semibold text-foreground mb-3">Especificaciones</h3>
+      <h3 className="font-semibold text-foreground mb-3">{t("specifications")}</h3>
       <dl className="space-y-2 text-sm">
         {visible.map((spec) => (
           <div key={spec.label} className="flex justify-between gap-3 border-b border-border/50 pb-2 last:border-0">
@@ -56,11 +59,11 @@ export function ProductSpecs({ specs }: { specs: ProductSpec[] }) {
         >
           {showAll ? (
             <>
-              Ver menos <ChevronUp className="w-3.5 h-3.5" />
+              {t("showLess")} <ChevronUp className="w-3.5 h-3.5" />
             </>
           ) : (
             <>
-              Ver todas las especificaciones ({specs.length}) <ChevronDown className="w-3.5 h-3.5" />
+              {t("showAllSpecs", { count: specs.length })} <ChevronDown className="w-3.5 h-3.5" />
             </>
           )}
         </button>

@@ -31,6 +31,7 @@ import type {
 } from "@/admin/types";
 import { requireAdmin } from "@/lib/admin-guard";
 import { cleanupReplacedImage, deleteR2ImageIfUnreferenced } from "@/lib/image-cleanup";
+import { isAffiliateUrlAllowed } from "@/infrastructure/security/affiliateUrl";
 import { normalizeExternalImageUrl, uploadToR2, type R2Folder } from "@/lib/r2";
 import { db } from "@/lib/db";
 
@@ -88,6 +89,41 @@ export interface OfferMutationInput {
   lastSyncError?: string;
   priorityScore?: number;
   freshnessScore?: number;
+}
+
+export interface ProductWithOfferInput {
+  productId?: string;
+  name: string;
+  slug: string;
+  brandId: string;
+  categoryId: string;
+  shortDescription: string;
+  longDescription: string;
+  technicalSpecs?: Array<{ label: string; value: string }>;
+  tags?: string[];
+  sku?: string;
+  ean?: string;
+  material?: string;
+  color?: string;
+  style?: string;
+  dimensions?: string;
+  weight?: string;
+  rating?: number;
+  reviewCount?: number;
+  isActive: boolean;
+  featured: boolean;
+  teamRecommended: boolean;
+  editorialPriority: number;
+  primaryImageUrl?: string;
+  offer: {
+    merchantId: string;
+    price: number;
+    oldPrice?: number;
+    url: string;
+    stock: boolean;
+    isActive: boolean;
+    sourceType: OfferSourceType;
+  };
 }
 
 export interface BrandMutationInput {
@@ -250,6 +286,13 @@ function mapProduct(row: ProductRow): AdminProductRecord {
     editorialPriority: Number(specs.editorialPriority ?? attributes.editorialPriority ?? 0),
     sku: typeof specs.sku === "string" ? specs.sku : undefined,
     ean: typeof specs.ean === "string" ? specs.ean : undefined,
+    material: typeof specs.material === "string" ? specs.material : undefined,
+    color: typeof specs.color === "string" ? specs.color : undefined,
+    style: typeof specs.style === "string" ? specs.style : undefined,
+    dimensions: typeof specs.dimensions === "string" ? specs.dimensions : undefined,
+    weight: typeof specs.weight === "string" ? specs.weight : undefined,
+    rating: typeof specs.rating === "number" ? specs.rating : undefined,
+    reviewCount: typeof specs.reviewCount === "number" ? specs.reviewCount : undefined,
     createdAt: row.createdAt.toISOString(),
     updatedAt: row.createdAt.toISOString(),
     primaryImageUrl: primaryImage,
@@ -549,6 +592,183 @@ export async function upsertProduct(input: ProductMutationInput): Promise<AdminP
   await logAudit(session.user.id, input.id ? "product.update" : "product.create", "product", row.id, { name: data.name });
   invalidateCatalog();
   return mapProduct(row);
+}
+
+export async function upsertProductWithOffer(input: ProductWithOfferInput): Promise<{ productId: string; offerId: string }> {
+  const session = await requireAdmin();
+  if (input.offer.price <= 0) throw new Error("El precio debe ser mayor que 0.");
+
+  const merchant = await db.merchant.findUnique({
+    where: { id: input.offer.merchantId },
+    select: { domain: true },
+  });
+  if (!merchant) throw new Error("Tienda no encontrada.");
+  if (!isAffiliateUrlAllowed(input.offer.url.trim(), merchant.domain)) {
+    throw new Error("La URL de oferta no es válida.");
+  }
+
+  const trimmedImageUrl = input.primaryImageUrl?.trim();
+  const resolvedImageUrl = trimmedImageUrl ? resolveImageUrlOrThrow(trimmedImageUrl) : null;
+
+  const PrismaNS = (await import("@prisma/client")).Prisma;
+
+  // The slug is a structural identifier — collisions on create would silently
+  // overwrite a foreign product (HARD RULE #2). We surface them as errors and
+  // let the admin pick a different name. In edit mode the slug stays whatever
+  // was previously saved and is not re-validated for collisions against itself.
+  let collisionImage: string | null = null;
+  if (!input.productId) {
+    const colliding = await db.product.findFirst({
+      where: { specs: { path: ["slug"], equals: input.slug } },
+      select: { id: true, name: true },
+    });
+    if (colliding) {
+      throw new Error(`Ya existe un producto con el slug «${input.slug}» («${colliding.name}»). Cambia el nombre o slug.`);
+    }
+  } else {
+    const previousImage = await db.productImage.findFirst({
+      where: { productId: input.productId, isPrimary: true },
+      select: { url: true },
+    });
+    collisionImage = previousImage?.url ?? null;
+  }
+
+  const result = await db.$transaction(async (tx) => {
+    // Read-then-merge so we never wipe spec keys the form doesn't expose
+    // (bestseller, isNew, future fields) on save.
+    const existingProductRow = input.productId
+      ? await tx.product.findUnique({
+          where: { id: input.productId },
+          select: { specs: true },
+        })
+      : null;
+    const existingSpecs = existingProductRow?.specs && typeof existingProductRow.specs === "object" && !Array.isArray(existingProductRow.specs)
+      ? (existingProductRow.specs as Record<string, unknown>)
+      : {};
+
+    const specs: Prisma.JsonObject = {
+      ...existingSpecs,
+      slug: input.slug,
+      longDescription: input.longDescription,
+      featured: input.featured,
+      teamRecommended: input.teamRecommended,
+      editorialPriority: input.editorialPriority,
+      // technicalSpecs is the canonical source — always overwrite (allows
+      // intentional clearing by the admin via the textarea).
+      attributes: (input.technicalSpecs ?? []) as unknown as Prisma.JsonArray,
+      tags: input.tags ?? [],
+      sku: input.sku ?? null,
+      ean: input.ean ?? null,
+      material: input.material ?? null,
+      color: input.color ?? null,
+      style: input.style ?? null,
+      dimensions: input.dimensions ?? null,
+      weight: input.weight ?? null,
+      rating: typeof input.rating === "number" ? input.rating : null,
+      reviewCount: typeof input.reviewCount === "number" ? input.reviewCount : null,
+    };
+
+    const productData = {
+      name: input.name.trim(),
+      brandId: input.brandId,
+      categoryId: input.categoryId,
+      description: input.shortDescription.trim(),
+      specs: specs as Prisma.InputJsonValue,
+      isActive: input.isActive,
+    };
+
+    let productId: string;
+    if (input.productId) {
+      await tx.product.update({ where: { id: input.productId }, data: productData });
+      productId = input.productId;
+    } else {
+      const created = await tx.product.create({ data: productData, select: { id: true } });
+      productId = created.id;
+    }
+
+    if (resolvedImageUrl) {
+      const primary = await tx.productImage.findFirst({
+        where: { productId, isPrimary: true },
+        select: { id: true, url: true },
+      });
+      if (primary) {
+        if (primary.url !== resolvedImageUrl) {
+          await tx.productImage.update({ where: { id: primary.id }, data: { url: resolvedImageUrl } });
+        }
+      } else {
+        await tx.productImage.create({
+          data: { productId, url: resolvedImageUrl, isPrimary: true, sortOrder: 0 },
+        });
+      }
+    }
+
+    const existingOffer = await tx.offer.findFirst({
+      where: { productId, merchantId: input.offer.merchantId },
+      select: { id: true, price: true, isFeatured: true },
+    });
+    const priceDecimal = new PrismaNS.Decimal(input.offer.price);
+    const oldPriceDecimal = input.offer.oldPrice ? new PrismaNS.Decimal(input.offer.oldPrice) : null;
+    const offerData = {
+      productId,
+      merchantId: input.offer.merchantId,
+      price: priceDecimal,
+      oldPrice: oldPriceDecimal,
+      currentPrice: priceDecimal,
+      url: input.offer.url.trim(),
+      stock: input.offer.stock,
+      isActive: input.offer.isActive,
+      // Preserve the existing isFeatured flag — the new sheet doesn't expose
+      // it, so hardcoding false would silently clear a flag set elsewhere.
+      isFeatured: existingOffer?.isFeatured ?? false,
+      sourceType: input.offer.sourceType,
+      updateMode: "manual" as const,
+      syncStatus: "ok" as const,
+      lastCheckedAt: new Date(),
+      lastUpdatedBy: session.user.id,
+    };
+
+    let offerId: string;
+    if (existingOffer) {
+      await tx.offer.update({ where: { id: existingOffer.id }, data: offerData });
+      offerId = existingOffer.id;
+    } else {
+      const created = await tx.offer.create({ data: offerData, select: { id: true } });
+      offerId = created.id;
+    }
+
+    await tx.priceHistory.create({
+      data: {
+        productId,
+        offerId,
+        merchantId: input.offer.merchantId,
+        price: priceDecimal,
+        oldPrice: existingOffer?.price ?? oldPriceDecimal,
+        sourceType: input.offer.sourceType,
+        updateMode: "manual",
+        syncStatus: "ok",
+        changedBy: session.user.id,
+        changeReason: input.productId ? "admin-edit" : "admin-create",
+      },
+    });
+
+    return { productId, offerId };
+  });
+
+  // If the admin replaced the primary image with a different URL, clean up the
+  // previous R2 blob (mirrors upsertBrand / upsertMerchant / upsertCategory).
+  if (collisionImage && resolvedImageUrl && collisionImage !== resolvedImageUrl) {
+    await cleanupReplacedImage(collisionImage, resolvedImageUrl);
+  }
+
+  await logAudit(
+    session.user.id,
+    input.productId ? "product.upsert_with_offer" : "product.create_with_offer",
+    "product",
+    result.productId,
+    { offerId: result.offerId },
+  );
+  invalidateCatalog();
+  return result;
 }
 
 export async function duplicateProduct(productId: string): Promise<AdminProductRecord> {

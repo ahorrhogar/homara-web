@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { LoginForm } from "@/admin/components/LoginForm";
 
 export const metadata: Metadata = {
@@ -19,6 +20,12 @@ export default function AdminLoginPage({
           Inicia sesión para gestionar el catálogo de Homara.
         </p>
         <LoginFormWrapper searchParams={searchParams} />
+        <p className="mt-4 text-center text-sm text-muted-foreground">
+          ¿Primer acceso?{" "}
+          <Link href="/admin/registro" className="font-medium text-accent hover:underline">
+            Crea tu cuenta
+          </Link>
+        </p>
       </div>
     </main>
   );

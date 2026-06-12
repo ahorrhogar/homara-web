@@ -1,14 +1,6 @@
 import type { Metadata, Viewport } from "next";
-import { Suspense } from "react";
 import { Inter, Plus_Jakarta_Sans } from "next/font/google";
 import { Providers } from "@/app/providers";
-import { AnalyticsScripts } from "@/components/analytics/AnalyticsScripts";
-import { GoogleAnalyticsMount } from "@/components/analytics/GoogleAnalyticsMount";
-import Header from "@/components/layout/Header";
-import Footer from "@/components/layout/Footer";
-import CookieBanner from "@/components/layout/CookieBanner";
-import { JsonLd } from "@/components/seo/JsonLd";
-import { getCategories } from "@/data/catalog/categories";
 import "@/app/globals.css";
 
 const inter = Inter({
@@ -111,78 +103,23 @@ export const metadata: Metadata = {
   },
 };
 
-const ORGANIZATION_SCHEMA = {
-  "@context": "https://schema.org",
-  "@type": "Organization",
-  "@id": `${SITE_URL}/#organization`,
-  name: "Homara",
-  alternateName: "Homara — Comparador de hogar y jardín",
-  url: SITE_URL,
-  logo: {
-    "@type": "ImageObject",
-    url: `${SITE_URL}/homara-logo.svg`,
-    width: 512,
-    height: 512,
-  },
-  image: `${SITE_URL}/homara-mascot.webp`,
-  description:
-    "Comparador editorial independiente de productos para hogar y jardín. Reseñas con datos concretos, comparativas y rankings.",
-  foundingDate: "2025",
-  areaServed: { "@type": "Place", name: "Hispanohablantes" },
-  knowsLanguage: ["es"],
-  sameAs: ["https://twitter.com/homara_es"],
-};
-
-const WEBSITE_SCHEMA = {
-  "@context": "https://schema.org",
-  "@type": "WebSite",
-  "@id": `${SITE_URL}/#website`,
-  url: SITE_URL,
-  name: "Homara",
-  inLanguage: "es",
-  publisher: { "@id": `${SITE_URL}/#organization` },
-  potentialAction: {
-    "@type": "SearchAction",
-    target: { "@type": "EntryPoint", urlTemplate: `${SITE_URL}/buscar?q={search_term_string}` },
-    "query-input": "required name=search_term_string",
-  },
-};
-
-export default async function RootLayout({ children }: { children: React.ReactNode }) {
-  // Fetched once per request via tagged unstable_cache. Header + Footer share the same data.
-  const categories = await safeGetCategories();
-
+/**
+ * Root layout. Owns the single `<html>`/`<body>` and the app-wide client
+ * providers (TanStack Query etc.) so BOTH the public `[locale]` segment and the
+ * non-localized `/admin` + `/api` routes inherit them. The public chrome
+ * (Header/Footer/cookie banner/JSON-LD/analytics) and locale context live in
+ * `src/app/[locale]/layout.tsx`.
+ *
+ * `lang="es"` is hardcoded because `es` is the only active locale. When a second
+ * locale is added, move `<html lang>` resolution into the locale layout (see the
+ * i18n decision note / add-a-language runbook).
+ */
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="es" className={`${inter.variable} ${jakarta.variable}`}>
       <body>
-        <JsonLd data={ORGANIZATION_SCHEMA} />
-        <JsonLd data={WEBSITE_SCHEMA} />
-        <Providers>
-          <div className="min-h-screen flex flex-col">
-            <Suspense fallback={<HeaderFallback />}>
-              <Header categories={categories} />
-            </Suspense>
-            <div className="flex-1">{children}</div>
-            <Footer categories={categories} />
-          </div>
-          <CookieBanner />
-          <GoogleAnalyticsMount gaId={process.env.GA_ID} />
-          <AnalyticsScripts />
-        </Providers>
+        <Providers>{children}</Providers>
       </body>
     </html>
   );
-}
-
-async function safeGetCategories() {
-  try {
-    return await getCategories();
-  } catch {
-    // If Supabase env is missing locally we still want the layout to render.
-    return [];
-  }
-}
-
-function HeaderFallback() {
-  return <div className="sticky top-0 z-50 h-[120px] bg-card border-b border-border" aria-hidden />;
 }

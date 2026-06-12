@@ -23,7 +23,6 @@ model User {
   email         String   @unique
   emailVerified Boolean  @default(false) @map("email_verified")
   image         String?
-  role          String   @default("user")
   createdAt     DateTime @default(now()) @map("created_at")
   updatedAt     DateTime @updatedAt @map("updated_at")
 
@@ -113,9 +112,10 @@ model Category {
   createdAt   DateTime @default(now()) @map("created_at")
   updatedAt   DateTime @updatedAt @map("updated_at")
 
-  parent   Category?  @relation("CategoryParent", fields: [parentId], references: [id], onDelete: SetNull)
-  children Category[] @relation("CategoryParent")
-  products Product[]
+  parent       Category?             @relation("CategoryParent", fields: [parentId], references: [id], onDelete: SetNull)
+  children     Category[]            @relation("CategoryParent")
+  products     Product[]
+  translations CategoryTranslation[]
 
   @@index([parentId])
   @@index([sortOrder])
@@ -133,12 +133,13 @@ model Product {
   isActive    Boolean  @default(true) @map("is_active")
   createdAt   DateTime @default(now()) @map("created_at")
 
-  brand    Brand          @relation(fields: [brandId], references: [id], onDelete: Restrict)
-  category Category       @relation(fields: [categoryId], references: [id], onDelete: Restrict)
-  images   ProductImage[]
-  offers   Offer[]
-  prices   PriceHistory[]
-  clicks   Click[]
+  brand        Brand                @relation(fields: [brandId], references: [id], onDelete: Restrict)
+  category     Category             @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+  images       ProductImage[]
+  offers       Offer[]
+  prices       PriceHistory[]
+  clicks       Click[]
+  translations ProductTranslation[]
 
   @@index([brandId])
   @@index([categoryId])
@@ -182,6 +183,7 @@ model Offer {
   price          Decimal   @db.Decimal(12, 2)
   oldPrice       Decimal?  @map("old_price") @db.Decimal(12, 2)
   currentPrice   Decimal?  @map("current_price") @db.Decimal(12, 2)
+  currency       String    @default("EUR")
   url            String
   stock          Boolean   @default(true)
   isActive       Boolean   @default(true) @map("is_active")
@@ -189,6 +191,13 @@ model Offer {
   sourceType     String    @default("manual") @map("source_type")
   updateMode     String    @default("manual") @map("update_mode")
   syncStatus     String    @default("ok") @map("sync_status")
+  // External-feed identity (e.g. an Amazon ASIN) for idempotent re-sync.
+  externalId       String? @map("external_id")
+  externalSource   String? @map("external_source")
+  availabilityType String? @map("availability_type")
+  isBuyBoxWinner   Boolean? @map("is_buy_box_winner")
+  // Source-specific extras (deal badge, savings %, violatesMAP, …).
+  metadata         Json     @default("{}")
   lastCheckedAt  DateTime? @map("last_checked_at")
   lastUpdatedBy  String?   @map("last_updated_by")
   nextCheckAt    DateTime? @map("next_check_at")
@@ -201,11 +210,46 @@ model Offer {
   product  Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
   merchant Merchant @relation(fields: [merchantId], references: [id], onDelete: Cascade)
 
+  @@unique([merchantId, externalId])
   @@index([productId])
   @@index([merchantId])
   @@index([syncStatus])
   @@index([nextCheckAt])
   @@map("offers")
+}
+
+// ─────────────────────────────────────────────────────────────────
+// Amazon scrape approval queue. New products discovered via the
+// Creators API land here and require human approval (brand + category
+// assignment) before they are published into the catalog. Price/stock
+// updates on already-imported products are handled automatically by the
+// sync cron and do NOT pass through this queue.
+// ─────────────────────────────────────────────────────────────────
+
+model AmazonScrapeCandidate {
+  id          String    @id @default(uuid()) @db.Uuid
+  asin        String    @unique
+  marketplace String    @default("www.amazon.es")
+  // pending | approved | rejected | imported
+  status      String    @default("pending")
+  // Normalized (mapped) product shape shown in the review UI.
+  normalized  Json      @default("{}")
+  // Full API item snapshot at discovery (transient; re-fetched on approval).
+  rawSnapshot Json      @default("{}")
+  // What surfaced it (search keywords / "asin" / "similar:<asin>").
+  sourceQuery   String? @map("source_query")
+  suggestedBrand String? @map("suggested_brand")
+  discoveredBy  String? @map("discovered_by")
+  // Set once approved & imported into the catalog.
+  productId   String?   @map("product_id") @db.Uuid
+  notes       String?
+  reviewedBy  String?   @map("reviewed_by")
+  reviewedAt  DateTime? @map("reviewed_at")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+
+  @@index([status, createdAt(sort: Desc)])
+  @@map("amazon_scrape_candidates")
 }
 
 model PriceHistory {
@@ -314,11 +358,75 @@ model EditorialArticle {
   createdAt            DateTime  @default(now()) @map("created_at")
   updatedAt            DateTime  @updatedAt @map("updated_at")
 
-  views ArticleViewEvent[]
+  views        ArticleViewEvent[]
+  translations EditorialArticleTranslation[]
 
   @@index([status, publishedAt(sort: Desc)])
   @@index([isFeatured, publishedAt(sort: Desc)])
   @@map("editorial_articles")
+}
+
+// ─────────────────────────────────────────────────────────────────
+// i18n sidecar translation tables (Phase 4).
+// Base rows above stay canonical (slugs, specs, offers, prices NEVER
+// translated). A `<locale>` row overlays display text only; readers fall
+// back to the base row when no translation exists. `es` is backfilled to
+// equal the base values, so the default-locale output is byte-identical.
+// ─────────────────────────────────────────────────────────────────
+
+model ProductTranslation {
+  id              String   @id @default(uuid()) @db.Uuid
+  productId       String   @map("product_id") @db.Uuid
+  locale          String
+  name            String
+  description     String
+  longDescription String?  @map("long_description")
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@unique([productId, locale])
+  @@index([locale])
+  @@map("product_translations")
+}
+
+model CategoryTranslation {
+  id          String   @id @default(uuid()) @db.Uuid
+  categoryId  String   @map("category_id") @db.Uuid
+  locale      String
+  name        String
+  // Reserved: not yet rendered. Category descriptions are meta-derived in
+  // buildCategories; the snapshot overlay applies only `name`.
+  description String?
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  category Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+
+  @@unique([categoryId, locale])
+  @@index([locale])
+  @@map("category_translations")
+}
+
+model EditorialArticleTranslation {
+  id            String   @id @default(uuid()) @db.Uuid
+  articleId     String   @map("article_id") @db.Uuid
+  locale        String
+  title         String
+  excerpt       String
+  coverImageAlt String?  @map("cover_image_alt")
+  categoryName  String   @map("category_name")
+  sections      Json     @default("[]")
+  tags          String[]
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  article EditorialArticle @relation(fields: [articleId], references: [id], onDelete: Cascade)
+
+  @@unique([articleId, locale])
+  @@index([locale])
+  @@map("editorial_article_translations")
 }
 
 // ─────────────────────────────────────────────────────────────────

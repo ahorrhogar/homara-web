@@ -3,6 +3,7 @@
 import Image from "next/image";
 import { useEffect, useRef, useState } from "react";
 import { Sparkles, ArrowRight, Search, Star, Award, DollarSign } from "lucide-react";
+import { useTranslations } from "next-intl";
 import ProductDestinationLink from "@/components/product/ProductDestinationLink";
 import { PRODUCT_IMAGE_FALLBACK } from "@/lib/productImage";
 import { buildAssistantRecommendations } from "@/domain/assistant/recommendation";
@@ -22,24 +23,27 @@ interface AssistantFormProps {
   products: Product[];
 }
 
-const PRIORITIES: Array<{ value: AssistantPriority; label: string; icon: React.ReactNode }> = [
-  { value: "price", label: "Mejor precio", icon: <DollarSign className="w-4 h-4" /> },
-  { value: "quality", label: "Mejor calidad", icon: <Award className="w-4 h-4" /> },
-  { value: "design", label: "Mejor diseño", icon: <Star className="w-4 h-4" /> },
-  { value: "balanced", label: "Equilibrado", icon: <Sparkles className="w-4 h-4" /> },
+const PRIORITIES: Array<{ value: AssistantPriority; key: string; icon: React.ReactNode }> = [
+  { value: "price", key: "price", icon: <DollarSign className="w-4 h-4" /> },
+  { value: "quality", key: "quality", icon: <Award className="w-4 h-4" /> },
+  { value: "design", key: "design", icon: <Star className="w-4 h-4" /> },
+  { value: "balanced", key: "balanced", icon: <Sparkles className="w-4 h-4" /> },
 ];
 
-const TAG_LABELS: Record<string, { label: string; className: string }> = {
-  "best-value": { label: "💎 Mejor calidad-precio", className: "bg-accent/10 text-accent" },
-  cheapest: { label: "💰 Opción económica", className: "bg-deal/10 text-deal" },
-  premium: { label: "⭐ Opción premium", className: "bg-primary/10 text-primary" },
-  recommended: { label: "🏆 Recomendado", className: "bg-accent/10 text-accent" },
+const TAG_META: Record<string, { key: string; className: string }> = {
+  "best-value": { key: "bestValue", className: "bg-accent/10 text-accent" },
+  cheapest: { key: "cheapest", className: "bg-deal/10 text-deal" },
+  premium: { key: "premium", className: "bg-primary/10 text-primary" },
+  recommended: { key: "recommended", className: "bg-accent/10 text-accent" },
 };
 
 const BUDGET_DEBOUNCE_MS = 400;
 const ASSISTANT_RESULTS_LIST_NAME = "assistant_results";
 
 export function AssistantForm({ categories, styles, products }: AssistantFormProps) {
+  const t = useTranslations("assistant");
+  const tPriority = useTranslations("assistant.priorities");
+  const tTag = useTranslations("assistant.tags");
   const [budget, setBudget] = useState(500);
   const [categoryId, setCategoryId] = useState("");
   const [style, setStyle] = useState("");
@@ -156,16 +160,16 @@ export function AssistantForm({ categories, styles, products }: AssistantFormPro
         <div className="w-16 h-16 rounded-2xl bg-accent/10 text-accent flex items-center justify-center mx-auto mb-4">
           <Sparkles className="w-8 h-8" />
         </div>
-        <h1 className="font-display text-2xl md:text-3xl font-bold text-foreground mb-2">Asistente de compras</h1>
+        <h1 className="font-display text-2xl md:text-3xl font-bold text-foreground mb-2">{t("title")}</h1>
         <p className="text-muted-foreground">
-          Cuéntanos qué necesitas y te recomendamos los mejores productos según tu presupuesto y preferencias.
+          {t("subtitle")}
         </p>
       </div>
 
       <div className="max-w-2xl mx-auto mb-12">
         <div className="bg-card border border-border rounded-2xl p-6 space-y-5">
           <label className="block">
-            <span className="block text-sm font-medium text-foreground mb-1.5">Presupuesto máximo (€)</span>
+            <span className="block text-sm font-medium text-foreground mb-1.5">{t("budgetLabel")}</span>
             <input
               type="number"
               value={budget}
@@ -177,7 +181,7 @@ export function AssistantForm({ categories, styles, products }: AssistantFormPro
           </label>
 
           <label className="block">
-            <span className="block text-sm font-medium text-foreground mb-1.5">Categoría</span>
+            <span className="block text-sm font-medium text-foreground mb-1.5">{t("categoryLabel")}</span>
             <select
               value={categoryId}
               onChange={(e) => {
@@ -186,7 +190,7 @@ export function AssistantForm({ categories, styles, products }: AssistantFormPro
               }}
               className="w-full px-4 py-2.5 rounded-xl border border-border bg-secondary/30 text-foreground focus:outline-none focus:ring-2 focus:ring-accent/50"
             >
-              <option value="">Todas las categorías</option>
+              <option value="">{t("allCategories")}</option>
               {categories.map((category) => (
                 <option key={category.id} value={category.id}>
                   {category.name} ({category.productCount})
@@ -197,7 +201,7 @@ export function AssistantForm({ categories, styles, products }: AssistantFormPro
 
           {styles.length > 0 ? (
             <div>
-              <span className="block text-sm font-medium text-foreground mb-1.5">Estilo preferido</span>
+              <span className="block text-sm font-medium text-foreground mb-1.5">{t("styleLabel")}</span>
               <div className="flex flex-wrap gap-2">
                 {styles.map((s) => (
                   <button
@@ -221,7 +225,7 @@ export function AssistantForm({ categories, styles, products }: AssistantFormPro
           ) : null}
 
           <div>
-            <span className="block text-sm font-medium text-foreground mb-1.5">¿Qué priorizas?</span>
+            <span className="block text-sm font-medium text-foreground mb-1.5">{t("priorityLabel")}</span>
             <div className="grid grid-cols-2 gap-2">
               {PRIORITIES.map((p) => (
                 <button
@@ -238,7 +242,7 @@ export function AssistantForm({ categories, styles, products }: AssistantFormPro
                   }`}
                 >
                   {p.icon}
-                  {p.label}
+                  {tPriority(p.key)}
                 </button>
               ))}
             </div>
@@ -249,7 +253,7 @@ export function AssistantForm({ categories, styles, products }: AssistantFormPro
             onClick={handleSearch}
             className="w-full flex items-center justify-center gap-2 px-6 py-3.5 rounded-xl bg-accent text-accent-foreground font-semibold hover:opacity-90 transition-all shadow-glow"
           >
-            <Search className="w-4 h-4" /> Buscar recomendaciones
+            <Search className="w-4 h-4" /> {t("searchButton")}
           </button>
         </div>
       </div>
@@ -258,17 +262,17 @@ export function AssistantForm({ categories, styles, products }: AssistantFormPro
         <div className="max-w-4xl mx-auto mb-16 animate-slide-up">
           <h3 className="font-display text-xl font-bold text-foreground mb-6">
             {results.length > 0
-              ? `Top ${results.length} recomendaciones para ti`
-              : "No encontramos resultados"}
+              ? t("resultsTitle", { count: results.length })
+              : t("noResultsTitle")}
           </h3>
 
           {results.length === 0 ? (
             <div className="text-center py-12 bg-card rounded-2xl border border-border">
               <p className="text-muted-foreground mb-2">
-                No hay productos que encajen con tu presupuesto y filtros.
+                {t("noResultsBody")}
               </p>
               <p className="text-sm text-muted-foreground">
-                Prueba a aumentar el presupuesto o cambiar la categoría.
+                {t("noResultsHint")}
               </p>
             </div>
           ) : (
@@ -276,7 +280,7 @@ export function AssistantForm({ categories, styles, products }: AssistantFormPro
               {results.map((result, index) => {
                 const previewImage =
                   result.product.images.find((image) => Boolean(image)) || PRODUCT_IMAGE_FALLBACK;
-                const tag = result.tag ? TAG_LABELS[result.tag] : undefined;
+                const tagMeta = result.tag ? TAG_META[result.tag] : undefined;
 
                 return (
                   <div
@@ -297,9 +301,9 @@ export function AssistantForm({ categories, styles, products }: AssistantFormPro
                     <div className="flex-1 min-w-0">
                       <div className="flex items-start justify-between gap-2 mb-1">
                         <div>
-                          {tag ? (
-                            <span className={`inline-block px-2 py-0.5 rounded-md text-xs font-bold mb-1 ${tag.className}`}>
-                              {tag.label}
+                          {tagMeta ? (
+                            <span className={`inline-block px-2 py-0.5 rounded-md text-xs font-bold mb-1 ${tagMeta.className}`}>
+                              {tTag(tagMeta.key)}
                             </span>
                           ) : null}
                           <h4 className="font-semibold text-foreground group-hover:text-accent transition-colors">
@@ -324,7 +328,7 @@ export function AssistantForm({ categories, styles, products }: AssistantFormPro
                           onClick={() => handleResultClick({ result, index })}
                           className="text-sm font-medium text-accent hover:underline flex items-center gap-1"
                         >
-                          Ver producto <ArrowRight className="w-3 h-3" />
+                          {t("viewProduct")} <ArrowRight className="w-3 h-3" />
                         </ProductDestinationLink>
                       </div>
                     </div>
